@@ -6,86 +6,167 @@ import (
 )
 
 templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, successMsg string, errMsg string) {
-	<div class="space-y-6">
-		if errMsg != "" {
-			<div role="alert" class="alert alert-error mb-4">{ errMsg }</div>
-		}
-		if successMsg != "" {
-			<div role="alert" class="alert alert-success mb-4">{ successMsg }</div>
-		}
-		<div class="flex items-center justify-between">
+	<div>
+		<div class="flex justify-between items-center mb-4">
 			<div>
-				<h1 class="text-3xl font-bold">{ g.Name }</h1>
+				<h2 class="font-heading text-3xl text-pitch">{ g.Name }</h2>
 				if g.Description != nil {
-					<p class="text-base-content/60 mt-1">{ *g.Description }</p>
+					<p class="text-ink/60 font-body text-sm mt-1">{ *g.Description }</p>
 				}
 			</div>
 			if isAdmin {
 				<div class="flex gap-2">
-					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="btn btn-outline btn-sm">Edit</a>
-					<button class="btn btn-outline btn-error btn-sm" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group?" hx-target="body">Delete</button>
+					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="btn btn-outline btn-sm font-heading text-nutmeg border-nutmeg">Edit</a>
+					<button class="btn btn-outline btn-sm font-heading text-error border-error" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group?" hx-target="body">Delete</button>
 				</div>
 			}
 		</div>
-
-		<div class="card bg-base-100 shadow-xl">
-			<div class="card-body">
-				<h2 class="card-title">Members</h2>
-				<div class="overflow-x-auto">
-					<table class="table">
-						<thead>
-							<tr>
-								<th>Name</th>
-								<th>Email</th>
-								<th>Role</th>
-								if isAdmin {
-									<th></th>
-								}
-							</tr>
-						</thead>
-						<tbody>
-							for _, m := range members {
-								<tr>
-									<td>
-										if m.FirstName != "" || m.LastName != "" {
-											{ m.FirstName } { m.LastName }
-										} else {
-											<span class="text-base-content/60 italic">No name set</span>
-										}
-									</td>
-									<td>{ m.Email }</td>
-									<td>
-										if m.Role == "admin" {
-											<span class="badge badge-primary">Admin</span>
-										} else {
-											<span class="badge">Member</span>
-										}
-									</td>
-									if isAdmin {
-										<td>
-											if m.Role != "admin" {
-												<button class="btn btn-ghost btn-xs text-error" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-confirm="Remove this member?" hx-target="body">Remove</button>
-											}
-										</td>
-									}
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
-				if isAdmin {
-					<div class="divider">Add Member</div>
-					<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 items-end">
-						<label class="form-control flex-1">
-							<div class="label">
-								<span class="label-text">Email</span>
-							</div>
-							<input type="email" name="email" placeholder="Enter member's email" class="input input-bordered input-sm w-full" required />
-						</label>
-						<button type="submit" class="btn btn-primary btn-sm">Add</button>
-					</form>
-				}
-			</div>
+		if errMsg != "" {
+			<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
+		}
+		if successMsg != "" {
+			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
+		}
+		<div role="tablist" class="tabs tabs-lifted mb-4">
+			<a role="tab" class="tab tab-active font-heading text-sm" hx-get={ templ.URL("/groups/" + g.ID + "/manage") } hx-target="#group-tab-content">Manage</a>
+			<a role="tab" class="tab font-heading text-sm" hx-get={ templ.URL("/groups/" + g.ID + "/stats") } hx-target="#group-tab-content">Stats</a>
+			<a role="tab" class="tab font-heading text-sm" hx-get={ templ.URL("/groups/" + g.ID + "/matches") } hx-target="#group-tab-content">Matches</a>
+		</div>
+		<div id="group-tab-content">
+			@ManageTab(g, members, isAdmin)
 		</div>
 	</div>
+}
+
+templ ManageTab(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
+	<div class="bg-white p-6 rounded-xl border border-base-200">
+		<div class="flex items-center justify-between mb-4">
+			<h3 class="font-heading text-lg text-pitch">Members ({ len(members) })</h3>
+			if isAdmin {
+				<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 items-center">
+					<input type="email" name="email" placeholder="Add by email" class="input input-bordered input-sm w-48" required />
+					<button type="submit" class="btn bg-turf text-chalk font-heading text-xs px-3 py-1.5 h-auto min-h-0 rounded-lg">Add</button>
+				</form>
+			}
+		</div>
+		<div class="overflow-x-auto">
+			<table class="table w-full text-sm">
+				<thead>
+					<tr>
+						<th class="font-heading text-ink/60">Name</th>
+						<th class="font-heading text-ink/60">Email</th>
+						<th class="font-heading text-ink/60">Role</th>
+						if isAdmin {
+							<th></th>
+						}
+					</tr>
+				</thead>
+				<tbody>
+					for _, m := range members {
+						<tr>
+							<td class="font-semibold">
+								if m.FirstName != "" || m.LastName != "" {
+									{ m.FirstName } { m.LastName }
+								} else {
+									<span class="text-ink/40 italic">No name set</span>
+								}
+							</td>
+							<td>{ m.Email }</td>
+							<td>
+								if m.Role == "admin" {
+									<span class="badge badge-sm bg-pitch text-chalk border-none font-heading text-xs">Admin</span>
+								} else {
+									<span class="badge badge-sm bg-base-300 text-ink/70 border-none font-heading text-xs">Member</span>
+								}
+							</td>
+							if isAdmin {
+								<td>
+									if m.Role != "admin" {
+										<button class="btn btn-ghost btn-xs text-error" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-confirm="Remove this member?" hx-target="body">Remove</button>
+									}
+								</td>
+							}
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+templ StatsTab(g *model.Group, leaderboard []LeaderboardEntry) {
+	<div class="bg-white p-6 rounded-xl border border-base-200">
+		<h3 class="font-heading text-lg text-pitch mb-4">Leaderboard</h3>
+		if len(leaderboard) == 0 {
+			<p class="text-ink/50 font-body">No match data yet.</p>
+		} else {
+			<div class="overflow-x-auto">
+				<table class="table w-full text-sm">
+					<thead>
+						<tr>
+							<th class="font-heading text-ink/60">Player</th>
+							<th class="font-heading text-ink/60">Wins</th>
+							<th class="font-heading text-ink/60">Losses</th>
+							<th class="font-heading text-ink/60">Goals</th>
+							<th class="font-heading text-ink/60">Assists</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, p := range leaderboard {
+							<tr>
+								<td class="font-semibold">{ p.Name }</td>
+								<td class="stat-number text-turf">{ p.Wins }</td>
+								<td class="stat-number">{ p.Losses }</td>
+								<td class="stat-number text-turf">{ p.Goals }</td>
+								<td class="stat-number text-nutmeg">{ p.Assists }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+templ MatchesTab(g *model.Group, matches []MatchEntry) {
+	<div class="bg-white p-6 rounded-xl border border-base-200">
+		<div class="flex justify-between items-center mb-4">
+			<h3 class="font-heading text-lg text-pitch">Matches</h3>
+			<button class="btn bg-turf text-chalk font-heading text-sm px-3 py-1.5 h-auto min-h-0 rounded-lg" hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#match-modal-container" hx-swap="innerHTML">+ Log Match</button>
+		</div>
+		if len(matches) == 0 {
+			<p class="text-ink/50 font-body text-center py-8">No matches logged yet.</p>
+		} else {
+			<div class="space-y-2">
+				for _, m := range matches {
+					<div class="flex justify-between items-center p-3 bg-base-100 rounded-lg border border-base-200">
+						<div>
+							<span class="font-heading text-sm text-pitch">{ m.TeamA } { m.ScoreA } - { m.ScoreB } { m.TeamB }</span>
+						</div>
+						<div class="flex items-center gap-3">
+							<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
+							<button class="btn btn-ghost btn-xs text-error" hx-delete={ templ.URL("/groups/" + g.ID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">✕</button>
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}
+
+type LeaderboardEntry struct {
+	Name    string
+	Wins    int
+	Losses  int
+	Goals   int
+	Assists int
+}
+
+type MatchEntry struct {
+	ID     string
+	TeamA  string
+	TeamB  string
+	ScoreA int
+	ScoreB int
+	Date   string
 }

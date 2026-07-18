@@ -8,17 +8,24 @@ import (
 	"nutmeg/internal/repository"
 )
 
-func Register(e *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository) {
+func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository) {
 	h := handler.New(auth, repo)
 
-	e.GET("/", h.Home.Index)
-	e.GET("/groups", h.Group.Index)
-	e.GET("/groups/new", h.Group.New)
-	e.POST("/groups", h.Group.Create)
-	e.GET("/groups/:id", h.Group.Detail)
-	e.GET("/groups/:id/edit", h.Group.Edit)
-	e.POST("/groups/:id", h.Group.Update)
-	e.DELETE("/groups/:id", h.Group.Delete)
-	e.POST("/groups/:id/members", h.Group.AddMember)
-	e.DELETE("/groups/:id/members/:uid", h.Group.RemoveMember)
+	app.GET("/dashboard", h.Home.Dashboard)
+	app.GET("/stats", h.Home.Stats)
+	app.GET("/groups", h.Group.Index)
+	app.GET("/groups/new", h.Group.New)
+	app.POST("/groups", h.Group.Create)
+	app.GET("/groups/:id", h.Group.Detail)
+	app.GET("/groups/:id/edit", h.Group.Edit)
+	app.POST("/groups/:id", h.Group.Update)
+	app.DELETE("/groups/:id", h.Group.Delete)
+	app.POST("/groups/:id/members", h.Group.AddMember)
+	app.DELETE("/groups/:id/members/:uid", h.Group.RemoveMember)
+	app.GET("/groups/:id/manage", h.Group.ManageTab)
+	app.GET("/groups/:id/stats", h.Group.StatsTab)
+	app.GET("/groups/:id/matches", h.Group.MatchesTab)
+	app.GET("/groups/:id/match-modal", h.Match.LogMatchModal)
+	app.POST("/groups/:id/matches", h.Match.Create)
+	app.DELETE("/groups/:id/matches/:mid", h.Match.Delete)
 }

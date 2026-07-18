@@ -1,79 +1,97 @@
 package layout
 
-templ Base(title string, isLoggedIn bool, currentGroupID string) {
+templ Base(title string, isLoggedIn bool, currentGroupID string, userName string) {
 	<!DOCTYPE html>
-	<html lang="en" data-theme="light">
+	<html lang="en">
 		<head>
 			<meta charset="UTF-8" />
 			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-			<title>{ title } - Soccer Stats</title>
-			<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+			<title>{ title } - Nutmeg</title>
+			<meta name="description" content="Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists." />
+			<link rel="preconnect" href="https://fonts.googleapis.com" />
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5/dist/full.css" rel="stylesheet" />
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.4" type="text/javascript"></script>
-			<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+			<link href="/static/css/input.css" rel="stylesheet" />
 		</head>
-		<body class="min-h-screen bg-base-200">
-			<div class="drawer lg:drawer-open">
-				<input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
-				<div class="drawer-content flex flex-col">
-					<nav class="navbar bg-base-100 shadow-sm">
-						<div class="flex-none lg:hidden">
-							<label for="sidebar-drawer" class="btn btn-ghost btn-square">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-								</svg>
-							</label>
+		<body class="min-h-screen antialiased">
+			if isLoggedIn {
+				<header id="app-header" class="sticky top-0 z-50 bg-chalk/95 backdrop-blur-sm border-b border-base-300/60 shadow-sm">
+					<div class="flex items-center justify-between px-4 sm:px-6 h-16 max-w-full">
+						<div class="flex items-center gap-2">
+							<button onclick="toggleSidebar()" class="btn btn-ghost btn-sm p-1.5 lg:hidden" aria-label="Toggle menu">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+							</button>
+							<a href="/dashboard" class="font-heading text-xl font-bold text-pitch tracking-wider">NUTMEG</a>
 						</div>
-						<div class="flex-1">
-							<a class="text-xl font-bold" href="/">Soccer Stats</a>
-						</div>
-						if isLoggedIn {
-							<div class="flex-none">
-								<a href="/groups" class="btn btn-ghost">My Groups</a>
-							</div>
-						}
-					</nav>
-					<main class="p-4 lg:p-6">
-						{ children... }
-					</main>
-				</div>
-				if isLoggedIn {
-					<div class="drawer-side">
-						<label for="sidebar-drawer" class="drawer-overlay"></label>
-						<ul class="menu bg-base-100 text-base-content min-h-full w-64 p-4 gap-1">
-							<li class="menu-title text-lg font-bold">Soccer Stats</li>
-							<li><a href="/groups">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-								</svg>
-								Groups
-							</a></li>
-							if currentGroupID != "" {
-								<li><a href={ templ.URL("/groups/" + currentGroupID + "/teams") }>
-									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-									</svg>
-									Teams
-								</a></li>
-								<li><a href={ templ.URL("/groups/" + currentGroupID + "/matches") }>
-									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
-									</svg>
-									Matches
-								</a></li>
-								<li><a href={ templ.URL("/groups/" + currentGroupID + "/stats") }>
-									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-									</svg>
-									Stats
-								</a></li>
+						<div class="flex items-center gap-3">
+							if userName != "" {
+								<span class="text-sm font-body text-ink/70 hidden sm:block">{ userName }</span>
 							}
-							<div class="divider"></div>
-							<li><a href="/auth/logout">Logout</a></li>
-						</ul>
+							<a href="/auth/logout" class="btn btn-ghost btn-sm font-heading text-nutmeg">Logout</a>
+						</div>
 					</div>
-				}
-			</div>
+				</header>
+			} else {
+				<header id="public-header" class="sticky top-0 z-50 bg-chalk/95 backdrop-blur-sm border-b border-base-300/60 shadow-sm">
+					<nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16" aria-label="Main navigation">
+						<a href="/" class="flex items-center gap-2 cursor-pointer">
+							<span class="font-heading text-2xl font-bold text-pitch tracking-wider">NUTMEG</span>
+							<span class="hidden sm:inline-block text-xs font-mono text-nutmeg bg-base-200 px-2 py-0.5 rounded-full">v1.0</span>
+						</a>
+						<ul class="flex items-center gap-1 sm:gap-2 md:gap-4 text-sm font-heading tracking-wide">
+							<li><a href="/#features" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">Features</a></li>
+							<li><a href="/#how-it-works" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">How It Works</a></li>
+							<li><a href="/#open-source" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">Open Source</a></li>
+							<li><a href="/login" class="nav-link px-3 py-1.5 bg-gold text-ink font-semibold rounded-md hover:bg-gold/80">Sign In</a></li>
+						</ul>
+					</nav>
+				</header>
+			}
+			if isLoggedIn {
+				<aside id="app-sidebar" class="fixed left-0 top-16 z-40 w-64 h-[calc(100vh-4rem)] bg-base-200 border-r border-base-300 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shadow-sm">
+					<nav class="p-4 flex flex-col gap-1 h-full" aria-label="App navigation">
+						<a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+							Dashboard
+						</a>
+						<a href="/stats" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+							My Stats
+						</a>
+						<a href="/groups" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+							Groups
+						</a>
+						<div class="mt-auto pt-4 border-t border-base-300 text-xs text-ink/40 font-mono">
+							Nutmeg v1.0 &middot; MIT
+						</div>
+					</nav>
+				</aside>
+				<div id="sidebar-overlay" class="fixed inset-0 z-30 bg-black/20 lg:hidden hidden"></div>
+			}
+			<main class={ "transition-all duration-200 min-h-screen", conditionalClass(isLoggedIn, "lg:ml-64") }>
+				{ children... }
+			</main>
+			if isLoggedIn {
+				<dialog id="match-modal" class="modal">
+					<div class="modal-box bg-white rounded-xl max-w-lg">
+						<div id="match-modal-container"></div>
+						<button onclick="document.getElementById('match-modal').close()" class="btn btn-sm btn-ghost absolute top-2 right-2">✕</button>
+					</div>
+				</dialog>
+			}
+			<div class="toast-container" id="toast-container"></div>
+			<script src="/static/js/main.js"></script>
 		</body>
 	</html>
+}
+
+func conditionalClass(cond bool, cls string) string {
+	if cond {
+		return cls
+	}
+	return ""
 }

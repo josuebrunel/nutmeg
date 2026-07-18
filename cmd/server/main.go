@@ -50,7 +50,7 @@ func main() {
 		slog.Error("failed to load ezauth config", "error", err)
 		os.Exit(1)
 	}
-	authCfg.Redirects.AfterLogin = "/"
+	authCfg.Redirects.AfterLogin = "/dashboard"
 	authCfg.Pages.Login = "/login"
 	authCfg.Pages.Register = "/register"
 	authCfg.Debug = true
@@ -76,9 +76,12 @@ func main() {
 
 	h := handler.New(auth, repo)
 
+	// Public routes
+	e.GET("/", h.Home.Landing)
 	e.GET("/login", h.Auth.Login)
 	e.GET("/register", h.Auth.Register)
 
+	// Authenticated routes
 	app := e.Group("")
 	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
 	router.Register(app, auth, repo)

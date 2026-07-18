@@ -18,11 +18,11 @@ func NewAuthHandler(auth *ezauth.EzAuth) *AuthHandler {
 func (h *AuthHandler) Login(c *echo.Context) error {
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 	sucMsg := h.auth.GetSuccessMessage(c.Request().Context())
-	return page(c, "Sign In - Soccer Stats", false, "", auth.Login(errMsg, sucMsg))
+	return page(c, "Sign In", false, "", "", auth.Login(errMsg, sucMsg))
 }
 
 func (h *AuthHandler) Register(c *echo.Context) error {
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 	sucMsg := h.auth.GetSuccessMessage(c.Request().Context())
-	return page(c, "Sign Up - Soccer Stats", false, "", auth.Register(errMsg, sucMsg))
+	return page(c, "Create Account", false, "", "", auth.Register(errMsg, sucMsg))
 }

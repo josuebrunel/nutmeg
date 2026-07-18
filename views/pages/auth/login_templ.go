@@ -29,19 +29,19 @@ func Login(errMsg string, sucMsg string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"min-h-screen flex items-center justify-center py-12 px-6\"><div class=\"card bg-base-100 w-full max-w-md shadow-xl\"><div class=\"card-body p-8\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"min-h-[80vh] flex items-center justify-center py-12 px-4\"><div class=\"bg-white p-8 rounded-xl shadow-lg border border-base-200 w-full max-w-md\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if errMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"alert\" class=\"alert alert-error mb-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"alert\" class=\"bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 8, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 7, Col: 99}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -53,14 +53,14 @@ func Login(errMsg string, sucMsg string) templ.Component {
 			}
 		}
 		if sucMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div role=\"alert\" class=\"alert alert-success mb-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div role=\"alert\" class=\"bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sucMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 11, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 10, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -71,7 +71,7 @@ func Login(errMsg string, sucMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h1 class=\"text-3xl font-bold text-center mb-2\">Sign In</h1><p class=\"text-center text-base-content/60 mb-8\">Sign in to your Soccer Stats account</p><form method=\"POST\" action=\"/auth/login\" class=\"space-y-4\"><label class=\"form-control w-full\"><div class=\"label\"><span class=\"label-text\">Email</span></div><input type=\"email\" name=\"email\" placeholder=\"you@example.com\" class=\"input input-bordered w-full\" required></label> <label class=\"form-control w-full\"><div class=\"label\"><span class=\"label-text\">Password</span></div><input type=\"password\" name=\"password\" placeholder=\"••••••••\" class=\"input input-bordered w-full\" required></label> <button type=\"submit\" class=\"btn btn-primary w-full\">Sign In</button></form><p class=\"text-center mt-6 text-sm text-base-content/60\">Don't have an account? <a href=\"/register\" class=\"link link-primary\">Create one</a></p></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-heading text-2xl text-pitch mb-6\">Sign In</h2><form method=\"POST\" action=\"/auth/login\" class=\"flex flex-col gap-4\"><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Email</label> <input type=\"email\" name=\"email\" required class=\"input input-bordered w-full bg-base-100\" placeholder=\"player@example.com\"></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Password</label> <input type=\"password\" name=\"password\" required class=\"input input-bordered w-full bg-base-100\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"btn bg-pitch text-chalk font-heading tracking-wider w-full\">Sign In</button></form><p class=\"mt-4 text-sm text-center text-ink/60 font-body\">No account? <a href=\"/register\" class=\"text-nutmeg font-semibold hover:underline\">Sign up</a></p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

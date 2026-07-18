@@ -8,19 +8,21 @@ import (
 	"github.com/labstack/echo/v5"
 
 	"nutmeg/internal/model"
+	"nutmeg/internal/render"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
 	"nutmeg/views/pages/groups"
 )
 
 type GroupHandler struct {
-	auth    *ezauth.EzAuth
-	service *service.GroupService
-	repo    *repository.Repository
+	auth        *ezauth.EzAuth
+	service     *service.GroupService
+	matchSvc    *service.MatchService
+	repo        *repository.Repository
 }
 
-func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, repo *repository.Repository) *GroupHandler {
-	return &GroupHandler{auth: auth, service: svc, repo: repo}
+func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository) *GroupHandler {
+	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo}
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
@@ -34,11 +36,11 @@ func (h *GroupHandler) Index(c *echo.Context) error {
 		return err
 	}
 
-	return page(c, "My Groups - Soccer Stats", true, "", groups.List(list))
+	return page(c, "My Groups", true, "", h.userName(c), groups.List(list))
 }
 
 func (h *GroupHandler) New(c *echo.Context) error {
-	return page(c, "New Group - Soccer Stats", true, "", groups.Form("", nil))
+	return page(c, "New Group", true, "", h.userName(c), groups.Form("", nil))
 }
 
 func (h *GroupHandler) Create(c *echo.Context) error {
@@ -49,7 +51,7 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 
 	name := c.FormValue("name")
 	if name == "" {
-		return page(c, "New Group - Soccer Stats", true, "", groups.Form("", &groups.FormData{Error: "Name is required"}))
+		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Error: "Name is required"}))
 	}
 
 	desc := c.FormValue("description")
@@ -60,7 +62,7 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 
 	g, err := h.service.Create(c.Request().Context(), name, descPtr, userID)
 	if err != nil {
-		return page(c, "New Group - Soccer Stats", true, "", groups.Form("", &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
+		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
 	}
 
 	return c.Redirect(http.StatusFound, "/groups/"+g.ID)
@@ -78,21 +80,12 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	isAdmin := false
-	if err == nil {
-		for _, m := range members {
-			if m.UserID == userID && m.Role == "admin" {
-				isAdmin = true
-				break
-			}
-		}
-	}
+	isAdmin := h.isAdmin(c, members)
 
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name+" - Soccer Stats", true, g.ID, groups.Detail(g, members, isAdmin, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, isAdmin, successMsg, errMsg))
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
@@ -102,7 +95,7 @@ func (h *GroupHandler) Edit(c *echo.Context) error {
 		return err
 	}
 
-	return page(c, "Edit Group - Soccer Stats", true, g.ID, groups.Form(g.ID, &groups.FormData{
+	return page(c, "Edit Group", true, g.ID, h.userName(c), groups.Form(g.ID, &groups.FormData{
 		Name:        g.Name,
 		Description: stringPtrValue(g.Description),
 	}))
@@ -117,7 +110,7 @@ func (h *GroupHandler) Update(c *echo.Context) error {
 	id := c.Param("id")
 	name := c.FormValue("name")
 	if name == "" {
-		return page(c, "Edit Group - Soccer Stats", true, id, groups.Form(id, &groups.FormData{Error: "Name is required"}))
+		return page(c, "Edit Group", true, id, h.userName(c), groups.Form(id, &groups.FormData{Error: "Name is required"}))
 	}
 
 	g, err := h.service.Get(c.Request().Context(), id)
@@ -134,7 +127,7 @@ func (h *GroupHandler) Update(c *echo.Context) error {
 	}
 
 	if err := h.service.Update(c.Request().Context(), g, userID); err != nil {
-		return page(c, "Edit Group - Soccer Stats", true, id, groups.Form(id, &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
+		return page(c, "Edit Group", true, id, h.userName(c), groups.Form(id, &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
 	}
 
 	return c.Redirect(http.StatusFound, "/groups/"+id)
@@ -157,6 +150,74 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/groups")
 }
 
+func (h *GroupHandler) ManageTab(c *echo.Context) error {
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	members, err := h.service.Members(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	isAdmin := h.isAdmin(c, members)
+
+	return render.Component(c, groups.ManageTab(g, members, isAdmin))
+}
+
+func (h *GroupHandler) StatsTab(c *echo.Context) error {
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	leaderboard, err := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	entries := make([]groups.LeaderboardEntry, len(leaderboard))
+	for i, e := range leaderboard {
+		entries[i] = groups.LeaderboardEntry{
+			Name:    e.Name,
+			Wins:    e.Wins,
+			Losses:  e.Losses,
+			Goals:   e.Goals,
+			Assists: e.Assists,
+		}
+	}
+	return render.Component(c, groups.StatsTab(g, entries))
+}
+
+func (h *GroupHandler) MatchesTab(c *echo.Context) error {
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	matches, err := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	entries := make([]groups.MatchEntry, len(matches))
+	for i, m := range matches {
+		entries[i] = groups.MatchEntry{
+			ID:     m.ID,
+			TeamA:  m.TeamAName,
+			TeamB:  m.TeamBName,
+			ScoreA: m.ScoreA,
+			ScoreB: m.ScoreB,
+			Date:   m.PlayedAt.Format("2006-01-02"),
+		}
+	}
+	return render.Component(c, groups.MatchesTab(g, entries))
+}
+
 func (h *GroupHandler) AddMember(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -173,11 +234,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	ctx := c.Request().Context()
 	targetUserID, err := h.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		// User does not exist, simulate sending invitation email
 		slog.Info("Simulating sending invitation email", "email", email, "group_id", id)
-
-		// TODO: Send invitation email to email to register an account
-
 		h.auth.Handler.SetFlash(ctx, "success", "User with email "+email+" does not exist. An invitation email was sent to them!")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
@@ -205,6 +262,30 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+func (h *GroupHandler) userName(c *echo.Context) string {
+	user, err := ezauth.GetUser(c.Request().Context())
+	if err != nil {
+		return ""
+	}
+	if user.FirstName != "" || user.LastName != "" {
+		return user.FirstName + " " + user.LastName
+	}
+	return user.Email
+}
+
+func (h *GroupHandler) isAdmin(c *echo.Context, members []repository.MemberInfo) bool {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return false
+	}
+	for _, m := range members {
+		if m.UserID == userID && m.Role == "admin" {
+			return true
+		}
+	}
+	return false
 }
 
 func stringPtrValue(s *string) string {

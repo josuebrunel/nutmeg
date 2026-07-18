@@ -52,13 +52,24 @@ CREATE TABLE IF NOT EXISTS match_events (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS match_players (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_id UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    team_id UUID NOT NULL REFERENCES teams(id),
+    player_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(match_id, player_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_group_players_group ON group_players(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_players_user ON group_players(user_id);
 CREATE INDEX IF NOT EXISTS idx_teams_group ON teams(group_id);
 CREATE INDEX IF NOT EXISTS idx_matches_group ON matches(group_id);
 CREATE INDEX IF NOT EXISTS idx_match_events_match ON match_events(match_id);
+CREATE INDEX IF NOT EXISTS idx_match_players_match ON match_players(match_id);
 
 -- +goose Down
+DROP TABLE IF EXISTS match_players CASCADE;
 DROP TABLE IF EXISTS match_events CASCADE;
 DROP TABLE IF EXISTS matches CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;

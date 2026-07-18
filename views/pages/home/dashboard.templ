@@ -1,16 +1,45 @@
 package home
 
-templ Dashboard() {
-	<div class="hero min-h-[60vh]">
-		<div class="hero-content text-center">
-			<div class="max-w-md">
-				<h1 class="text-5xl font-bold">Welcome to Soccer Stats</h1>
-				<p class="py-6 text-base-content/60">
-					Track matches, stats, and results for your soccer group.
-					Create or join a group to get started.
-				</p>
-				<a href="/groups" class="btn btn-primary">My Groups</a>
+import "nutmeg/internal/model"
+
+templ Dashboard(groups []*model.Group) {
+	<div>
+		<h2 class="font-heading text-3xl text-pitch mb-6">Dashboard</h2>
+		<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+			<div class="bg-white rounded-xl p-4 shadow-sm border border-base-200">
+				<span class="text-ink/60 text-sm font-body">Groups</span>
+				<div class="stat-number text-3xl font-bold text-pitch">{ len(groups) }</div>
 			</div>
+			<div class="bg-white rounded-xl p-4 shadow-sm border border-base-200">
+				<span class="text-ink/60 text-sm font-body">Total Matches</span>
+				<div class="stat-number text-3xl font-bold text-turf">0</div>
+			</div>
+			<div class="bg-white rounded-xl p-4 shadow-sm border border-base-200">
+				<span class="text-ink/60 text-sm font-body">Total Goals</span>
+				<div class="stat-number text-3xl font-bold text-nutmeg">0</div>
+			</div>
+			<div class="bg-white rounded-xl p-4 shadow-sm border border-base-200">
+				<span class="text-ink/60 text-sm font-body">Wins / Losses</span>
+				<div class="stat-number text-3xl font-bold text-gold">0-0</div>
+			</div>
+		</div>
+		<div class="bg-white rounded-xl p-6 shadow-sm border border-base-200">
+			<h3 class="font-heading text-lg text-pitch mb-3">Your Groups</h3>
+			if len(groups) == 0 {
+				<div class="text-center py-8">
+					<p class="text-ink/50 font-body mb-4">You haven't joined any groups yet.</p>
+					<a href="/groups/new" class="btn bg-turf text-chalk font-heading text-sm px-5 py-2.5 h-auto min-h-0 rounded-lg">Create Your First Group</a>
+				</div>
+			} else {
+				<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					for _, g := range groups {
+						<a href={ templ.URL("/groups/" + g.ID) } class="block bg-base-100 rounded-lg p-4 hover:bg-base-200 transition-colors border border-base-200">
+							<h4 class="font-heading text-base text-pitch">{ g.Name }</h4>
+							<p class="text-xs text-ink/50 font-body mt-1">Click to view details</p>
+						</a>
+					}
+				</div>
+			}
 		</div>
 	</div>
 }
