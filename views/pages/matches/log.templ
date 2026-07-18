@@ -2,45 +2,114 @@ package matches
 
 import "nutmeg/internal/repository"
 
+script setPlayerTeam(userId string, team string) {
+	const hiddenInput = document.getElementById('team_input_' + userId);
+	if (!hiddenInput) return;
+	hiddenInput.value = team;
+
+	const btnOut = document.getElementById('btn_out_' + userId);
+	const btnA = document.getElementById('btn_a_' + userId);
+	const btnB = document.getElementById('btn_b_' + userId);
+
+	if (!btnOut || !btnA || !btnB) return;
+
+	// Reset all buttons to default inactive state
+	btnOut.className = "px-3 py-1.5 text-xs font-oswald bg-chalk text-pitch/60 border-r border-pitch/20 transition-all font-medium cursor-pointer";
+	btnA.className = "px-3 py-1.5 text-xs font-oswald bg-chalk text-pitch/60 border-r border-pitch/20 transition-all font-medium cursor-pointer";
+	btnB.className = "px-3 py-1.5 text-xs font-oswald bg-chalk text-pitch/60 transition-all font-medium cursor-pointer";
+
+	// Apply styling based on active selection
+	if (team === '') {
+		btnOut.className = "px-3 py-1.5 text-xs font-oswald bg-pitch text-chalk border-r border-pitch/20 font-bold transition-all cursor-pointer";
+	} else if (team === 'a') {
+		btnA.className = "px-3 py-1.5 text-xs font-oswald bg-turf text-pitch border-r border-pitch/20 font-black transition-all cursor-pointer";
+	} else if (team === 'b') {
+		btnB.className = "px-3 py-1.5 text-xs font-oswald bg-nutmeg text-chalk font-black transition-all cursor-pointer";
+	}
+}
+
+script adjustScore(inputId string, delta int) {
+	const input = document.getElementById(inputId);
+	if (!input) return;
+	let val = parseInt(input.value) || 0;
+	val += delta;
+	if (val < 0) val = 0;
+	input.value = val;
+}
+
 templ LogForm(groupID string, members []repository.MemberInfo) {
-	<div>
+	<div class="p-1">
 		<form method="POST" action={ templ.URL("/groups/" + groupID + "/matches") } hx-target="body" class="space-y-6">
 			<div>
 				<div class="flex justify-between items-end mb-3">
-					<h3 class="font-oswald text-xl text-turf">1. Select Players &amp; Assign Teams</h3>
+					<h3 class="font-oswald text-xl text-turf">1. ASSIGN TEAMS</h3>
 				</div>
-				<div class="bg-base-200 p-4 rounded">
+				<div class="bg-base-200 p-3 sm:p-4 rounded-lg">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 						for _, m := range members {
-							<div class="flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm">
-								<span class="text-sm font-body truncate pr-2">{ playerDisplayName(m) }</span>
-								<select name={ "team_" + m.UserID } class="text-xs font-oswald p-1 border rounded bg-chalk">
-									<option value="">Out</option>
-									<option value="a">Shirts</option>
-									<option value="b">Skins</option>
-								</select>
+							<div class="flex items-center justify-between bg-white p-2.5 border border-pitch/10 rounded-lg shadow-sm gap-2">
+								<span class="text-sm font-body truncate pr-1 font-semibold text-pitch">{ playerDisplayName(m) }</span>
+								<input type="hidden" name={ "team_" + m.UserID } id={ "team_input_" + m.UserID } value="" />
+								<div class="inline-flex rounded-md shadow-sm border border-pitch/20 overflow-hidden shrink-0" role="group">
+									<!-- Out Button -->
+									<button type="button"
+											id={ "btn_out_" + m.UserID }
+											onclick={ setPlayerTeam(m.UserID, "") }
+											class="px-3 py-1.5 text-xs font-oswald bg-pitch text-chalk border-r border-pitch/20 font-bold transition-all cursor-pointer">
+										OUT
+									</button>
+									<!-- Shirts Button -->
+									<button type="button"
+											id={ "btn_a_" + m.UserID }
+											onclick={ setPlayerTeam(m.UserID, "a") }
+											class="px-3 py-1.5 text-xs font-oswald bg-chalk text-pitch/60 border-r border-pitch/20 transition-all font-medium cursor-pointer">
+										SHIRTS
+									</button>
+									<!-- Skins Button -->
+									<button type="button"
+											id={ "btn_b_" + m.UserID }
+											onclick={ setPlayerTeam(m.UserID, "b") }
+											class="px-3 py-1.5 text-xs font-oswald bg-chalk text-pitch/60 transition-all font-medium cursor-pointer">
+										SKINS
+									</button>
+								</div>
 							</div>
 						}
 					</div>
 				</div>
 			</div>
 			<div>
-				<h3 class="font-oswald text-xl text-turf mb-3">2. Final Score</h3>
-				<div class="flex items-center justify-center gap-8 bg-pitch p-6 rounded text-chalk">
-					<div class="text-center">
-						<label class="font-oswald text-lg mb-2 block">SHIRTS</label>
-						<input type="number" name="score_a" min="0" required class="w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0" />
+				<h3 class="font-oswald text-xl text-turf mb-3">2. FINAL SCORE</h3>
+				<div class="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 bg-pitch p-6 rounded-lg text-chalk">
+					<!-- Shirts Score -->
+					<div class="text-center w-full sm:w-auto">
+						<label class="font-oswald text-lg mb-2 block tracking-wider">SHIRTS</label>
+						<div class="flex items-center justify-center gap-3">
+							<button type="button" onclick={ adjustScore("score_a", -1) } class="w-10 h-10 flex items-center justify-center rounded-full bg-chalk/10 border-2 border-chalk/30 text-chalk hover:bg-chalk/20 text-2xl font-bold select-none cursor-pointer">-</button>
+							<input type="number" id="score_a" name="score_a" value="0" min="0" required class="w-16 text-center text-4xl font-mono text-pitch py-1.5 rounded border-0 font-extrabold focus:outline-none" />
+							<button type="button" onclick={ adjustScore("score_a", 1) } class="w-10 h-10 flex items-center justify-center rounded-full bg-chalk/10 border-2 border-chalk/30 text-chalk hover:bg-chalk/20 text-2xl font-bold select-none cursor-pointer">+</button>
+						</div>
 					</div>
-					<div class="font-oswald text-3xl text-gold">-</div>
-					<div class="text-center">
-						<label class="font-oswald text-lg text-nutmeg mb-2 block">SKINS</label>
-						<input type="number" name="score_b" min="0" required class="w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0" />
+
+					<!-- VS Divider -->
+					<div class="font-oswald text-3xl text-gold hidden sm:block">-</div>
+
+					<!-- Skins Score -->
+					<div class="text-center w-full sm:w-auto">
+						<label class="font-oswald text-lg text-nutmeg mb-2 block tracking-wider">SKINS</label>
+						<div class="flex items-center justify-center gap-3">
+							<button type="button" onclick={ adjustScore("score_b", -1) } class="w-10 h-10 flex items-center justify-center rounded-full bg-chalk/10 border-2 border-chalk/30 text-chalk hover:bg-chalk/20 text-2xl font-bold select-none cursor-pointer">-</button>
+							<input type="number" id="score_b" name="score_b" value="0" min="0" required class="w-16 text-center text-4xl font-mono text-pitch py-1.5 rounded border-0 font-extrabold focus:outline-none" />
+							<button type="button" onclick={ adjustScore("score_b", 1) } class="w-10 h-10 flex items-center justify-center rounded-full bg-chalk/10 border-2 border-chalk/30 text-chalk hover:bg-chalk/20 text-2xl font-bold select-none cursor-pointer">+</button>
+						</div>
 					</div>
 				</div>
 			</div>
-			<div class="flex gap-3 justify-end">
-				<button type="button" onclick="document.getElementById('match-modal').close()" class="font-oswald bg-white border-2 border-pitch text-pitch px-4 py-2 rounded hover:bg-chalk transition-colors text-sm">Cancel</button>
-				<button type="submit" class="font-oswald bg-gold text-pitch border-2 border-gold px-6 py-2 rounded hover:bg-pitch hover:text-gold transition-colors text-sm font-bold">SAVE MATCH</button>
+
+			<!-- Actions -->
+			<div class="flex gap-3 justify-end pt-2 border-t border-pitch/10">
+				<button type="button" onclick="document.getElementById('match-modal').close()" class="flex-1 sm:flex-none font-oswald bg-white border-2 border-pitch text-pitch px-5 py-3 sm:py-2 rounded hover:bg-chalk transition-colors text-sm font-bold uppercase">Cancel</button>
+				<button type="submit" class="flex-1 sm:flex-none font-oswald bg-gold text-pitch border-2 border-gold px-6 py-3 sm:py-2 rounded hover:bg-pitch hover:text-gold transition-colors text-sm font-black uppercase shadow">Save Match</button>
 			</div>
 		</form>
 	</div>
