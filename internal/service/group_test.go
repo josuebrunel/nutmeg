@@ -21,6 +21,7 @@ type mockGroupRepo struct {
 	listMembersFn func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	getMemberFn   func(ctx context.Context, groupID, userID string) (*model.GroupPlayer, error)
 	memberCountFn func(ctx context.Context, groupID string) (int, error)
+	getUserByEmailFn func(ctx context.Context, email string) (string, error)
 }
 
 func (m *mockGroupRepo) CreateGroup(ctx context.Context, g *model.Group) error {
@@ -52,6 +53,9 @@ func (m *mockGroupRepo) GetMember(ctx context.Context, groupID, userID string) (
 }
 func (m *mockGroupRepo) MemberCount(ctx context.Context, groupID string) (int, error) {
 	return m.memberCountFn(ctx, groupID)
+}
+func (m *mockGroupRepo) GetUserByEmail(ctx context.Context, email string) (string, error) {
+	return m.getUserByEmailFn(ctx, email)
 }
 
 func defaultMock() *mockGroupRepo {
@@ -86,6 +90,9 @@ func defaultMock() *mockGroupRepo {
 		},
 		memberCountFn: func(_ context.Context, groupID string) (int, error) {
 			return 0, nil
+		},
+		getUserByEmailFn: func(_ context.Context, email string) (string, error) {
+			return "user-1", nil
 		},
 	}
 }

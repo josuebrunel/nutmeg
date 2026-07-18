@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
 
 	"nutmeg/internal/model"
+	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
 	"nutmeg/views/pages/groups"
 )
@@ -14,10 +16,11 @@ import (
 type GroupHandler struct {
 	auth    *ezauth.EzAuth
 	service *service.GroupService
+	repo    *repository.Repository
 }
 
-func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService) *GroupHandler {
-	return &GroupHandler{auth: auth, service: svc}
+func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, repo *repository.Repository) *GroupHandler {
+	return &GroupHandler{auth: auth, service: svc, repo: repo}
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
@@ -86,7 +89,10 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		}
 	}
 
-	return page(c, g.Name+" - Soccer Stats", true, g.ID, groups.Detail(g, members, isAdmin))
+	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
+	errMsg := h.auth.GetErrorMessage(c.Request().Context())
+
+	return page(c, g.Name+" - Soccer Stats", true, g.ID, groups.Detail(g, members, isAdmin, successMsg, errMsg))
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
@@ -158,15 +164,30 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	}
 
 	id := c.Param("id")
-	memberID := c.FormValue("user_id")
-	if memberID == "" {
+	email := c.FormValue("email")
+	if email == "" {
+		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Email is required")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
-	if err := h.service.AddMember(c.Request().Context(), id, memberID, userID); err != nil {
+	ctx := c.Request().Context()
+	targetUserID, err := h.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		// User does not exist, simulate sending invitation email
+		slog.Info("Simulating sending invitation email", "email", email, "group_id", id)
+
+		// TODO: Send invitation email to email to register an account
+
+		h.auth.Handler.SetFlash(ctx, "success", "User with email "+email+" does not exist. An invitation email was sent to them!")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
+	if err := h.service.AddMember(ctx, id, targetUserID, userID); err != nil {
+		h.auth.Handler.SetFlash(ctx, "error", err.Error())
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	h.auth.Handler.SetFlash(ctx, "success", "Added member "+email+" successfully!")
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 

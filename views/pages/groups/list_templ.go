@@ -36,7 +36,7 @@ func List(groups []*model.Group) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(groups) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"card bg-base-100 shadow-xl\"><div class=\"card-body text-center py-12\"><h2 class=\"text-xl font-semibold mb-2\">No groups yet</h2><p class=\"text-base-content/60 mb-6\">Create your first group to start tracking matches and stats.</p><a href=\"/groups/new\" class=\"btn btn-primary\">Create Group</a></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"card bg-base-100 shadow-xl\"><div class=\"card-body text-center py-12\"><h2 class=\"text-xl font-semibold mb-2\">No groups yet</h2><p class=\"text-base-content/60 mb-6\">Create your first group to start tracking matches and stats.</p><a href=\"/groups/new\" class=\"btn btn-primary self-center\">Create Group</a></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

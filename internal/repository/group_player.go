@@ -76,3 +76,12 @@ func (r *Repository) MemberCount(ctx context.Context, groupID string) (int, erro
 	)
 	return bob.One(ctx, r.db, query, scan.SingleColumnMapper[int])
 }
+
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (string, error) {
+	query := psql.Select(
+		sm.Columns("id"),
+		sm.From("ezauth_users"),
+		sm.Where(psql.Quote("email").EQ(psql.Arg(email))),
+	)
+	return bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
+}

@@ -25,7 +25,7 @@ func New(auth *ezauth.EzAuth, repo *repository.Repository) *Handler {
 		repo:  repo,
 		Home:  &HomeHandler{},
 		Auth:  NewAuthHandler(auth),
-		Group: NewGroupHandler(auth, groupSvc),
+		Group: NewGroupHandler(auth, groupSvc, repo),
 	}
 }
 

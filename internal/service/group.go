@@ -19,6 +19,7 @@ type GroupRepository interface {
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	GetMember(ctx context.Context, groupID, userID string) (*model.GroupPlayer, error)
 	MemberCount(ctx context.Context, groupID string) (int, error)
+	GetUserByEmail(ctx context.Context, email string) (string, error)
 }
 
 type GroupService struct {

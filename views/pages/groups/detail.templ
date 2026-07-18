@@ -5,8 +5,14 @@ import (
 	"nutmeg/internal/repository"
 )
 
-templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
+templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, successMsg string, errMsg string) {
 	<div class="space-y-6">
+		if errMsg != "" {
+			<div role="alert" class="alert alert-error mb-4">{ errMsg }</div>
+		}
+		if successMsg != "" {
+			<div role="alert" class="alert alert-success mb-4">{ successMsg }</div>
+		}
 		<div class="flex items-center justify-between">
 			<div>
 				<h1 class="text-3xl font-bold">{ g.Name }</h1>
@@ -40,7 +46,13 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
 						<tbody>
 							for _, m := range members {
 								<tr>
-									<td>{ m.FirstName } { m.LastName }</td>
+									<td>
+										if m.FirstName != "" || m.LastName != "" {
+											{ m.FirstName } { m.LastName }
+										} else {
+											<span class="text-base-content/60 italic">No name set</span>
+										}
+									</td>
 									<td>{ m.Email }</td>
 									<td>
 										if m.Role == "admin" {
@@ -66,9 +78,9 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
 					<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 items-end">
 						<label class="form-control flex-1">
 							<div class="label">
-								<span class="label-text">User ID</span>
+								<span class="label-text">Email</span>
 							</div>
-							<input type="text" name="user_id" placeholder="Enter user ID" class="input input-bordered input-sm w-full" required />
+							<input type="email" name="email" placeholder="Enter member's email" class="input input-bordered input-sm w-full" required />
 						</label>
 						<button type="submit" class="btn btn-primary btn-sm">Add</button>
 					</form>
