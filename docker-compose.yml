@@ -1,0 +1,59 @@
+services:
+  dev:
+    container_name: nutmeg-dev
+    tty: true
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    ports:
+      - "8080:8080"
+    networks:
+      - nutmeg
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/go/src/app/
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  nutmeg:
+    container_name: nutmeg
+    tty: true
+    image: ghcr.io/josuebrunel/nutmeg:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - nutmeg
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  db:
+    image: postgres:17-alpine
+    container_name: nutmeg-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nutmeg
+    ports:
+      - "5432:5432"
+    networks:
+      - nutmeg
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nutmeg"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  nutmeg:
+    driver: bridge
+
+volumes:
+  pgdata:

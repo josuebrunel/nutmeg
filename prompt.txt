@@ -1,0 +1,306 @@
+You are building [APP_NAME] — [ONE_LINE_DESCRIPTION].
+
+# Tech Stack
+- Go 1.25+, Echo v5, Templ, HTMX 2.x, DaisyUI v5, Chart.js (CDN)
+- PostgreSQL, pgx, Bob ORM, scan.StructMapper
+- Goose migrations (no global registry)
+- Ezauth for auth
+- Xenv for config
+- GitHub module [MODULE_PATH] with local replace directives (../ezauth, ../gopkg)
+
+# Non-Negotiable Rules
+1. Echo v5: handlers take `*echo.Context` (pointer), shutdown uses `StartConfig`, no `Shutdown()` method.
+2. `bob.NewDB(*sql.DB)` returns `bob.DB` — a value type, not a pointer.
+3. Goose: use `goose.WithDisableGlobalRegistry(true)`, never use global registry functions.
+4. Ezauth: `SessionMiddleware` is global (on `e.Use`), `LoginRequiredMiddleware` only on the app group (not `/auth/*`).
+5. Templ: do NOT use `if` inside function call arguments — use `@{ }` code blocks to assign a variable first.
+6. Templ: layout uses `{ children... }` to capture passed components.
+7. Templ: use `templ.URL()` for all href/action attributes.
+8. Models: use `db` struct tags for `scan.StructMapper`.
+9. Migration: use `IF NOT EXISTS` / `IF EXISTS` for idempotency.
+10. Router: wire all routes in a single `Register()` function called with an `echo.Group`.
+11. Handlers: group into sub-handlers on a top-level `Handler` struct. Use `page()` helper to wrap in layout.
+
+# Architecture
+```
+[PROJECT]/
+  cmd/server/main.go          — entry: bob.NewDB, repo.New, ezauth.NewWithDB, echo setup, router.Register
+  internal/
+    config/                   — xenv-based config struct
+    database/                 — pgx pool open + goose migrate
+    model/                    — one file per entity with db tags
+    repository/               — one file per entity (psql queries), struct with sub-repos + DB() method
+    service/                  — business logic per domain
+    handler/                  — Handler struct, sub-handlers, page() helper
+    router/                   — Register() on app group
+    render/                   — Component() and ComponentStatus() helpers
+  views/
+    layout/base.templ         — DaisyUI drawer sidebar, CDN links
+    pages/                    — one sub-package per page (list, form, detail)
+  migrations/                 — embed.FS, one init migration with IF NOT EXISTS
+  .env.example                — ADDR, DB_DSN, EZAUTH_API_KEY, EZAUTH_JWT_SECRET
+  Dockerfile                  — multi-stage build
+  docker-compose.yml          — Postgres 17 + app
+  Makefile
+  .air.toml
+```
+
+# Entity Convention
+Every entity gets: model file, repository file, service file, handler file, views (list/form/detail).
+- Repository: `psql.Insert` with RETURNING for create, `psql.Select` for list/get, `psql.Update` for update, `psql.Delete` for delete.
+- Router: `e.GET`, `e.POST`, path params `:id`, `:mid`, `:tid`, `:eid`.
+
+# Development Workflow
+1. Define models + migration first
+2. Build repository layer
+3. Build service layer
+4. Build views (Templ templates)
+5. Build handlers
+6. Wire router
+7. Run: `templ generate && go build ./cmd/server`
+
+# Starting Boilerplate
+
+## cmd/server/main.go
+```go
+package main
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/josuebrunel/ezauth"
+	ezcfg "github.com/josuebrunel/ezauth/pkg/config"
+	"github.com/josuebrunel/gopkg/xenv"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
+	"github.com/stephenafamo/bob"
+
+	"[MODULE_PATH]/internal/config"
+	"[MODULE_PATH]/internal/database"
+	"[MODULE_PATH]/internal/repository"
+	"[MODULE_PATH]/internal/router"
+	"[MODULE_PATH]/migrations"
+)
+
+func main() {
+	var cfg config.Config
+	if err := xenv.LoadEnvFile(".env", &cfg); err != nil {
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
+
+	db, err := database.Open(cfg.Database.DSN)
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	if err := database.Migrate(db, migrations.FS); err != nil {
+		slog.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+
+	bdb := bob.NewDB(db)
+	repo := repository.New(bdb)
+
+	ezCfg, err := ezcfg.LoadConfig()
+	if err != nil {
+		slog.Error("failed to load ezauth config", "error", err)
+		os.Exit(1)
+	}
+
+	auth, err := ezauth.NewWithDB(&ezCfg, db, "auth")
+	if err != nil {
+		slog.Error("failed to initialize auth", "error", err)
+		os.Exit(1)
+	}
+	if err := auth.Migrate(); err != nil {
+		slog.Error("failed to run auth migrations", "error", err)
+		os.Exit(1)
+	}
+
+	e := echo.New()
+	e.Use(middleware.RequestLogger())
+	e.Use(middleware.Recover())
+	e.Use(echo.WrapMiddleware(auth.SessionMiddleware))
+
+	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
+
+	app := e.Group("")
+	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
+	router.Register(app, auth, repo)
+
+	sc := echo.StartConfig{Address: cfg.Addr}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	slog.Info("starting server", "addr", cfg.Addr)
+	if err := sc.Start(ctx, e); err != nil {
+		slog.Error("server error", "error", err)
+		os.Exit(1)
+	}
+}
+```
+
+## internal/render/render.go
+```go
+package render
+
+import (
+	"github.com/a-h/templ"
+	"github.com/labstack/echo/v5"
+)
+
+func Component(c *echo.Context, cmp templ.Component) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	return cmp.Render(c.Request().Context(), c.Response())
+}
+
+func ComponentStatus(c *echo.Context, status int, cmp templ.Component) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	c.Response().WriteHeader(status)
+	return cmp.Render(c.Request().Context(), c.Response())
+}
+```
+
+## internal/handler/handler.go
+```go
+package handler
+
+import (
+	"github.com/a-h/templ"
+	"github.com/josuebrunel/ezauth"
+	"github.com/labstack/echo/v5"
+
+	"[MODULE_PATH]/internal/render"
+	"[MODULE_PATH]/internal/repository"
+	"[MODULE_PATH]/views/layout"
+)
+
+type Handler struct {
+	auth   *ezauth.EzAuth
+	repo   *repository.Repository
+	Home   *HomeHandler
+}
+
+func New(auth *ezauth.EzAuth, repo *repository.Repository) *Handler {
+	return &Handler{
+		auth: auth,
+		repo: repo,
+		Home: &HomeHandler{},
+	}
+}
+
+func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string, cmp templ.Component) error {
+	return render.Component(c, layout.Base(title, isLoggedIn, currentGroupID, cmp))
+}
+```
+
+## internal/router/router.go
+```go
+package router
+
+import (
+	"github.com/josuebrunel/ezauth"
+	"github.com/labstack/echo/v5"
+
+	"[MODULE_PATH]/internal/handler"
+	"[MODULE_PATH]/internal/repository"
+)
+
+func Register(e *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository) {
+	h := handler.New(auth, repo)
+
+	e.GET("/", h.Home.Index)
+}
+```
+
+## views/layout/base.templ
+```templ
+package layout
+
+templ Base(title string, isLoggedIn bool, currentGroupID string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="light">
+		<head>
+			<meta charset="UTF-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<title>{ title } - [APP_NAME]</title>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<script src="https://unpkg.com/htmx.org@2.0.4" type="text/javascript"></script>
+			<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+		</head>
+		<body class="min-h-screen bg-base-200">
+			<div class="drawer lg:drawer-open">
+				<input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
+				<div class="drawer-content flex flex-col">
+					<nav class="navbar bg-base-100 shadow-sm">
+						<div class="flex-none lg:hidden">
+							<label for="sidebar-drawer" class="btn btn-ghost btn-square">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+								</svg>
+							</label>
+						</div>
+						<div class="flex-1">
+							<a class="text-xl font-bold" href="/">[APP_NAME]</a>
+						</div>
+						if isLoggedIn {
+							<div class="flex-none">
+								<a href="/" class="btn btn-ghost">Home</a>
+							</div>
+						}
+					</nav>
+					<main class="p-4 lg:p-6">
+						{ children... }
+					</main>
+				</div>
+				if isLoggedIn {
+					<div class="drawer-side">
+						<label for="sidebar-drawer" class="drawer-overlay"></label>
+						<ul class="menu bg-base-100 text-base-content min-h-full w-64 p-4 gap-1">
+							<li class="menu-title text-lg font-bold">[APP_NAME]</li>
+							<li><a href="/">Home</a></li>
+							<div class="divider"></div>
+							<li><a href="/auth/logout">Logout</a></li>
+						</ul>
+					</div>
+				}
+			</div>
+		</body>
+	</html>
+}
+```
+
+## internal/repository/repository.go
+```go
+package repository
+
+import "github.com/stephenafamo/bob"
+
+type Repository struct {
+	db bob.DB
+}
+
+func (r *Repository) DB() bob.DB {
+	return r.db
+}
+
+func New(db bob.DB) *Repository {
+	return &Repository{db: db}
+}
+```
+
+## Example entity flow (Group)
+- `internal/model/group.go` — struct with `db:"..."` tags
+- `internal/repository/group.go` — `Create`, `GetByID`, `List`, `Update`, `Delete` using psql
+- `internal/service/group.go` — wraps repo calls
+- `internal/handler/group.go` — CRUD handlers calling service
+- `views/pages/groups/{list,form,detail}.templ`
+- Route in `router.go`: `e.GET("/groups", ...)` etc.
