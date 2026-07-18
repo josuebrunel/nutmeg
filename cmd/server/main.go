@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -80,6 +81,12 @@ func main() {
 	e.GET("/", h.Home.Landing)
 	e.GET("/login", h.Auth.Login)
 	e.GET("/register", h.Auth.Register)
+	e.GET("/health", func(c *echo.Context) error {
+		if err := db.PingContext(c.Request().Context()); err != nil {
+			return c.JSON(http.StatusServiceUnavailable, map[string]string{"status": "unhealthy"})
+		}
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
 
 	// Authenticated routes
 	app := e.Group("")

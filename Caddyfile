@@ -1,0 +1,32 @@
+nutmeg.jkouka.dev {
+    log {
+        output file /var/log/caddy/nutmeg.jkouka.dev.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    encode gzip
+
+    reverse_proxy localhost:8380 {
+        health_uri /health
+        health_interval 30s
+        health_timeout 5s
+    }
+
+    timeouts {
+        read   10s
+        write  10s
+        idle   120s
+    }
+}
