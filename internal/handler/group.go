@@ -98,12 +98,13 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	matchEntries := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
 		matchEntries[i] = groups.MatchEntry{
-			ID:     m.ID,
-			TeamA:  m.TeamAName,
-			TeamB:  m.TeamBName,
-			ScoreA: m.ScoreA,
-			ScoreB: m.ScoreB,
-			Date:   m.PlayedAt.Format("Jan 2"),
+			ID:      m.ID,
+			GroupID: m.GroupID,
+			TeamA:   m.TeamAName,
+			TeamB:   m.TeamBName,
+			ScoreA:  m.ScoreA,
+			ScoreB:  m.ScoreB,
+			Date:    m.PlayedAt.Format("Jan 2"),
 		}
 	}
 
@@ -173,6 +174,38 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusFound, "/groups")
+}
+
+func (h *GroupHandler) DetailContent(c *echo.Context) error {
+	id := c.Param("id")
+
+	leaderboard, _ := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
+	for i, e := range leaderboard {
+		lbEntries[i] = groups.LeaderboardEntry{
+			Name:    e.Name,
+			Wins:    e.Wins,
+			Losses:  e.Losses,
+			Goals:   e.Goals,
+			Assists: e.Assists,
+		}
+	}
+
+	matches, _ := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	matchEntries := make([]groups.MatchEntry, len(matches))
+	for i, m := range matches {
+		matchEntries[i] = groups.MatchEntry{
+			ID:      m.ID,
+			GroupID: m.GroupID,
+			TeamA:   m.TeamAName,
+			TeamB:   m.TeamBName,
+			ScoreA:  m.ScoreA,
+			ScoreB:  m.ScoreB,
+			Date:    m.PlayedAt.Format("Jan 2"),
+		}
+	}
+
+	return render.Component(c, groups.DetailContent(lbEntries, matchEntries))
 }
 
 func (h *GroupHandler) ManageModal(c *echo.Context) error {

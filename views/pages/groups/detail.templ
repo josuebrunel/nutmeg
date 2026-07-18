@@ -14,9 +14,9 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 			</div>
 			<div class="flex flex-wrap gap-2">
 				if isAdmin {
-					<button onclick="document.getElementById('manage-group-modal').showModal()" hx-get={ templ.URL("/groups/" + g.ID + "/manage-modal") } hx-target="#manage-group-container" hx-swap="innerHTML" class="font-oswald bg-white border-2 border-pitch text-pitch px-4 py-2 rounded hover:bg-chalk transition-colors text-sm">Manage Group</button>
+					<button hx-get={ templ.URL("/groups/" + g.ID + "/manage-modal") } hx-target="#detail-content-area" hx-swap="innerHTML" class="font-oswald bg-white border-2 border-pitch text-pitch px-4 py-2 rounded hover:bg-chalk transition-colors text-sm">Manage Group</button>
 				}
-				<button hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#match-modal-container" hx-swap="innerHTML" class="font-oswald bg-gold text-pitch border-2 border-gold px-4 py-2 rounded hover:bg-pitch hover:text-gold transition-colors flex items-center gap-2 text-sm">
+				<button hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#detail-content-area" hx-swap="innerHTML" class="font-oswald bg-gold text-pitch border-2 border-gold px-4 py-2 rounded hover:bg-pitch hover:text-gold transition-colors flex items-center gap-2 text-sm">
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
 					Log Match
 				</button>
@@ -28,112 +28,126 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 		if successMsg != "" {
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-			<div class="lg:col-span-2">
-				<h3 class="font-oswald text-2xl text-pitch mb-4">LEADERBOARD</h3>
-				<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-hidden">
-					<table class="w-full text-left border-collapse">
-						<thead class="bg-pitch text-chalk font-oswald text-sm">
-							<tr>
-								<th class="p-3">Rnk</th>
-								<th class="p-3">Player</th>
-								<th class="p-3 text-center">W</th>
-								<th class="p-3 text-center">L</th>
-								<th class="p-3 text-center">G</th>
-								<th class="p-3 text-center">A</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-pitch/10">
-							if len(leaderboard) == 0 {
-								<tr><td colspan="6" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
-							} else {
-								for i, p := range leaderboard {
-									<tr class="hover:bg-chalk/50 transition-colors">
-										<td class="p-3 font-mono font-bold text-pitch">{ i + 1 }</td>
-										<td class="p-3 font-medium">{ p.Name }</td>
-										<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
-										<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
-										<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
-										<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
-									</tr>
-								}
+		<div id="detail-content-area">
+			@DetailContent(leaderboard, matches)
+		</div>
+	</div>
+}
+
+templ DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) {
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+		<div class="lg:col-span-2">
+			<h3 class="font-oswald text-2xl text-pitch mb-4">LEADERBOARD</h3>
+			<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-hidden">
+				<table class="w-full text-left border-collapse">
+					<thead class="bg-pitch text-chalk font-oswald text-sm">
+						<tr>
+							<th class="p-3">Rnk</th>
+							<th class="p-3">Player</th>
+							<th class="p-3 text-center">W</th>
+							<th class="p-3 text-center">L</th>
+							<th class="p-3 text-center">G</th>
+							<th class="p-3 text-center">A</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-pitch/10">
+						if len(leaderboard) == 0 {
+							<tr><td colspan="6" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
+						} else {
+							for i, p := range leaderboard {
+								<tr class="hover:bg-chalk/50 transition-colors">
+									<td class="p-3 font-mono font-bold text-pitch">{ i + 1 }</td>
+									<td class="p-3 font-medium">{ p.Name }</td>
+									<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
+									<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
+									<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
+									<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
+								</tr>
 							}
-						</tbody>
-					</table>
-				</div>
+						}
+					</tbody>
+				</table>
 			</div>
-			<div>
-				<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
-				<div class="space-y-4">
-					if len(matches) == 0 {
-						<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
-					} else {
-						for _, m := range matches {
-							<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm">
-								<div class="flex w-full">
-									<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
-										<div class="font-oswald text-xs mb-1">SHIRTS</div>
-										<div class="ticket-score text-2xl">{ m.ScoreA }</div>
-									</div>
-									<div class="ticket-perforation"></div>
-									<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
-										<div class="font-oswald text-xs mb-1 text-nutmeg">SKINS</div>
-										<div class="ticket-score text-2xl">{ m.ScoreB }</div>
-									</div>
+		</div>
+		<div>
+			<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
+			<div class="space-y-4">
+				if len(matches) == 0 {
+					<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
+				} else {
+					for _, m := range matches {
+						<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm">
+							<div class="flex w-full">
+								<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
+									<div class="font-oswald text-xs mb-1">SHIRTS</div>
+									<div class="ticket-score text-2xl">{ m.ScoreA }</div>
 								</div>
-								<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
-									<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
-									<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + g.ID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">Remove</button>
+								<div class="ticket-perforation"></div>
+								<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
+									<div class="font-oswald text-xs mb-1 text-nutmeg">SKINS</div>
+									<div class="ticket-score text-2xl">{ m.ScoreB }</div>
 								</div>
 							</div>
-						}
+							<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
+								<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
+								<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">Remove</button>
+							</div>
+						</div>
 					}
-				</div>
+				}
 			</div>
 		</div>
 	</div>
 }
 
 templ ManageModalContent(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
-	<div class="space-y-6">
-		<div>
-			<label class="font-oswald text-ink mb-1 block">Group Name</label>
-			<div class="flex items-center gap-2">
-				<span class="font-body text-lg">{ g.Name }</span>
-				<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="text-turf font-oswald text-sm hover:text-pitch">Edit</a>
-			</div>
-		</div>
-		<hr class="border-pitch/20" />
-		<div>
-			<h4 class="font-oswald text-lg text-pitch mb-2">Roster</h4>
-			if isAdmin {
-				<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 mb-4">
-					<input type="email" name="email" placeholder="Email address" class="flex-grow border-2 border-pitch rounded px-3 py-2" />
-					<button type="submit" class="bg-pitch text-chalk font-oswald px-4 rounded hover:bg-turf">Add Player</button>
-				</form>
-			}
-			<ul class="space-y-2 max-h-48 overflow-y-auto pr-2">
-				for _, m := range members {
-					<li class="flex justify-between items-center p-2 rounded border border-pitch/10">
-						<div>
-							<span class="font-body text-sm">{ m.Email }</span>
-							if m.Role == "admin" {
-								<span class="ml-2 text-xs font-oswald text-gold">Owner</span>
-							}
-						</div>
-						if isAdmin && m.Role != "admin" {
-							<button class="text-nutmeg hover:text-pitch font-oswald text-sm" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-confirm="Remove this member?" hx-target="body">Remove</button>
+	<div>
+		<button hx-get={ templ.URL("/groups/" + g.ID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
+			&larr; Back to Group
+		</button>
+		<div class="bg-white p-6 rounded-xl shadow border-2 border-pitch">
+			<h3 class="font-oswald text-2xl text-pitch font-bold mb-6">MANAGE GROUP</h3>
+			<div class="space-y-6">
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Group Name</label>
+					<div class="flex items-center gap-2">
+						<span class="font-body text-lg">{ g.Name }</span>
+						<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="text-turf font-oswald text-sm hover:text-pitch">Edit</a>
+					</div>
+				</div>
+				<hr class="border-pitch/20" />
+				<div>
+					<h4 class="font-oswald text-lg text-pitch mb-2">Roster</h4>
+					if isAdmin {
+						<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 mb-4">
+							<input type="email" name="email" placeholder="Email address" class="flex-grow border-2 border-pitch rounded px-3 py-2" />
+							<button type="submit" class="bg-pitch text-chalk font-oswald px-4 rounded hover:bg-turf">Add Player</button>
+						</form>
+					}
+					<ul class="space-y-2 max-h-48 overflow-y-auto pr-2">
+						for _, m := range members {
+							<li class="flex justify-between items-center p-2 rounded border border-pitch/10">
+								<div>
+									<span class="font-body text-sm">{ m.Email }</span>
+									if m.Role == "admin" {
+										<span class="ml-2 text-xs font-oswald text-gold">Owner</span>
+									}
+								</div>
+								if isAdmin && m.Role != "admin" {
+									<button class="text-nutmeg hover:text-pitch font-oswald text-sm" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-confirm="Remove this member?" hx-target="body">Remove</button>
+								}
+							</li>
 						}
-					</li>
+					</ul>
+				</div>
+				<hr class="border-pitch/20" />
+				if isAdmin {
+					<div>
+						<button class="w-full bg-nutmeg text-chalk font-oswald py-2 rounded hover:bg-red-800 transition-colors" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group? This cannot be undone." hx-target="body">Delete Group</button>
+					</div>
 				}
-			</ul>
-		</div>
-		<hr class="border-pitch/20" />
-		if isAdmin {
-			<div>
-				<button class="w-full bg-nutmeg text-chalk font-oswald py-2 rounded hover:bg-red-800 transition-colors" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group? This cannot be undone." hx-target="body">Delete Group</button>
 			</div>
-		}
+		</div>
 	</div>
 }
 
@@ -146,12 +160,13 @@ type LeaderboardEntry struct {
 }
 
 type MatchEntry struct {
-	ID     string
-	TeamA  string
-	TeamB  string
-	ScoreA int
-	ScoreB int
-	Date   string
+	ID      string
+	GroupID string
+	TeamA   string
+	TeamB   string
+	ScoreA  int
+	ScoreB  int
+	Date    string
 }
 
 func (m MatchEntry) WinnerClass(team string) string {

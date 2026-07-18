@@ -8,18 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
     })
   }
 
-  // HTMX handlers
-  document.body.addEventListener('htmx:afterSwap', function (evt) {
-    // Open match modal when content is loaded into it
-    if (evt.target.id === 'match-modal-container') {
-      document.getElementById('match-modal').showModal()
-    }
-    // Open manage group modal
-    if (evt.target.id === 'manage-group-container') {
-      document.getElementById('manage-group-modal').showModal()
-    }
-  })
-
   // Flash toasts via HTMX
   document.body.addEventListener('htmx:beforeSwap', function (evt) {
     if (evt.detail.xhr) {
@@ -32,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         } catch (e) {}
       }
-      // Also check for flash cookie
       var flashMsg = evt.detail.xhr.getResponseHeader('X-Flash-Message')
       var flashType = evt.detail.xhr.getResponseHeader('X-Flash-Type')
       if (flashMsg) {
