@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker)](https://www.docker.com)
+[![Tests](https://github.com/josuebrunel/nutmeg/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/josuebrunel/nutmeg/actions/workflows/build-and-push.yml)
 
 A web application for tracking soccer matches, teams, players, and statistics within groups. Create groups, invite members, record match results, and visualise stats — all in a clean, responsive UI powered by HTMX and DaisyUI.
 
