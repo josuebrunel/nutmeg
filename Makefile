@@ -1,4 +1,4 @@
-.PHONY: dev build db docker-up docker-down migrate clean
+.PHONY: dev build run db docker-up docker-down migrate migrate-down templ-gen clean
 
 dev:
 	templ generate --watch > /dev/null 2>&1 &
@@ -6,7 +6,10 @@ dev:
 
 build:
 	templ generate
-	go build -ldflags="-s -w" -o bin/server ./cmd/server
+	go build -buildvcs=false -ldflags="-s -w" -o bin/server ./cmd/server
+
+run: build
+	./bin/server
 
 db:
 	docker compose up -d db

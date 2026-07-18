@@ -8,12 +8,16 @@ import (
 	"syscall"
 
 	"github.com/josuebrunel/ezauth"
+	ezcfg "github.com/josuebrunel/ezauth/pkg/config"
 	"github.com/josuebrunel/gopkg/xenv"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/stephenafamo/bob"
 
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
+	"nutmeg/internal/handler"
+	"nutmeg/internal/repository"
 	"nutmeg/internal/router"
 	"nutmeg/migrations"
 )
@@ -37,7 +41,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	auth, err := ezauth.NewWithDB(nil, db, "auth")
+	bdb := bob.NewDB(db)
+	repo := repository.New(bdb)
+
+	os.Setenv("EZAUTH_API_KEY", "no-need")
+	authCfg, err := ezcfg.LoadConfig()
+	if err != nil {
+		slog.Error("failed to load ezauth config", "error", err)
+		os.Exit(1)
+	}
+	authCfg.Redirects.AfterLogin = "/"
+	authCfg.Pages.Login = "/login"
+	authCfg.Pages.Register = "/register"
+	authCfg.Debug = true
+
+	auth, err := ezauth.NewWithDB(&authCfg, db, "auth")
 	if err != nil {
 		slog.Error("failed to initialize auth", "error", err)
 		os.Exit(1)
@@ -51,11 +69,19 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(echo.WrapMiddleware(auth.SessionMiddleware))
-	e.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
+
+	e.Static("/static", "static")
 
 	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
 
-	router.Register(e, auth, db)
+	h := handler.New(auth, repo)
+
+	e.GET("/login", h.Auth.Login)
+	e.GET("/register", h.Auth.Register)
+
+	app := e.Group("")
+	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
+	router.Register(app, auth, repo)
 
 	sc := echo.StartConfig{Address: cfg.Addr}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

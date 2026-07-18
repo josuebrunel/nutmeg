@@ -1,0 +1,83 @@
+package groups
+
+type FormData struct {
+	Name        string
+	Description string
+	Error       string
+}
+
+templ Form(groupID string, data *FormData) {
+	<div class="max-w-lg mx-auto space-y-6">
+		<h1 class="text-3xl font-bold">
+			if groupID != "" {
+				Edit Group
+			} else {
+				New Group
+			}
+		</h1>
+		<div class="card bg-base-100 shadow-xl">
+			<div class="card-body">
+				if data != nil && data.Error != "" {
+					<div role="alert" class="alert alert-error mb-4">{ data.Error }</div>
+				}
+				<form method="POST" action={ templ.URL(formAction(groupID)) } class="space-y-4">
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Group Name</span>
+						</div>
+						<input
+							type="text"
+							name="name"
+							placeholder="e.g. Monday Night Football"
+							class="input input-bordered w-full"
+							value={ dataName(data) }
+							required
+						/>
+					</label>
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Description (optional)</span>
+						</div>
+						<textarea
+							name="description"
+							placeholder="A short description of your group"
+							class="textarea textarea-bordered w-full"
+							rows="3"
+						>{ dataDesc(data) }</textarea>
+					</label>
+					<div class="flex gap-4">
+						<button type="submit" class="btn btn-primary">
+							if groupID != "" {
+								Save Changes
+							} else {
+								Create Group
+							}
+						</button>
+						<a href="/groups" class="btn btn-ghost">Cancel</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+}
+
+func formAction(groupID string) string {
+	if groupID != "" {
+		return "/groups/" + groupID
+	}
+	return "/groups"
+}
+
+func dataName(data *FormData) string {
+	if data != nil {
+		return data.Name
+	}
+	return ""
+}
+
+func dataDesc(data *FormData) string {
+	if data != nil {
+		return data.Description
+	}
+	return ""
+}

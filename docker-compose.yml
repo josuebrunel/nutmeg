@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
       target: build
     ports:
-      - "8080:8080"
+      - "8380:8080"
     networks:
       - nutmeg
     extra_hosts:
@@ -24,7 +24,7 @@ services:
     tty: true
     image: ghcr.io/josuebrunel/nutmeg:latest
     ports:
-      - "8080:8080"
+      - "8380:8080"
     networks:
       - nutmeg
     depends_on:
@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: nutmeg
     ports:
-      - "5432:5432"
+      - "8381:5432"
     networks:
       - nutmeg
     volumes:

@@ -1,0 +1,36 @@
+package groups
+
+import "nutmeg/internal/model"
+
+templ List(groups []*model.Group) {
+	<div class="space-y-6">
+		<div class="flex items-center justify-between">
+			<h1 class="text-3xl font-bold">My Groups</h1>
+			<a href="/groups/new" class="btn btn-primary">New Group</a>
+		</div>
+		if len(groups) == 0 {
+			<div class="card bg-base-100 shadow-xl">
+				<div class="card-body text-center py-12">
+					<h2 class="text-xl font-semibold mb-2">No groups yet</h2>
+					<p class="text-base-content/60 mb-6">Create your first group to start tracking matches and stats.</p>
+					<a href="/groups/new" class="btn btn-primary">Create Group</a>
+				</div>
+			</div>
+		} else {
+			<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				for _, g := range groups {
+					<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+						<div class="card-body">
+							<h2 class="card-title">
+								<a href={ templ.URL("/groups/" + g.ID) } class="hover:link-primary">{ g.Name }</a>
+							</h2>
+							if g.Description != nil {
+								<p class="text-base-content/60 text-sm">{ *g.Description }</p>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}

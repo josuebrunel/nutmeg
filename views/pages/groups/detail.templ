@@ -1,0 +1,79 @@
+package groups
+
+import (
+	"nutmeg/internal/model"
+	"nutmeg/internal/repository"
+)
+
+templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
+	<div class="space-y-6">
+		<div class="flex items-center justify-between">
+			<div>
+				<h1 class="text-3xl font-bold">{ g.Name }</h1>
+				if g.Description != nil {
+					<p class="text-base-content/60 mt-1">{ *g.Description }</p>
+				}
+			</div>
+			if isAdmin {
+				<div class="flex gap-2">
+					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="btn btn-outline btn-sm">Edit</a>
+					<button class="btn btn-outline btn-error btn-sm" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group?" hx-target="body">Delete</button>
+				</div>
+			}
+		</div>
+
+		<div class="card bg-base-100 shadow-xl">
+			<div class="card-body">
+				<h2 class="card-title">Members</h2>
+				<div class="overflow-x-auto">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Email</th>
+								<th>Role</th>
+								if isAdmin {
+									<th></th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							for _, m := range members {
+								<tr>
+									<td>{ m.FirstName } { m.LastName }</td>
+									<td>{ m.Email }</td>
+									<td>
+										if m.Role == "admin" {
+											<span class="badge badge-primary">Admin</span>
+										} else {
+											<span class="badge">Member</span>
+										}
+									</td>
+									if isAdmin {
+										<td>
+											if m.Role != "admin" {
+												<button class="btn btn-ghost btn-xs text-error" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-confirm="Remove this member?" hx-target="body">Remove</button>
+											}
+										</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				if isAdmin {
+					<div class="divider">Add Member</div>
+					<form method="POST" action={ templ.URL("/groups/" + g.ID + "/members") } class="flex gap-2 items-end">
+						<label class="form-control flex-1">
+							<div class="label">
+								<span class="label-text">User ID</span>
+							</div>
+							<input type="text" name="user_id" placeholder="Enter user ID" class="input input-bordered input-sm w-full" required />
+						</label>
+						<button type="submit" class="btn btn-primary btn-sm">Add</button>
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}

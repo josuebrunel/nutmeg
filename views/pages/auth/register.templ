@@ -1,0 +1,49 @@
+package auth
+
+templ Register(errMsg string, sucMsg string) {
+	<div class="min-h-screen flex items-center justify-center py-12 px-6">
+		<div class="card bg-base-100 w-full max-w-md shadow-xl">
+			<div class="card-body p-8">
+				if errMsg != "" {
+					<div role="alert" class="alert alert-error mb-4">{ errMsg }</div>
+				}
+				if sucMsg != "" {
+					<div role="alert" class="alert alert-success mb-4">{ sucMsg }</div>
+				}
+				<h1 class="text-3xl font-bold text-center mb-2">Create Account</h1>
+				<p class="text-center text-base-content/60 mb-8">Start tracking your soccer stats</p>
+				<form method="POST" action="/auth/register" class="space-y-4">
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Username</span>
+						</div>
+						<input type="text" name="username" placeholder="coolguy99" class="input input-bordered w-full" required />
+					</label>
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Email</span>
+						</div>
+						<input type="email" name="email" placeholder="you@example.com" class="input input-bordered w-full" required />
+					</label>
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Password</span>
+						</div>
+						<input type="password" name="password" placeholder="••••••••" class="input input-bordered w-full" required />
+					</label>
+					<label class="form-control w-full">
+						<div class="label">
+							<span class="label-text">Confirm Password</span>
+						</div>
+						<input type="password" name="password_confirm" placeholder="••••••••" class="input input-bordered w-full" required />
+					</label>
+					<button type="submit" class="btn btn-primary w-full">Create Account</button>
+				</form>
+				<p class="text-center mt-6 text-sm text-base-content/60">
+					Already have an account?
+					<a href="/login" class="link link-primary">Sign in</a>
+				</p>
+			</div>
+		</div>
+	</div>
+}

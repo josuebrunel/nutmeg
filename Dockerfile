@@ -1,7 +1,7 @@
 # Build
 FROM golang:1.25-alpine AS build
 
-RUN apk add --no-cache git curl
+RUN apk add --no-cache git curl make
 
 RUN go install github.com/a-h/templ/cmd/templ@latest
 RUN go install github.com/air-verse/air@latest
