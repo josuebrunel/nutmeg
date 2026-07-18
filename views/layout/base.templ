@@ -10,88 +10,108 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 			<meta name="description" content="Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists." />
 			<link rel="preconnect" href="https://fonts.googleapis.com" />
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Oswald:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 			<link href="https://cdn.jsdelivr.net/npm/daisyui@5/dist/full.css" rel="stylesheet" />
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.4" type="text/javascript"></script>
 			<link href="/static/css/input.css" rel="stylesheet" />
 		</head>
 		<body class="min-h-screen antialiased">
-			if isLoggedIn {
-				<header id="app-header" class="sticky top-0 z-50 bg-chalk/95 backdrop-blur-sm border-b border-base-300/60 shadow-sm">
-					<div class="flex items-center justify-between px-4 sm:px-6 h-16 max-w-full">
+			<header class="sticky top-0 z-40 bg-chalk/95 backdrop-blur border-b-2 border-pitch shadow-sm">
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div class="flex justify-between h-16 items-center">
 						<div class="flex items-center gap-2">
-							<button onclick="toggleSidebar()" class="btn btn-ghost btn-sm p-1.5 lg:hidden" aria-label="Toggle menu">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
-							</button>
-							<a href="/dashboard" class="font-heading text-xl font-bold text-pitch tracking-wider">NUTMEG</a>
-						</div>
-						<div class="flex items-center gap-3">
-							if userName != "" {
-								<span class="text-sm font-body text-ink/70 hidden sm:block">{ userName }</span>
+							<svg class="w-8 h-8 text-turf" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							if isLoggedIn {
+								<a href="/dashboard" class="text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
+							} else {
+								<a href="/" class="text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
 							}
-							<a href="/auth/logout" class="btn btn-ghost btn-sm font-heading text-nutmeg">Logout</a>
 						</div>
+						if isLoggedIn {
+							<nav class="hidden md:flex items-center gap-6" aria-label="App navigation">
+								<a href="/dashboard" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">Dashboard</a>
+								<a href="/stats" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">My Stats</a>
+								<a href="/groups" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">Groups</a>
+								<div class="flex items-center gap-3 ml-4 pl-4 border-l border-base-300">
+									if userName != "" {
+										<span class="text-sm text-ink/70 font-body">{ userName }</span>
+									}
+									<a href="/auth/logout" class="font-oswald text-nutmeg hover:text-pitch transition-colors">SIGN OUT</a>
+								</div>
+							</nav>
+							<div class="md:hidden flex items-center">
+								<button id="mobile-menu-btn" class="text-pitch hover:text-turf p-2" aria-label="Open menu">
+									<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+								</button>
+							</div>
+						} else {
+							<nav class="hidden md:flex items-center gap-6" aria-label="Main navigation">
+								<a href="/#features" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">Features</a>
+								<a href="/#how-it-works" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">How It Works</a>
+								<a href="/login" class="font-oswald bg-turf text-ink hover:bg-gold px-6 py-2 rounded-sm font-bold shadow transition-colors tracking-wider">SIGN IN</a>
+							</nav>
+							<div class="md:hidden flex items-center">
+								<button id="mobile-menu-btn" class="text-pitch hover:text-turf p-2" aria-label="Open menu">
+									<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+								</button>
+							</div>
+						}
 					</div>
-				</header>
-			} else {
-				<header id="public-header" class="sticky top-0 z-50 bg-chalk/95 backdrop-blur-sm border-b border-base-300/60 shadow-sm">
-					<nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16" aria-label="Main navigation">
-						<a href="/" class="flex items-center gap-2 cursor-pointer">
-							<span class="font-heading text-2xl font-bold text-pitch tracking-wider">NUTMEG</span>
-							<span class="hidden sm:inline-block text-xs font-mono text-nutmeg bg-base-200 px-2 py-0.5 rounded-full">v1.0</span>
-						</a>
-						<ul class="flex items-center gap-1 sm:gap-2 md:gap-4 text-sm font-heading tracking-wide">
-							<li><a href="/#features" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">Features</a></li>
-							<li><a href="/#how-it-works" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">How It Works</a></li>
-							<li><a href="/#open-source" class="nav-link px-2 py-1.5 text-ink/70 hover:text-pitch">Open Source</a></li>
-							<li><a href="/login" class="nav-link px-3 py-1.5 bg-gold text-ink font-semibold rounded-md hover:bg-gold/80">Sign In</a></li>
-						</ul>
-					</nav>
-				</header>
-			}
-			if isLoggedIn {
-				<aside id="app-sidebar" class="fixed left-0 top-16 z-40 w-64 h-[calc(100vh-4rem)] bg-base-200 border-r border-base-300 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shadow-sm">
-					<nav class="p-4 flex flex-col gap-1 h-full" aria-label="App navigation">
-						<a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
-							Dashboard
-						</a>
-						<a href="/stats" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-							My Stats
-						</a>
-						<a href="/groups" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink/70 hover:bg-base-300 hover:text-ink font-heading text-sm">
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
-							Groups
-						</a>
-						<div class="mt-auto pt-4 border-t border-base-300 text-xs text-ink/40 font-mono">
-							Nutmeg v1.0 &middot; MIT
+				</div>
+				<div id="mobile-menu" class="hidden md:hidden border-t border-base-300 bg-chalk pb-4">
+					if isLoggedIn {
+						<div class="px-4 pt-2 space-y-1">
+							<a href="/dashboard" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Dashboard</a>
+							<a href="/stats" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
+							<a href="/groups" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
+							<a href="/auth/logout" class="block px-3 py-2 font-oswald text-nutmeg hover:bg-base-200 rounded">SIGN OUT</a>
 						</div>
-					</nav>
-				</aside>
-				<div id="sidebar-overlay" class="fixed inset-0 z-30 bg-black/20 lg:hidden hidden"></div>
-			}
-			<main class={ "transition-all duration-200 min-h-screen", conditionalClass(isLoggedIn, "lg:ml-64") }>
+					} else {
+						<div class="px-4 pt-2 space-y-1">
+							<a href="/#features" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Features</a>
+							<a href="/#how-it-works" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">How It Works</a>
+							<a href="/login" class="block px-3 py-2 mt-3 font-oswald bg-turf text-ink text-center rounded-sm font-bold">SIGN IN</a>
+						</div>
+					}
+				</div>
+			</header>
+			<main class="min-h-screen bg-base-200">
 				{ children... }
 			</main>
-			if isLoggedIn {
-				<dialog id="match-modal" class="modal">
-					<div class="modal-box bg-white rounded-xl max-w-lg">
-						<div id="match-modal-container"></div>
-						<button onclick="document.getElementById('match-modal').close()" class="btn btn-sm btn-ghost absolute top-2 right-2">✕</button>
+			<div class="perforation-divider" aria-hidden="true"></div>
+			<footer class="bg-chalk py-8 border-t-4 border-pitch">
+				<div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+					<div class="flex items-center gap-2">
+						<span class="text-xl font-oswald text-pitch font-bold">NUTMEG</span>
 					</div>
-				</dialog>
-			}
-			<div class="toast-container" id="toast-container"></div>
+					<p class="text-sm text-ink/70 font-body">
+						Open source under the MIT License.
+					</p>
+				</div>
+			</footer>
+			<dialog id="match-modal" class="modal">
+				<div class="modal-box bg-chalk border-2 border-pitch p-0 rounded-lg max-w-xl">
+					<div class="bg-pitch text-chalk p-4 flex justify-between items-center">
+						<h3 class="font-oswald text-lg font-bold">Log Match</h3>
+						<button onclick="document.getElementById('match-modal').close()" class="text-chalk hover:text-gold text-2xl leading-none">&times;</button>
+					</div>
+					<div class="p-6" id="match-modal-container"></div>
+				</div>
+			</dialog>
+			<dialog id="manage-group-modal" class="modal">
+				<div class="modal-box bg-chalk border-2 border-pitch p-0 rounded-lg max-w-xl">
+					<div class="bg-pitch text-chalk p-4 flex justify-between items-center">
+						<h3 class="font-oswald text-xl font-bold">Manage Group</h3>
+						<button onclick="document.getElementById('manage-group-modal').close()" class="text-chalk hover:text-gold text-2xl leading-none">&times;</button>
+					</div>
+					<div class="p-6" id="manage-group-container"></div>
+				</div>
+			</dialog>
+			<div class="toast-container" id="toast-container" aria-live="polite"></div>
 			<script src="/static/js/main.js"></script>
 		</body>
 	</html>
-}
-
-func conditionalClass(cond bool, cls string) string {
-	if cond {
-		return cls
-	}
-	return ""
 }

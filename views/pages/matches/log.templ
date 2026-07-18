@@ -4,57 +4,43 @@ import "nutmeg/internal/repository"
 
 templ LogForm(groupID string, members []repository.MemberInfo) {
 	<div>
-		<h3 class="font-heading text-lg text-pitch mb-4">Log Match</h3>
-		<form method="POST" action={ templ.URL("/groups/" + groupID + "/matches") } class="flex flex-col gap-3">
-			<div class="grid grid-cols-2 gap-3">
-				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Team A Name</label>
-					<input type="text" id="team-a-name" name="team_a_name" value="Shirts" class="input input-bordered w-full" />
+		<form method="POST" action={ templ.URL("/groups/" + groupID + "/matches") } hx-target="body" class="space-y-6">
+			<div>
+				<div class="flex justify-between items-end mb-3">
+					<h3 class="font-oswald text-xl text-turf">1. Select Players &amp; Assign Teams</h3>
 				</div>
-				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Team B Name</label>
-					<input type="text" id="team-b-name" name="team_b_name" value="Skins" class="input input-bordered w-full" />
+				<div class="bg-base-200 p-4 rounded">
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						for _, m := range members {
+							<div class="flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm">
+								<span class="text-sm font-body truncate pr-2">{ playerDisplayName(m) }</span>
+								<select name={ "team_" + m.UserID } class="text-xs font-oswald p-1 border rounded bg-chalk">
+									<option value="">Out</option>
+									<option value="a">Shirts</option>
+									<option value="b">Skins</option>
+								</select>
+							</div>
+						}
+					</div>
 				</div>
 			</div>
 			<div>
-				<label class="font-heading text-sm text-ink/70 block mb-1">Team A Players</label>
-				<div class="flex flex-wrap gap-1">
-					for _, m := range members {
-						<label class="cursor-pointer label p-1 gap-1">
-							<input type="checkbox" name="team_a_players" value={ m.UserID } class="checkbox checkbox-xs" />
-							<span class="text-sm">{ playerDisplayName(m) }</span>
-						</label>
-					}
+				<h3 class="font-oswald text-xl text-turf mb-3">2. Final Score</h3>
+				<div class="flex items-center justify-center gap-8 bg-pitch p-6 rounded text-chalk">
+					<div class="text-center">
+						<label class="font-oswald text-lg mb-2 block">SHIRTS</label>
+						<input type="number" name="score_a" min="0" required class="w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0" />
+					</div>
+					<div class="font-oswald text-3xl text-gold">-</div>
+					<div class="text-center">
+						<label class="font-oswald text-lg text-nutmeg mb-2 block">SKINS</label>
+						<input type="number" name="score_b" min="0" required class="w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0" />
+					</div>
 				</div>
 			</div>
-			<div>
-				<label class="font-heading text-sm text-ink/70 block mb-1">Team B Players</label>
-				<div class="flex flex-wrap gap-1">
-					for _, m := range members {
-						<label class="cursor-pointer label p-1 gap-1">
-							<input type="checkbox" name="team_b_players" value={ m.UserID } class="checkbox checkbox-xs" />
-							<span class="text-sm">{ playerDisplayName(m) }</span>
-						</label>
-					}
-				</div>
-			</div>
-			<div class="grid grid-cols-2 gap-3">
-				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Score A</label>
-					<input type="number" name="score_a" min="0" class="input input-bordered w-full" required />
-				</div>
-				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Score B</label>
-					<input type="number" name="score_b" min="0" class="input input-bordered w-full" required />
-				</div>
-			</div>
-			<div>
-				<label class="font-heading text-sm text-ink/70 block mb-1">Goals (name:team:count)</label>
-				<input type="text" name="goals_input" placeholder="Torres:A:2, Kim:A:1, Leo:B:1" class="input input-bordered w-full" />
-			</div>
-			<div class="flex gap-3 justify-end mt-2">
-				<button type="button" onclick="closeModal()" class="btn btn-ghost font-heading text-sm">Cancel</button>
-				<button type="submit" class="btn bg-pitch text-chalk font-heading text-sm">Save Match</button>
+			<div class="flex gap-3 justify-end">
+				<button type="button" onclick="document.getElementById('match-modal').close()" class="font-oswald bg-white border-2 border-pitch text-pitch px-4 py-2 rounded hover:bg-chalk transition-colors text-sm">Cancel</button>
+				<button type="submit" class="font-oswald bg-gold text-pitch border-2 border-gold px-6 py-2 rounded hover:bg-pitch hover:text-gold transition-colors text-sm font-bold">SAVE MATCH</button>
 			</div>
 		</form>
 	</div>

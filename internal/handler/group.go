@@ -15,10 +15,10 @@ import (
 )
 
 type GroupHandler struct {
-	auth        *ezauth.EzAuth
-	service     *service.GroupService
-	matchSvc    *service.MatchService
-	repo        *repository.Repository
+	auth     *ezauth.EzAuth
+	service  *service.GroupService
+	matchSvc *service.MatchService
+	repo     *repository.Repository
 }
 
 func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository) *GroupHandler {
@@ -82,10 +82,35 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 
 	isAdmin := h.isAdmin(c, members)
 
+	leaderboard, _ := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
+	for i, e := range leaderboard {
+		lbEntries[i] = groups.LeaderboardEntry{
+			Name:    e.Name,
+			Wins:    e.Wins,
+			Losses:  e.Losses,
+			Goals:   e.Goals,
+			Assists: e.Assists,
+		}
+	}
+
+	matches, _ := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	matchEntries := make([]groups.MatchEntry, len(matches))
+	for i, m := range matches {
+		matchEntries[i] = groups.MatchEntry{
+			ID:     m.ID,
+			TeamA:  m.TeamAName,
+			TeamB:  m.TeamBName,
+			ScoreA: m.ScoreA,
+			ScoreB: m.ScoreB,
+			Date:   m.PlayedAt.Format("Jan 2"),
+		}
+	}
+
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, isAdmin, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, isAdmin, lbEntries, matchEntries, successMsg, errMsg))
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
@@ -150,7 +175,7 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/groups")
 }
 
-func (h *GroupHandler) ManageTab(c *echo.Context) error {
+func (h *GroupHandler) ManageModal(c *echo.Context) error {
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
@@ -164,58 +189,7 @@ func (h *GroupHandler) ManageTab(c *echo.Context) error {
 
 	isAdmin := h.isAdmin(c, members)
 
-	return render.Component(c, groups.ManageTab(g, members, isAdmin))
-}
-
-func (h *GroupHandler) StatsTab(c *echo.Context) error {
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	leaderboard, err := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	entries := make([]groups.LeaderboardEntry, len(leaderboard))
-	for i, e := range leaderboard {
-		entries[i] = groups.LeaderboardEntry{
-			Name:    e.Name,
-			Wins:    e.Wins,
-			Losses:  e.Losses,
-			Goals:   e.Goals,
-			Assists: e.Assists,
-		}
-	}
-	return render.Component(c, groups.StatsTab(g, entries))
-}
-
-func (h *GroupHandler) MatchesTab(c *echo.Context) error {
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	matches, err := h.matchSvc.ListByGroup(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	entries := make([]groups.MatchEntry, len(matches))
-	for i, m := range matches {
-		entries[i] = groups.MatchEntry{
-			ID:     m.ID,
-			TeamA:  m.TeamAName,
-			TeamB:  m.TeamBName,
-			ScoreA: m.ScoreA,
-			ScoreB: m.ScoreB,
-			Date:   m.PlayedAt.Format("2006-01-02"),
-		}
-	}
-	return render.Component(c, groups.MatchesTab(g, entries))
+	return render.Component(c, groups.ManageModalContent(g, members, isAdmin))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {

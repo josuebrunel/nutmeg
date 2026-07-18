@@ -31,92 +31,56 @@ func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><h3 class=\"font-heading text-lg text-pitch mb-4\">Log Match</h3><form method=\"POST\" action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><form method=\"POST\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + groupID + "/matches"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 8, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 7, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"flex flex-col gap-3\"><div class=\"grid grid-cols-2 gap-3\"><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Team A Name</label> <input type=\"text\" id=\"team-a-name\" name=\"team_a_name\" value=\"Shirts\" class=\"input input-bordered w-full\"></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Team B Name</label> <input type=\"text\" id=\"team-b-name\" name=\"team_b_name\" value=\"Skins\" class=\"input input-bordered w-full\"></div></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Team A Players</label><div class=\"flex flex-wrap gap-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-target=\"body\" class=\"space-y-6\"><div><div class=\"flex justify-between items-end mb-3\"><h3 class=\"font-oswald text-xl text-turf\">1. Select Players &amp; Assign Teams</h3></div><div class=\"bg-base-200 p-4 rounded\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, m := range members {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<label class=\"cursor-pointer label p-1 gap-1\"><input type=\"checkbox\" name=\"team_a_players\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm\"><span class=\"text-sm font-body truncate pr-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.UserID)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(playerDisplayName(m))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 24, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 16, Col: 76}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"checkbox checkbox-xs\"> <span class=\"text-sm\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span> <select name=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(playerDisplayName(m))
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("team_" + m.UserID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 25, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 17, Col: 41}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></label>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Team B Players</label><div class=\"flex flex-wrap gap-1\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, m := range members {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<label class=\"cursor-pointer label p-1 gap-1\"><input type=\"checkbox\" name=\"team_b_players\" value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.UserID)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 35, Col: 68}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"checkbox checkbox-xs\"> <span class=\"text-sm\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(playerDisplayName(m))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 36, Col: 51}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"text-xs font-oswald p-1 border rounded bg-chalk\"><option value=\"\">Out</option> <option value=\"a\">Shirts</option> <option value=\"b\">Skins</option></select></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div><div class=\"grid grid-cols-2 gap-3\"><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Score A</label> <input type=\"number\" name=\"score_a\" min=\"0\" class=\"input input-bordered w-full\" required></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Score B</label> <input type=\"number\" name=\"score_b\" min=\"0\" class=\"input input-bordered w-full\" required></div></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Goals (name:team:count)</label> <input type=\"text\" name=\"goals_input\" placeholder=\"Torres:A:2, Kim:A:1, Leo:B:1\" class=\"input input-bordered w-full\"></div><div class=\"flex gap-3 justify-end mt-2\"><button type=\"button\" onclick=\"closeModal()\" class=\"btn btn-ghost font-heading text-sm\">Cancel</button> <button type=\"submit\" class=\"btn bg-pitch text-chalk font-heading text-sm\">Save Match</button></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div></div><div><h3 class=\"font-oswald text-xl text-turf mb-3\">2. Final Score</h3><div class=\"flex items-center justify-center gap-8 bg-pitch p-6 rounded text-chalk\"><div class=\"text-center\"><label class=\"font-oswald text-lg mb-2 block\">SHIRTS</label> <input type=\"number\" name=\"score_a\" min=\"0\" required class=\"w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0\"></div><div class=\"font-oswald text-3xl text-gold\">-</div><div class=\"text-center\"><label class=\"font-oswald text-lg text-nutmeg mb-2 block\">SKINS</label> <input type=\"number\" name=\"score_b\" min=\"0\" required class=\"w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0\"></div></div></div><div class=\"flex gap-3 justify-end\"><button type=\"button\" onclick=\"document.getElementById('match-modal').close()\" class=\"font-oswald bg-white border-2 border-pitch text-pitch px-4 py-2 rounded hover:bg-chalk transition-colors text-sm\">Cancel</button> <button type=\"submit\" class=\"font-oswald bg-gold text-pitch border-2 border-gold px-6 py-2 rounded hover:bg-pitch hover:text-gold transition-colors text-sm font-bold\">SAVE MATCH</button></div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

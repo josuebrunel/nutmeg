@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
@@ -39,24 +40,32 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	}
 
 	groupID := c.Param("id")
-	teamAName := c.FormValue("team_a_name")
-	teamBName := c.FormValue("team_b_name")
 	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
 	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
-	teamAPlayers := c.Request().Form["team_a_players"]
-	teamBPlayers := c.Request().Form["team_b_players"]
-	goalsInput := c.FormValue("goals_input")
+
+	var teamAPlayers, teamBPlayers []string
+	for key, values := range c.Request().Form {
+		if strings.HasPrefix(key, "team_") {
+			pid := strings.TrimPrefix(key, "team_")
+			for _, v := range values {
+				if v == "a" {
+					teamAPlayers = append(teamAPlayers, pid)
+				} else if v == "b" {
+					teamBPlayers = append(teamBPlayers, pid)
+				}
+			}
+		}
+	}
 
 	input := service.CreateMatchInput{
 		GroupID:      groupID,
-		TeamAName:    teamAName,
-		TeamBName:    teamBName,
+		TeamAName:    "Shirts",
+		TeamBName:    "Skins",
 		ScoreA:       scoreA,
 		ScoreB:       scoreB,
 		CreatedBy:    userID,
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
-		GoalsInput:   goalsInput,
 	}
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {

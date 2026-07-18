@@ -35,22 +35,22 @@ func Form(groupID string, data *FormData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-lg mx-auto\"><h2 class=\"font-heading text-3xl text-pitch mb-6\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8\"><a href=\"/groups\" class=\"inline-flex items-center text-turf hover:text-pitch font-oswald mb-6\">&larr; Back to Groups</a><div class=\"bg-white p-8 rounded-xl shadow border-2 border-pitch max-w-2xl mx-auto\"><h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if groupID != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "Edit Group")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "EDIT GROUP")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "New Group")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "CREATE A GROUP")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h2><div class=\"bg-white p-8 rounded-xl shadow-sm border border-base-200\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -62,7 +62,7 @@ func Form(groupID string, data *FormData) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 20, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 23, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -80,54 +80,54 @@ func Form(groupID string, data *FormData) templ.Component {
 		var templ_7745c5c3_Var3 templ.SafeURL
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(formAction(groupID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 22, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 25, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"flex flex-col gap-4\"><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Group Name</label> <input type=\"text\" name=\"name\" placeholder=\"e.g. Monday Night Football\" class=\"input input-bordered w-full\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"space-y-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Group Name</label> <input type=\"text\" name=\"name\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(dataName(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 25, Col: 135}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 28, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" required></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Description (optional)</label> <textarea name=\"description\" placeholder=\"A short description of your group\" class=\"textarea textarea-bordered w-full\" rows=\"3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" placeholder=\"e.g. Sunday Morning Kickers\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" required></div><div><label class=\"font-oswald text-ink mb-1 block\">Description (optional)</label> <input type=\"text\" name=\"description\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(dataDesc(data))
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(dataDesc(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 29, Col: 149}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/form.templ`, Line: 32, Col: 65}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</textarea></div><div class=\"flex gap-4\"><button type=\"submit\" class=\"btn bg-pitch text-chalk font-heading tracking-wider\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" placeholder=\"A short description of your group\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if groupID != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Save Changes")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "SAVE CHANGES")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Create Group")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "CREATE GROUP")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</button> <a href=\"/groups\" class=\"btn btn-ghost font-heading\">Cancel</a></div></form></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</button></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -143,17 +143,17 @@ func formAction(groupID string) string {
 }
 
 func dataName(data *FormData) string {
-	if data != nil {
-		return data.Name
+	if data == nil {
+		return ""
 	}
-	return ""
+	return data.Name
 }
 
 func dataDesc(data *FormData) string {
-	if data != nil {
-		return data.Description
+	if data == nil {
+		return ""
 	}
-	return ""
+	return data.Description
 }
 
 var _ = templruntime.GeneratedTemplate

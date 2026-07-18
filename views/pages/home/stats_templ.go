@@ -31,82 +31,69 @@ func Stats(stats *repository.PlayerStats) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><h2 class=\"font-heading text-3xl text-pitch mb-6\">My Stats</h2><div class=\"grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8\"><div class=\"bg-white rounded-xl p-4 shadow-sm border border-base-200\"><span class=\"text-ink/60 text-sm font-body\">Matches Played</span><div class=\"stat-number text-3xl font-bold text-pitch\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8\"><div class=\"border-b-2 border-pitch pb-4 mb-8\"><h2 class=\"font-oswald text-4xl text-pitch font-bold\">MY STATS</h2></div><div class=\"grid grid-cols-2 md:grid-cols-4 gap-4 mb-8\"><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"text-sm font-oswald text-ink/70\">Matches</div><div class=\"text-3xl font-bold text-pitch font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(stats.MatchesPlayed)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 11, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 13, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><div class=\"bg-white rounded-xl p-4 shadow-sm border border-base-200\"><span class=\"text-ink/60 text-sm font-body\">Goals</span><div class=\"stat-number text-3xl font-bold text-turf\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"text-sm font-oswald text-ink/70\">Wins</div><div class=\"text-3xl font-bold text-turf font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Goals)
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Wins)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 15, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 17, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><div class=\"bg-white rounded-xl p-4 shadow-sm border border-base-200\"><span class=\"text-ink/60 text-sm font-body\">Assists</span><div class=\"stat-number text-3xl font-bold text-nutmeg\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"text-sm font-oswald text-ink/70\">Losses</div><div class=\"text-3xl font-bold text-nutmeg font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Assists)
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Losses)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 19, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 21, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><div class=\"bg-white rounded-xl p-4 shadow-sm border border-base-200\"><span class=\"text-ink/60 text-sm font-body\">W / L</span><div class=\"stat-number text-3xl font-bold text-gold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"text-sm font-oswald text-ink/70\">Goals</div><div class=\"text-3xl font-bold text-gold font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Wins)
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Goals)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 23, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 25, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "-")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(stats.Losses)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/stats.templ`, Line: 23, Col: 87}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if stats.MatchesPlayed == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"bg-white rounded-xl p-8 shadow-sm border border-base-200 text-center\"><svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" class=\"w-12 h-12 text-ink/20 mx-auto mb-4\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z\"></path></svg><p class=\"text-ink/50 font-body\">Stats will appear once you play matches.</p><a href=\"/groups\" class=\"btn bg-turf text-chalk font-heading text-sm px-5 py-2.5 h-auto min-h-0 rounded-lg mt-4 inline-block\">Join a Group</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"bg-white rounded-xl p-8 shadow border border-pitch/10 text-center\"><p class=\"text-ink/60 font-body mb-4\">No matches played yet. Stats will appear once you play.</p><a href=\"/groups\" class=\"font-oswald bg-turf text-chalk px-4 py-2 rounded inline-block\">Join a Group</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

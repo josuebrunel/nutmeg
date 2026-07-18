@@ -1,50 +1,55 @@
-function toggleSidebar() {
-  var sidebar = document.getElementById('app-sidebar');
-  var overlay = document.getElementById('sidebar-overlay');
-  sidebar.classList.toggle('-translate-x-full');
-  if (overlay) {
-    overlay.classList.toggle('hidden');
-  }
-}
-
-function closeModal() {
-  var modal = document.getElementById('match-modal');
-  if (modal) modal.close();
-}
-
-function showToast(msg, icon) {
-  icon = icon || '✅';
-  var container = document.getElementById('toast-container');
-  var toast = document.createElement('div');
-  toast.className = 'toast-item';
-  toast.innerHTML = icon + ' ' + msg;
-  container.appendChild(toast);
-  setTimeout(function () { toast.remove(); }, 3000);
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-  var sidebar = document.getElementById('app-sidebar');
-  var overlay = document.getElementById('sidebar-overlay');
-  if (overlay) {
-    overlay.addEventListener('click', function () {
-      sidebar.classList.add('-translate-x-full');
-      overlay.classList.add('hidden');
-    });
+  // Mobile menu toggle
+  const menuBtn = document.getElementById('mobile-menu-btn')
+  const mobileMenu = document.getElementById('mobile-menu')
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener('click', function () {
+      mobileMenu.classList.toggle('hidden')
+    })
   }
+
+  // HTMX handlers
   document.body.addEventListener('htmx:afterSwap', function (evt) {
-    if (evt.detail.target && evt.detail.target.id === 'match-modal-container') {
-      var modal = document.getElementById('match-modal');
-      if (modal) modal.showModal();
+    // Open match modal when content is loaded into it
+    if (evt.target.id === 'match-modal-container') {
+      document.getElementById('match-modal').showModal()
     }
-    var flash = evt.detail?.elt?.querySelector?.('[data-flash-toast]');
-    if (flash) {
-      showToast(flash.textContent, flash.dataset.flashIcon || '✅');
-      flash.remove();
+    // Open manage group modal
+    if (evt.target.id === 'manage-group-container') {
+      document.getElementById('manage-group-modal').showModal()
     }
-  });
+  })
+
+  // Flash toasts via HTMX
   document.body.addEventListener('htmx:beforeSwap', function (evt) {
-    if (evt.detail.isError) {
-      showToast('An error occurred', '❌');
+    if (evt.detail.xhr) {
+      var hxTrigger = evt.detail.xhr.getResponseHeader('HX-Trigger')
+      if (hxTrigger) {
+        try {
+          var data = JSON.parse(hxTrigger)
+          if (data.showToast) {
+            showToast(data.showToast.message, data.showToast.type)
+          }
+        } catch (e) {}
+      }
+      // Also check for flash cookie
+      var flashMsg = evt.detail.xhr.getResponseHeader('X-Flash-Message')
+      var flashType = evt.detail.xhr.getResponseHeader('X-Flash-Type')
+      if (flashMsg) {
+        showToast(flashMsg, flashType || 'success')
+      }
     }
-  });
-});
+  })
+})
+
+function showToast(message, type) {
+  var container = document.getElementById('toast-container')
+  if (!container) return
+  var toast = document.createElement('div')
+  toast.className = 'toast-item' + (type === 'error' ? ' error' : '')
+  toast.textContent = message
+  container.appendChild(toast)
+  setTimeout(function () {
+    if (toast.parentNode) toast.remove()
+  }, 3200)
+}

@@ -29,7 +29,7 @@ func Register(errMsg string, sucMsg string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"min-h-[80vh] flex items-center justify-center py-12 px-4\"><div class=\"bg-white p-8 rounded-xl shadow-lg border border-base-200 w-full max-w-md\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"min-h-[80vh] flex items-center justify-center py-12 px-4\"><div class=\"bg-white p-8 rounded-xl shadow-lg border-2 border-pitch w-full max-w-md relative overflow-hidden\"><div class=\"absolute top-0 left-0 w-full h-2 bg-turf\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -41,7 +41,7 @@ func Register(errMsg string, sucMsg string) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 7, Col: 99}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 8, Col: 99}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -60,7 +60,7 @@ func Register(errMsg string, sucMsg string) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sucMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 10, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 11, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -71,7 +71,7 @@ func Register(errMsg string, sucMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-heading text-2xl text-pitch mb-6\">Create Account</h2><form method=\"POST\" action=\"/auth/register\" class=\"flex flex-col gap-4\"><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Email</label> <input type=\"email\" name=\"email\" required class=\"input input-bordered w-full bg-base-100\" placeholder=\"you@example.com\"></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Password</label> <input type=\"password\" name=\"password\" required minlength=\"6\" class=\"input input-bordered w-full bg-base-100\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><div><label class=\"font-heading text-sm text-ink/70 block mb-1\">Confirm Password</label> <input type=\"password\" name=\"password_confirm\" required minlength=\"6\" class=\"input input-bordered w-full bg-base-100\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"btn bg-pitch text-chalk font-heading tracking-wider w-full\">Create Account</button></form><p class=\"mt-4 text-sm text-center text-ink/60 font-body\">Already have an account? <a href=\"/login\" class=\"text-nutmeg font-semibold hover:underline\">Sign in</a></p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2\">CREATE ACCOUNT</h2><form method=\"POST\" action=\"/auth/register\" class=\"flex flex-col gap-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Email</label> <input type=\"email\" name=\"email\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"player@pitch.com\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Password</label> <input type=\"password\" name=\"password\" required minlength=\"6\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Confirm Password</label> <input type=\"password\" name=\"password_confirm\" required minlength=\"6\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">CREATE ACCOUNT</button></form><p class=\"mt-4 text-sm text-center text-ink/70 font-body\">Already have an account? <a href=\"/login\" class=\"font-oswald text-gold hover:text-nutmeg underline\">Sign in</a></p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

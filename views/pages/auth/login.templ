@@ -2,27 +2,28 @@ package auth
 
 templ Login(errMsg string, sucMsg string) {
 	<div class="min-h-[80vh] flex items-center justify-center py-12 px-4">
-		<div class="bg-white p-8 rounded-xl shadow-lg border border-base-200 w-full max-w-md">
+		<div class="bg-white p-8 rounded-xl shadow-lg border-2 border-pitch w-full max-w-md relative overflow-hidden">
+			<div class="absolute top-0 left-0 w-full h-2 bg-turf"></div>
 			if errMsg != "" {
 				<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
 			}
 			if sucMsg != "" {
 				<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ sucMsg }</div>
 			}
-			<h2 class="font-heading text-2xl text-pitch mb-6">Sign In</h2>
+			<h2 class="font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2">SIGN IN</h2>
 			<form method="POST" action="/auth/login" class="flex flex-col gap-4">
 				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Email</label>
-					<input type="email" name="email" required class="input input-bordered w-full bg-base-100" placeholder="player@example.com" />
+					<label class="font-oswald text-ink mb-1 block">Email</label>
+					<input type="email" name="email" required class="w-full border-2 border-pitch rounded px-4 py-2" placeholder="player@pitch.com" />
 				</div>
 				<div>
-					<label class="font-heading text-sm text-ink/70 block mb-1">Password</label>
-					<input type="password" name="password" required class="input input-bordered w-full bg-base-100" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
+					<label class="font-oswald text-ink mb-1 block">Password</label>
+					<input type="password" name="password" required class="w-full border-2 border-pitch rounded px-4 py-2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
 				</div>
-				<button type="submit" class="btn bg-pitch text-chalk font-heading tracking-wider w-full">Sign In</button>
+				<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2">SIGN IN</button>
 			</form>
-			<p class="mt-4 text-sm text-center text-ink/60 font-body">
-				No account? <a href="/register" class="text-nutmeg font-semibold hover:underline">Sign up</a>
+			<p class="mt-4 text-sm text-center text-ink/70 font-body">
+				No account? <a href="/register" class="font-oswald text-gold hover:text-nutmeg underline">Sign up</a>
 			</p>
 		</div>
 	</div>
