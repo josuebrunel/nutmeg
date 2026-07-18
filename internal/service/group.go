@@ -8,11 +8,24 @@ import (
 	"nutmeg/internal/repository"
 )
 
-type GroupService struct {
-	repo *repository.Repository
+type GroupRepository interface {
+	CreateGroup(ctx context.Context, g *model.Group) error
+	GetGroup(ctx context.Context, id string) (*model.Group, error)
+	ListGroups(ctx context.Context, userID string) ([]*model.Group, error)
+	UpdateGroup(ctx context.Context, g *model.Group) error
+	DeleteGroup(ctx context.Context, id string) error
+	AddMember(ctx context.Context, groupID, userID, role string) error
+	RemoveMember(ctx context.Context, groupID, userID string) error
+	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
+	GetMember(ctx context.Context, groupID, userID string) (*model.GroupPlayer, error)
+	MemberCount(ctx context.Context, groupID string) (int, error)
 }
 
-func NewGroupService(repo *repository.Repository) *GroupService {
+type GroupService struct {
+	repo GroupRepository
+}
+
+func NewGroupService(repo GroupRepository) *GroupService {
 	return &GroupService{repo: repo}
 }
 

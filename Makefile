@@ -1,4 +1,4 @@
-.PHONY: dev build run db docker-up docker-down migrate migrate-down templ-gen clean
+.PHONY: dev build run db docker-up docker-down migrate migrate-down templ-gen clean test
 
 dev:
 	templ generate --watch > /dev/null 2>&1 &
@@ -28,6 +28,9 @@ migrate-down:
 
 templ-gen:
 	templ generate
+
+test:
+	go test -failfast ./... -v -p=1 -count=1
 
 clean:
 	rm -rf tmp/ bin/ views/**/*_templ.go
