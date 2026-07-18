@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
@@ -12,6 +13,7 @@ import (
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
 	"nutmeg/views/pages/groups"
+	"nutmeg/views/pages/home"
 )
 
 type GroupHandler struct {
@@ -51,21 +53,41 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 
 	name := c.FormValue("name")
 	if name == "" {
+		if isHTMX(c) {
+			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"Name is required","type":"error"}}`)
+			return c.NoContent(http.StatusOK)
+		}
 		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Error: "Name is required"}))
 	}
 
-	desc := c.FormValue("description")
-	var descPtr *string
-	if desc != "" {
-		descPtr = &desc
+	g, err := h.service.Create(c.Request().Context(), name, nil, userID)
+	if err != nil {
+		if isHTMX(c) {
+			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			return c.NoContent(http.StatusOK)
+		}
+		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Name: name, Error: err.Error()}))
 	}
 
-	g, err := h.service.Create(c.Request().Context(), name, descPtr, userID)
-	if err != nil {
-		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
+	if isHTMX(c) {
+		return h.groupListFragment(c, userID)
 	}
 
 	return c.Redirect(http.StatusFound, "/groups/"+g.ID)
+}
+
+func (h *GroupHandler) groupListFragment(c *echo.Context, userID string) error {
+	list, err := h.service.List(c.Request().Context(), userID)
+	if err != nil {
+		return err
+	}
+
+	referer := c.Request().Header.Get("HX-Current-URL")
+	c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"Group created!","type":"success"}}`)
+	if strings.Contains(referer, "/dashboard") {
+		return render.Component(c, home.DashboardGroupList(list))
+	}
+	return render.Component(c, groups.GroupGrid(list))
 }
 
 func (h *GroupHandler) Detail(c *echo.Context) error {
@@ -208,7 +230,7 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	return render.Component(c, groups.DetailContent(lbEntries, matchEntries))
 }
 
-func (h *GroupHandler) ManageModal(c *echo.Context) error {
+func (h *GroupHandler) RosterContent(c *echo.Context) error {
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
@@ -222,7 +244,7 @@ func (h *GroupHandler) ManageModal(c *echo.Context) error {
 
 	isAdmin := h.isAdmin(c, members)
 
-	return render.Component(c, groups.ManageModalContent(g, members, isAdmin))
+	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -234,6 +256,9 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	id := c.Param("id")
 	email := c.FormValue("email")
 	if email == "" {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, "Email is required", "error")
+		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Email is required")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
@@ -242,13 +267,23 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	targetUserID, err := h.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		slog.Info("Simulating sending invitation email", "email", email, "group_id", id)
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, "User not found. Invitation sent to "+email, "success")
+		}
 		h.auth.Handler.SetFlash(ctx, "success", "User with email "+email+" does not exist. An invitation email was sent to them!")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
 	if err := h.service.AddMember(ctx, id, targetUserID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Added "+email, "success")
 	}
 
 	h.auth.Handler.SetFlash(ctx, "success", "Added member "+email+" successfully!")
@@ -265,10 +300,36 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	memberID := c.Param("uid")
 
 	if err := h.service.RemoveMember(c.Request().Context(), id, memberID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Member removed", "success")
+	}
+
 	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastType string) error {
+	g, err := h.service.Get(c.Request().Context(), groupID)
+	if err != nil {
+		return err
+	}
+	members, err := h.service.Members(c.Request().Context(), groupID)
+	if err != nil {
+		return err
+	}
+	isAdmin := h.isAdmin(c, members)
+
+	c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+message+`","type":"`+toastType+`"}}`)
+	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
+}
+
+func isHTMX(c *echo.Context) bool {
+	return c.Request().Header.Get("HX-Request") == "true"
 }
 
 func (h *GroupHandler) userName(c *echo.Context) string {

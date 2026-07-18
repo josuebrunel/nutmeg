@@ -4,15 +4,15 @@ import "nutmeg/internal/model"
 
 templ Dashboard(groups []*model.Group) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<div class="flex justify-between items-end mb-8 border-b-2 border-pitch pb-4">
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-8 border-b-2 border-pitch pb-4">
 			<div>
 				<h2 class="font-oswald text-4xl text-pitch font-bold">YOUR STATS</h2>
 				<p class="text-ink/70 font-body mt-1">Your groups and activity at a glance</p>
 			</div>
-			<a href="/groups/new" class="font-oswald bg-turf text-chalk px-4 py-2 rounded shadow hover:bg-pitch transition-colors flex items-center gap-2 text-sm">
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-				New Group
-			</a>
+			<form hx-post="/groups" hx-target="#dashboard-groups" hx-swap="outerHTML" class="flex gap-2 w-full sm:w-auto">
+				<input type="text" name="name" placeholder="New group name" class="flex-grow sm:w-48 border-2 border-pitch rounded px-3 py-2 text-sm" required />
+				<button type="submit" class="font-oswald bg-turf text-chalk px-4 py-2 rounded hover:bg-pitch transition-colors text-sm whitespace-nowrap">Create</button>
+			</form>
 		</div>
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
@@ -32,11 +32,16 @@ templ Dashboard(groups []*model.Group) {
 				<div class="text-3xl font-bold text-gold font-mono">0%</div>
 			</div>
 		</div>
+		@DashboardGroupList(groups)
+	</div>
+}
+
+templ DashboardGroupList(groups []*model.Group) {
+	<div id="dashboard-groups">
 		<h3 class="font-oswald text-2xl text-pitch font-bold mb-4">YOUR GROUPS</h3>
 		if len(groups) == 0 {
 			<div class="col-span-full p-8 text-center border-2 border-dashed border-pitch/20 rounded-xl text-ink/60">
-				<p class="font-body">You aren't in any groups yet. Create one!</p>
-				<a href="/groups/new" class="font-oswald bg-turf text-chalk px-4 py-2 rounded inline-block mt-4">Create Group</a>
+				<p class="font-body">You aren't in any groups yet. Create one above!</p>
 			</div>
 		} else {
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

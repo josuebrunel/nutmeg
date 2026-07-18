@@ -44,7 +44,7 @@ func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-target=\"#detail-content-area\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-turf hover:text-pitch font-oswald mb-6\">&larr; Cancel</button><div class=\"bg-white p-6 rounded-xl shadow border-2 border-pitch\"><h3 class=\"font-oswald text-2xl text-pitch font-bold mb-6\">LOG MATCH RESULT</h3><form method=\"POST\" action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-target=\"#detail-content-area\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-turf hover:text-pitch font-oswald mb-6\">&larr; Cancel</button><div class=\"bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch\"><h3 class=\"font-oswald text-2xl text-pitch font-bold mb-6\">LOG MATCH RESULT</h3><form method=\"POST\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -93,7 +93,7 @@ func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div></div><div><h3 class=\"font-oswald text-xl text-turf mb-3\">2. Final Score</h3><div class=\"flex items-center justify-center gap-8 bg-pitch p-6 rounded text-chalk\"><div class=\"text-center\"><label class=\"font-oswald text-lg mb-2 block\">SHIRTS</label> <input type=\"number\" name=\"score_a\" min=\"0\" required class=\"w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0\"></div><div class=\"font-oswald text-3xl text-gold\">-</div><div class=\"text-center\"><label class=\"font-oswald text-lg text-nutmeg mb-2 block\">SKINS</label> <input type=\"number\" name=\"score_b\" min=\"0\" required class=\"w-24 text-center text-4xl font-mono text-pitch py-2 rounded border-0\"></div></div></div><button type=\"submit\" class=\"w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold\">SAVE MATCH</button></form></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div></div><div><h3 class=\"font-oswald text-xl text-turf mb-3\">2. Final Score</h3><div class=\"flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk\"><div class=\"text-center\"><label class=\"font-oswald text-lg mb-2 block\">SHIRTS</label> <input type=\"number\" name=\"score_a\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div><div class=\"font-oswald text-3xl text-gold\">-</div><div class=\"text-center\"><label class=\"font-oswald text-lg text-nutmeg mb-2 block\">SKINS</label> <input type=\"number\" name=\"score_b\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div></div></div><button type=\"submit\" class=\"w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold\">SAVE MATCH</button></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

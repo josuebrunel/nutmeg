@@ -25,9 +25,9 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 							</svg>
 							if isLoggedIn {
-								<a href="/dashboard" class="text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
+								<a href="/dashboard" class="text-2xl sm:text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
 							} else {
-								<a href="/" class="text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
+								<a href="/" class="text-2xl sm:text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
 							}
 						</div>
 						if isLoggedIn {
@@ -64,16 +64,16 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 				<div id="mobile-menu" class="hidden md:hidden border-t border-base-300 bg-chalk pb-4">
 					if isLoggedIn {
 						<div class="px-4 pt-2 space-y-1">
-							<a href="/dashboard" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Dashboard</a>
-							<a href="/stats" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
-							<a href="/groups" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
-							<a href="/auth/logout" class="block px-3 py-2 font-oswald text-nutmeg hover:bg-base-200 rounded">SIGN OUT</a>
+							<a href="/dashboard" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Dashboard</a>
+							<a href="/stats" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
+							<a href="/groups" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
+							<a href="/auth/logout" class="block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded">SIGN OUT</a>
 						</div>
 					} else {
 						<div class="px-4 pt-2 space-y-1">
-							<a href="/#features" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">Features</a>
-							<a href="/#how-it-works" class="block px-3 py-2 font-oswald text-pitch hover:bg-base-200 rounded">How It Works</a>
-							<a href="/login" class="block px-3 py-2 mt-3 font-oswald bg-turf text-ink text-center rounded-sm font-bold">SIGN IN</a>
+							<a href="/#features" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Features</a>
+							<a href="/#how-it-works" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">How It Works</a>
+							<a href="/login" class="block px-4 py-3 mt-3 font-oswald bg-turf text-ink text-center rounded-sm font-bold">SIGN IN</a>
 						</div>
 					}
 				</div>

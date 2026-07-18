@@ -4,17 +4,22 @@ import "nutmeg/internal/model"
 
 templ List(groups []*model.Group) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<div class="flex justify-between items-end mb-8 border-b-2 border-pitch pb-4">
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-8 border-b-2 border-pitch pb-4">
 			<h2 class="font-oswald text-4xl text-pitch font-bold">YOUR GROUPS</h2>
-			<a href="/groups/new" class="font-oswald bg-turf text-chalk px-4 py-2 rounded shadow hover:bg-pitch transition-colors text-sm flex items-center gap-2">
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-				New Group
-			</a>
+			<form hx-post="/groups" hx-target="#groups-list-section" hx-swap="outerHTML" class="flex gap-2 w-full sm:w-auto">
+				<input type="text" name="name" placeholder="New group name" class="flex-grow sm:w-48 border-2 border-pitch rounded px-3 py-2 text-sm" required />
+				<button type="submit" class="font-oswald bg-turf text-chalk px-4 py-2 rounded hover:bg-pitch transition-colors text-sm whitespace-nowrap">Create</button>
+			</form>
 		</div>
+		@GroupGrid(groups)
+	</div>
+}
+
+templ GroupGrid(groups []*model.Group) {
+	<div id="groups-list-section">
 		if len(groups) == 0 {
 			<div class="p-8 text-center border-2 border-dashed border-pitch/20 rounded-xl">
-				<p class="text-ink/60 font-body mb-4">You aren't in any groups yet. Create one!</p>
-				<a href="/groups/new" class="font-oswald bg-turf text-chalk px-4 py-2 rounded inline-block">Create Group</a>
+				<p class="text-ink/60 font-body mb-4">You aren't in any groups yet. Create one above!</p>
 			</div>
 		} else {
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
