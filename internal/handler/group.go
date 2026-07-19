@@ -200,7 +200,7 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 		return err
 	}
 
-	return c.Redirect(http.StatusFound, "/groups")
+	return c.Redirect(http.StatusFound, "/dashboard")
 }
 
 func (h *GroupHandler) DetailContent(c *echo.Context) error {
