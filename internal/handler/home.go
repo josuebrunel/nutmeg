@@ -60,8 +60,5 @@ func (h *HomeHandler) getUserName(c *echo.Context) string {
 	if err != nil {
 		return ""
 	}
-	if user.FirstName != "" || user.LastName != "" {
-		return user.FirstName + " " + user.LastName
-	}
-	return user.Email
+	return user.DisplayName()
 }

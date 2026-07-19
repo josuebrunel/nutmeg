@@ -340,10 +340,7 @@ func (h *GroupHandler) userName(c *echo.Context) string {
 	if err != nil {
 		return ""
 	}
-	if user.FirstName != "" || user.LastName != "" {
-		return user.FirstName + " " + user.LastName
-	}
-	return user.Email
+	return user.DisplayName()
 }
 
 func (h *GroupHandler) isCreator(c *echo.Context, g *model.Group) bool {

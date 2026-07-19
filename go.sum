@@ -94,8 +94,8 @@ github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8HmY=
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
-github.com/josuebrunel/ezauth v0.5.5 h1:Lo4qwwjD7qJfh7U9CcOPItC9a0rbwUMMg8GPq98QSOc=
-github.com/josuebrunel/ezauth v0.5.5/go.mod h1:RWB51scVGyndZzYBFEj2VAPGUFRA9jETRqLsXMdLy4c=
+github.com/josuebrunel/ezauth v0.8.1 h1:NEluEkLTwMhI+LRQOUyXJ2D4EnAomUJikQDZb53nb6U=
+github.com/josuebrunel/ezauth v0.8.1/go.mod h1:RWB51scVGyndZzYBFEj2VAPGUFRA9jETRqLsXMdLy4c=
 github.com/josuebrunel/gopkg/xenv v0.0.2 h1:JpGNMl9a5ZcYqgUlWWFChskBMoxYx167qW4wnPd2utE=
 github.com/josuebrunel/gopkg/xenv v0.0.2/go.mod h1:f9GwRBqVQiCN6opa3a7qCmE2A19pKLjtB10SRoWsgpg=
 github.com/josuebrunel/gopkg/xlog v0.1.0 h1:jAf5jZTcGmg2Bo9d1cto/1zNB8Pn7ipEe70vAscqF54=

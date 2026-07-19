@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/a-h/templ v0.3.1020
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/josuebrunel/ezauth v0.5.5
+	github.com/josuebrunel/ezauth v0.8.1
 	github.com/josuebrunel/gopkg/xenv v0.0.2
 	github.com/labstack/echo/v5 v5.3.0
 	github.com/pressly/goose/v3 v3.27.2
