@@ -9,6 +9,7 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/dm"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
+	"github.com/stephenafamo/bob/dialect/psql/um"
 	"github.com/stephenafamo/scan"
 )
 
@@ -173,6 +174,165 @@ func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string) ([
 		ORDER BY wins DESC, goals DESC
 	`, groupID)
 	return bob.All[LeaderboardEntry](ctx, r.db, query, scan.StructMapper[LeaderboardEntry]())
+}
+
+type MatchDetail struct {
+	ID         string    `db:"id"`
+	GroupID    string    `db:"group_id"`
+	HomeTeamID string    `db:"home_team_id"`
+	AwayTeamID string    `db:"away_team_id"`
+	TeamAName  string    `db:"team_a_name"`
+	TeamBName  string    `db:"team_b_name"`
+	ScoreA     int       `db:"score_a"`
+	ScoreB     int       `db:"score_b"`
+	PlayedAt   time.Time `db:"played_at"`
+}
+
+type MatchPlayerRow struct {
+	PlayerID string `db:"player_id"`
+	TeamID   string `db:"team_id"`
+}
+
+func (r *Repository) GetMatchDetail(ctx context.Context, matchID string) (*MatchDetail, error) {
+	query := psql.Select(
+		sm.Columns(
+			"m.id", "m.group_id",
+			"m.home_team_id", "m.away_team_id",
+			"ha.name AS team_a_name", "hb.name AS team_b_name",
+			"m.home_score AS score_a", "m.away_score AS score_b",
+			"m.played_at",
+		),
+		sm.From("matches m"),
+		sm.InnerJoin("teams ha ON ha.id = m.home_team_id"),
+		sm.InnerJoin("teams hb ON hb.id = m.away_team_id"),
+		sm.Where(psql.Quote("m", "id").EQ(psql.Arg(matchID))),
+	)
+	return bob.One[*MatchDetail](ctx, r.db, query, scan.StructMapper[*MatchDetail]())
+}
+
+func (r *Repository) GetMatchPlayers(ctx context.Context, matchID string) ([]MatchPlayerRow, error) {
+	query := psql.Select(
+		sm.Columns("player_id", "team_id"),
+		sm.From("match_players"),
+		sm.Where(psql.Quote("match_id").EQ(psql.Arg(matchID))),
+	)
+	return bob.All[MatchPlayerRow](ctx, r.db, query, scan.StructMapper[MatchPlayerRow]())
+}
+
+func (r *Repository) GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error) {
+	type goalRow struct {
+		ScorerID string `db:"scorer_id"`
+		Count    int    `db:"count"`
+	}
+	query := psql.Select(
+		sm.Columns("scorer_id", psql.Raw("COUNT(*) AS count")),
+		sm.From("match_events"),
+		sm.Where(psql.Quote("match_id").EQ(psql.Arg(matchID))),
+		sm.GroupBy("scorer_id"),
+	)
+	rows, err := bob.All[goalRow](ctx, r.db, query, scan.StructMapper[goalRow]())
+	if err != nil {
+		return nil, err
+	}
+	goals := make(map[string]int)
+	for _, r := range rows {
+		goals[r.ScorerID] = r.Count
+	}
+	return goals, nil
+}
+
+type matchTeamIDs struct {
+	Home string `db:"home_team_id"`
+	Away string `db:"away_team_id"`
+}
+
+func (r *Repository) getMatchTeamIDs(ctx context.Context, exec bob.Executor, matchID string) (string, string, error) {
+	query := psql.Select(
+		sm.Columns("home_team_id", "away_team_id"),
+		sm.From("matches"),
+		sm.Where(psql.Quote("id").EQ(psql.Arg(matchID))),
+	)
+	ids, err := bob.One[*matchTeamIDs](ctx, exec, query, scan.StructMapper[*matchTeamIDs]())
+	if err != nil {
+		return "", "", err
+	}
+	return ids.Home, ids.Away, nil
+}
+
+func (r *Repository) UpdateMatch(ctx context.Context, matchID string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = bob.Exec(ctx, tx, psql.Update(
+		um.Table("matches"),
+		um.SetCol("home_score").ToArg(scoreA),
+		um.SetCol("away_score").ToArg(scoreB),
+		um.Where(psql.Quote("id").EQ(psql.Arg(matchID))),
+	))
+	if err != nil {
+		return err
+	}
+
+	homeTeamID, awayTeamID, err := r.getMatchTeamIDs(ctx, tx, matchID)
+	if err != nil {
+		return err
+	}
+
+	_, err = bob.Exec(ctx, tx, psql.Delete(
+		dm.From("match_players"),
+		dm.Where(psql.Quote("match_id").EQ(psql.Arg(matchID))),
+	))
+	if err != nil {
+		return err
+	}
+
+	for _, pid := range teamAPlayers {
+		_, err = bob.Exec(ctx, tx, psql.Insert(
+			im.Into("match_players", "match_id", "team_id", "player_id"),
+			im.Values(psql.Arg(matchID, homeTeamID, pid)),
+		))
+		if err != nil {
+			return err
+		}
+	}
+	for _, pid := range teamBPlayers {
+		_, err = bob.Exec(ctx, tx, psql.Insert(
+			im.Into("match_players", "match_id", "team_id", "player_id"),
+			im.Values(psql.Arg(matchID, awayTeamID, pid)),
+		))
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = bob.Exec(ctx, tx, psql.Delete(
+		dm.From("match_events"),
+		dm.Where(psql.Quote("match_id").EQ(psql.Arg(matchID))),
+	))
+	if err != nil {
+		return err
+	}
+
+	for playerID, count := range goals {
+		teamID := homeTeamID
+		if contains(teamBPlayers, playerID) {
+			teamID = awayTeamID
+		}
+		for i := 0; i < count; i++ {
+			_, err = bob.Exec(ctx, tx, psql.Insert(
+				im.Into("match_events", "match_id", "team_id", "scorer_id"),
+				im.Values(psql.Arg(matchID, teamID, playerID)),
+			))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*PlayerStats, error) {

@@ -59,7 +59,10 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 								</div>
 								<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
 									<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
-									<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">Remove</button>
+									<div class="flex items-center gap-2">
+										<button class="text-xs font-oswald text-turf hover:text-pitch" hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">@components.IconEdit("size-3.5")</button>
+										<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">@components.IconTrash("size-3.5") Remove</button>
+									</div>
 								</div>
 							</div>
 						}

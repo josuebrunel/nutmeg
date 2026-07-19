@@ -25,5 +25,7 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository)
 	app.GET("/groups/:id/detail-content", h.Group.DetailContent)
 	app.GET("/groups/:id/match-modal", h.Match.LogMatchModal)
 	app.POST("/groups/:id/matches", h.Match.Create)
+	app.GET("/groups/:id/matches/:mid/edit", h.Match.EditModal)
+	app.POST("/groups/:id/matches/:mid/update", h.Match.Update)
 	app.DELETE("/groups/:id/matches/:mid", h.Match.Delete)
 }

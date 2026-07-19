@@ -5,28 +5,83 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ LogForm(groupID string, members []repository.MemberInfo) {
+type MatchEditData struct {
+	MatchID string
+	ScoreA  int
+	ScoreB  int
+	Teams   map[string]string
+	Goals   map[string]int
+}
+
+func formAction(groupID string, editData *MatchEditData) string {
+	if editData != nil {
+		return "/groups/" + groupID + "/matches/" + editData.MatchID + "/update"
+	}
+	return "/groups/" + groupID + "/matches"
+}
+
+func scoreValue(editData *MatchEditData, team string) int {
+	if editData == nil {
+		return 0
+	}
+	if team == "a" {
+		return editData.ScoreA
+	}
+	return editData.ScoreB
+}
+
+func intVal(editData *MatchEditData, playerID string) int {
+	if editData == nil {
+		return 0
+	}
+	if v, ok := editData.Goals[playerID]; ok {
+		return v
+	}
+	return 0
+}
+
+func teamVal(editData *MatchEditData, playerID string) string {
+	if editData == nil {
+		return ""
+	}
+	if v, ok := editData.Teams[playerID]; ok {
+		return v
+	}
+	return ""
+}
+
+templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData) {
 	<div>
 		<button hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
 			&larr; Cancel
 		</button>
 		<div class="bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch">
-			<h3 class="font-oswald text-2xl text-pitch font-bold mb-6">LOG MATCH RESULT</h3>
-			<form method="POST" action={ templ.URL("/groups/" + groupID + "/matches") } hx-target="body" class="space-y-6">
+			<h3 class="font-oswald text-2xl text-pitch font-bold mb-6">
+				if editData != nil {
+					EDIT MATCH RESULT
+				} else {
+					LOG MATCH RESULT
+				}
+			</h3>
+			<form method="POST" action={ templ.URL(formAction(groupID, editData)) } hx-target="body" class="space-y-6">
 				<div>
 					<div class="flex justify-between items-end mb-3">
-						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Select Players &amp; Assign Teams</h3>
+						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Select Players, Teams &amp; Goals</h3>
 					</div>
 					<div class="bg-base-200 p-4 rounded">
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 							for _, m := range members {
 								<div class="flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm">
 									<span class="text-sm font-body truncate pr-2">{ m.Name }</span>
-									<select name={ "team_" + m.ID } class="text-xs font-oswald p-1 border rounded bg-chalk">
-										<option value="">Out</option>
-										<option value="a">Shirts</option>
-										<option value="b">Skins</option>
-									</select>
+									<div class="flex items-center gap-2 shrink-0">
+										@components.IconGoal("size-4")
+										<input type="number" name={ "goals_" + m.ID } min="0" value={ intVal(editData, m.ID) } class="w-12 text-center text-sm border border-pitch/30 rounded py-1" />
+										<select name={ "team_" + m.ID } class="text-xs font-oswald p-1 border rounded bg-chalk">
+											<option value="" if teamVal(editData, m.ID) == "" { selected }>Out</option>
+											<option value="a" if teamVal(editData, m.ID) == "a" { selected }>Shirts</option>
+											<option value="b" if teamVal(editData, m.ID) == "b" { selected }>Skins</option>
+										</select>
+									</div>
 								</div>
 							}
 						</div>
@@ -37,16 +92,22 @@ templ LogForm(groupID string, members []repository.MemberInfo) {
 					<div class="flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk">
 						<div class="text-center">
 							<label class="font-oswald text-lg mb-2 block">SHIRTS</label>
-							<input type="number" name="score_a" min="0" value="0" required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
+							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
 						</div>
 						<div class="font-oswald text-3xl text-gold">-</div>
 						<div class="text-center">
 							<label class="font-oswald text-lg text-nutmeg mb-2 block">SKINS</label>
-							<input type="number" name="score_b" min="0" value="0" required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
+							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
 						</div>
 					</div>
 				</div>
-				<button type="submit" class="w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold">SAVE MATCH</button>
+				<button type="submit" class="w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold">
+					if editData != nil {
+						UPDATE MATCH
+					} else {
+						SAVE MATCH
+					}
+				</button>
 			</form>
 		</div>
 	</div>

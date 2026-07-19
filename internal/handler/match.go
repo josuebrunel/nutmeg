@@ -30,19 +30,33 @@ func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return render.Component(c, matches.LogForm(id, members))
+	return render.Component(c, matches.LogForm(id, members, nil))
 }
 
-func (h *MatchHandler) Create(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+func (h *MatchHandler) parseGoalsFromForm(c *echo.Context) string {
+	var parts []string
+	for key, values := range c.Request().Form {
+		if strings.HasPrefix(key, "goals_") {
+			pid := strings.TrimPrefix(key, "goals_")
+			if len(values) > 0 {
+				count := values[0]
+				n, err := strconv.Atoi(count)
+				if err != nil || n <= 0 {
+					continue
+				}
+				// Determine team from team_* field
+				team := c.FormValue("team_" + pid)
+				if team == "" {
+					continue
+				}
+				parts = append(parts, pid+":"+team+":"+count)
+			}
+		}
 	}
+	return strings.Join(parts, ",")
+}
 
-	groupID := c.Param("id")
-	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
-	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
-
+func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 	var teamAPlayers, teamBPlayers []string
 	for key, values := range c.Request().Form {
 		if strings.HasPrefix(key, "team_") {
@@ -56,6 +70,21 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 			}
 		}
 	}
+	return teamAPlayers, teamBPlayers
+}
+
+func (h *MatchHandler) Create(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	groupID := c.Param("id")
+	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
+	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
+
+	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
+	goalsInput := h.parseGoalsFromForm(c)
 
 	input := service.CreateMatchInput{
 		GroupID:      groupID,
@@ -66,6 +95,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		CreatedBy:    userID,
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
+		GoalsInput:   goalsInput,
 	}
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {
@@ -90,5 +120,70 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
 
+	return c.Redirect(http.StatusFound, "/groups/"+groupID)
+}
+
+func (h *MatchHandler) EditModal(c *echo.Context) error {
+	groupID := c.Param("id")
+	matchID := c.Param("mid")
+
+	members, err := h.repo.ListMembers(c.Request().Context(), groupID)
+	if err != nil {
+		return err
+	}
+
+	editable, err := h.service.GetEditable(c.Request().Context(), matchID)
+	if err != nil {
+		return err
+	}
+
+	teams := make(map[string]string)
+	for _, pid := range editable.TeamAPlayers {
+		teams[pid] = "a"
+	}
+	for _, pid := range editable.TeamBPlayers {
+		teams[pid] = "b"
+	}
+
+	editData := &matches.MatchEditData{
+		MatchID: matchID,
+		ScoreA:  editable.ScoreA,
+		ScoreB:  editable.ScoreB,
+		Teams:   teams,
+		Goals:   editable.Goals,
+	}
+
+	return render.Component(c, matches.LogForm(groupID, members, editData))
+}
+
+func (h *MatchHandler) Update(c *echo.Context) error {
+	_, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	groupID := c.Param("id")
+	matchID := c.Param("mid")
+	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
+	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
+
+	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
+	goalsInput := h.parseGoalsFromForm(c)
+
+	input := service.UpdateMatchInput{
+		MatchID:      matchID,
+		ScoreA:       scoreA,
+		ScoreB:       scoreB,
+		TeamAPlayers: teamAPlayers,
+		TeamBPlayers: teamBPlayers,
+		GoalsInput:   goalsInput,
+	}
+
+	if err := h.service.Update(c.Request().Context(), input); err != nil {
+		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
+		return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	}
+
+	h.auth.Handler.SetFlash(c.Request().Context(), "success", "Match updated!")
 	return c.Redirect(http.StatusFound, "/groups/"+groupID)
 }
