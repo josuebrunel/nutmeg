@@ -37,9 +37,7 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 			<div class="lg:col-span-5" id="detail-content-area">
 				@DetailContent(leaderboard, matches)
 			</div>
-			<div class="lg:col-span-3" id="roster-column">
-				@RosterColumn(g, members, isAdmin)
-			</div>
+			@RosterColumn(g, members, isAdmin)
 			<div class="lg:col-span-4">
 				<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
 				<div class="space-y-4">
@@ -109,7 +107,7 @@ templ DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) {
 }
 
 templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
-	<div id="roster-column">
+	<div id="roster-column" class="lg:col-span-3">
 		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconUsers("size-6") ROSTER</h3>
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4">
 			if isAdmin {

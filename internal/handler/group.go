@@ -200,6 +200,10 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 		return err
 	}
 
+	if isHTMX(c) {
+		c.Response().Header().Set("HX-Redirect", "/dashboard")
+		return c.NoContent(http.StatusOK)
+	}
 	return c.Redirect(http.StatusFound, "/dashboard")
 }
 

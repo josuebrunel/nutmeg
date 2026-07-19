@@ -181,7 +181,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><div class=\"lg:col-span-3\" id=\"roster-column\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -189,7 +189,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div><div class=\"lg:col-span-4\"><h3 class=\"font-oswald text-2xl text-pitch mb-4\">RECENT MATCHES</h3><div class=\"space-y-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"lg:col-span-4\"><h3 class=\"font-oswald text-2xl text-pitch mb-4\">RECENT MATCHES</h3><div class=\"space-y-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -229,7 +229,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(m.ScoreA)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 54, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 52, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -264,7 +264,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(m.ScoreB)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 59, Col: 55}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 57, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -277,7 +277,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(m.Date)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 63, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 61, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -290,7 +290,7 @@ func Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leade
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 64, Col: 140}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 62, Col: 140}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 				if templ_7745c5c3_Err != nil {
@@ -349,7 +349,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(i + 1)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 96, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 94, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -362,7 +362,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 97, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 95, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -375,7 +375,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(p.Wins)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 98, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 96, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -388,7 +388,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(p.Losses)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 99, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 97, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -401,7 +401,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(p.Goals)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 100, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 98, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -414,7 +414,7 @@ func DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) templ.C
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(p.Assists)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 101, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 99, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -455,7 +455,7 @@ func RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool)
 			templ_7745c5c3_Var23 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div id=\"roster-column\"><h3 class=\"font-oswald text-2xl text-pitch mb-4 flex items-center gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div id=\"roster-column\" class=\"lg:col-span-3\"><h3 class=\"font-oswald text-2xl text-pitch mb-4 flex items-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -475,7 +475,7 @@ func RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool)
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL("/groups/" + g.ID + "/members"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 116, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 114, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 			if templ_7745c5c3_Err != nil {
@@ -498,7 +498,7 @@ func RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool)
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(m.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 127, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 125, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -516,7 +516,7 @@ func RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool)
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(*m.Email)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 129, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 127, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -545,7 +545,7 @@ func RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool)
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL("/groups/" + g.ID + "/members/" + m.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 137, Col: 134}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/detail.templ`, Line: 135, Col: 134}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 				if templ_7745c5c3_Err != nil {
