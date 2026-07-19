@@ -1,5 +1,7 @@
 package auth
 
+import components "nutmeg/views/components"
+
 templ Register(errMsg string, sucMsg string) {
 	<div class="min-h-[80vh] flex items-center justify-center py-12 px-4">
 		<div class="bg-white p-8 rounded-xl shadow-lg border-2 border-pitch w-full max-w-md relative overflow-hidden">
@@ -28,7 +30,7 @@ templ Register(errMsg string, sucMsg string) {
 					<label class="font-oswald text-ink mb-1 block">Confirm Password</label>
 					<input type="password" name="password_confirm" required minlength="6" class="w-full border-2 border-pitch rounded px-4 py-2" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
 				</div>
-				<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2">CREATE ACCOUNT</button>
+				<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2 flex items-center justify-center gap-2">@components.IconPlus("size-5") CREATE ACCOUNT</button>
 			</form>
 			<p class="mt-4 text-sm text-center text-ink/70 font-body">
 				Already have an account? <a href="/login" class="font-oswald text-gold hover:text-nutmeg underline">Sign in</a>

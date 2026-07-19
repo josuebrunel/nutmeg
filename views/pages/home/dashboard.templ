@@ -1,6 +1,9 @@
 package home
 
-import "nutmeg/internal/model"
+import (
+	"nutmeg/internal/model"
+	components "nutmeg/views/components"
+)
 
 templ Dashboard(groups []*model.Group) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -16,18 +19,22 @@ templ Dashboard(groups []*model.Group) {
 		</div>
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconGroup("size-5 text-pitch")</div>
 				<div class="text-sm font-oswald text-ink/70">Groups</div>
 				<div class="text-3xl font-bold text-pitch font-mono">{ len(groups) }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-turf")</div>
 				<div class="text-sm font-oswald text-ink/70">Total Matches</div>
 				<div class="text-3xl font-bold text-turf font-mono">0</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconGoal("size-5 text-nutmeg")</div>
 				<div class="text-sm font-oswald text-ink/70">Total Goals</div>
 				<div class="text-3xl font-bold text-nutmeg font-mono">0</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconTrophy("size-5 text-gold")</div>
 				<div class="text-sm font-oswald text-ink/70">Win Rate</div>
 				<div class="text-3xl font-bold text-gold font-mono">0%</div>
 			</div>

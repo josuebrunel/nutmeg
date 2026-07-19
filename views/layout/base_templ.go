@@ -8,6 +8,8 @@ package layout
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import components "nutmeg/views/components"
+
 func Base(title string, isLoggedIn bool, currentGroupID string, userName string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -36,7 +38,7 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 9, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 11, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -62,55 +64,79 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 			return templ_7745c5c3_Err
 		}
 		if isLoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<nav class=\"hidden md:flex items-center gap-6\" aria-label=\"App navigation\"><a href=\"/dashboard\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">Dashboard</a> <a href=\"/stats\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">My Stats</a> <a href=\"/groups\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">Groups</a><div class=\"flex items-center gap-3 ml-4 pl-4 border-l border-base-300\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<nav class=\"hidden md:flex items-center gap-6\" aria-label=\"App navigation\"><a href=\"/dashboard\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.IconGroup("size-4").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "Dashboard</a> <a href=\"/stats\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.IconStats("size-4").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "My Stats</a> <a href=\"/groups\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.IconUsers("size-4").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Groups</a><div class=\"flex items-center gap-3 ml-4 pl-4 border-l border-base-300\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if userName != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-sm text-ink/70 font-body\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"text-sm text-ink/70 font-body\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(userName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 40, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 42, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/auth/logout\" class=\"font-oswald text-nutmeg hover:text-pitch transition-colors\">SIGN OUT</a></div></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<a href=\"/auth/logout\" class=\"font-oswald text-nutmeg hover:text-pitch transition-colors\">SIGN OUT</a></div></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<nav class=\"hidden md:flex items-center gap-6\" aria-label=\"Main navigation\"><a href=\"/#features\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">Features</a> <a href=\"/#how-it-works\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">How It Works</a> <a href=\"/login\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-6 py-2 rounded-sm font-bold shadow transition-colors tracking-wider\">SIGN IN</a></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<nav class=\"hidden md:flex items-center gap-6\" aria-label=\"Main navigation\"><a href=\"/#features\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">Features</a> <a href=\"/#how-it-works\" class=\"font-oswald text-pitch hover:text-turf transition-colors tracking-wider\">How It Works</a> <a href=\"/login\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-6 py-2 rounded-sm font-bold shadow transition-colors tracking-wider\">SIGN IN</a></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div></div><div id=\"mobile-menu\" class=\"hidden md:hidden border-t border-base-300 bg-chalk pb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div></div><div id=\"mobile-menu\" class=\"hidden md:hidden border-t border-base-300 bg-chalk pb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if isLoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/auth/logout\" class=\"block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded\">SIGN OUT</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/auth/logout\" class=\"block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded\">SIGN OUT</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/#features\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Features</a> <a href=\"/#how-it-works\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">How It Works</a> <a href=\"/login\" class=\"block px-4 py-3 mt-3 font-oswald bg-turf text-ink text-center rounded-sm font-bold\">SIGN IN</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/#features\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Features</a> <a href=\"/#how-it-works\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">How It Works</a> <a href=\"/login\" class=\"block px-4 py-3 mt-3 font-oswald bg-turf text-ink text-center rounded-sm font-bold\">SIGN IN</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div></header><main class=\"min-h-screen bg-base-200\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></header><main class=\"min-h-screen bg-base-200\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -118,7 +144,7 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</main><div class=\"perforation-divider\" aria-hidden=\"true\"></div><footer class=\"bg-chalk py-8 border-t-4 border-pitch\"><div class=\"max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4\"><div class=\"flex items-center gap-2\"><span class=\"text-xl font-oswald text-pitch font-bold\">NUTMEG</span></div><p class=\"text-sm text-ink/70 font-body\">Open source under the MIT License.</p></div></footer><div class=\"toast-container\" id=\"toast-container\" aria-live=\"polite\"></div><script src=\"/static/js/main.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</main><div class=\"perforation-divider\" aria-hidden=\"true\"></div><footer class=\"bg-chalk py-8 border-t-4 border-pitch\"><div class=\"max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4\"><div class=\"flex items-center gap-2\"><span class=\"text-xl font-oswald text-pitch font-bold\">NUTMEG</span></div><p class=\"text-sm text-ink/70 font-body\">Open source under the MIT License.</p></div></footer><div class=\"toast-container\" id=\"toast-container\" aria-live=\"polite\"></div><script src=\"/static/js/main.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

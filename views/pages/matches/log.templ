@@ -1,6 +1,9 @@
 package matches
 
-import "nutmeg/internal/repository"
+import (
+	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
+)
 
 templ LogForm(groupID string, members []repository.MemberInfo) {
 	<div>
@@ -12,7 +15,7 @@ templ LogForm(groupID string, members []repository.MemberInfo) {
 			<form method="POST" action={ templ.URL("/groups/" + groupID + "/matches") } hx-target="body" class="space-y-6">
 				<div>
 					<div class="flex justify-between items-end mb-3">
-						<h3 class="font-oswald text-xl text-turf">1. Select Players &amp; Assign Teams</h3>
+						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Select Players &amp; Assign Teams</h3>
 					</div>
 					<div class="bg-base-200 p-4 rounded">
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

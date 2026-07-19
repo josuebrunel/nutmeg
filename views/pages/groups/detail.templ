@@ -3,6 +3,7 @@ package groups
 import (
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
 )
 
 templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, leaderboard []LeaderboardEntry, matches []MatchEntry, successMsg string, errMsg string) {
@@ -12,16 +13,16 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 				<h2 class="font-oswald text-2xl sm:text-4xl text-pitch font-bold">{ g.Name }</h2>
 				if isAdmin {
 					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="text-turf hover:text-pitch transition-colors" aria-label="Edit group name">
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+						@components.IconEdit("size-5")
 					</a>
 				}
 			</div>
 			<div class="flex flex-wrap gap-2">
 				if isAdmin {
-					<button class="font-oswald bg-nutmeg text-chalk px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group? This cannot be undone." hx-target="body">Delete</button>
+					<button class="font-oswald bg-nutmeg text-chalk px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors flex items-center gap-1" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group? This cannot be undone." hx-target="body">@components.IconTrash("size-4") Delete</button>
 				}
 				<button hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#detail-content-area" hx-swap="innerHTML" class="font-oswald bg-gold text-pitch border-2 border-gold px-3 py-1.5 rounded hover:bg-pitch hover:text-gold transition-colors flex items-center gap-1 text-sm">
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+					@components.IconPlus("size-4")
 					Log Match
 				</button>
 			</div>
@@ -109,7 +110,7 @@ templ DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) {
 
 templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool) {
 	<div id="roster-column">
-		<h3 class="font-oswald text-2xl text-pitch mb-4">ROSTER</h3>
+		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconUsers("size-6") ROSTER</h3>
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4">
 			if isAdmin {
 				<form hx-post={ templ.URL("/groups/" + g.ID + "/members") } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col gap-2 mb-3">

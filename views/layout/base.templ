@@ -1,5 +1,7 @@
 package layout
 
+import components "nutmeg/views/components"
+
 templ Base(title string, isLoggedIn bool, currentGroupID string, userName string) {
 	<!DOCTYPE html>
 	<html lang="en">
@@ -32,9 +34,9 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 						</div>
 						if isLoggedIn {
 							<nav class="hidden md:flex items-center gap-6" aria-label="App navigation">
-								<a href="/dashboard" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">Dashboard</a>
-								<a href="/stats" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">My Stats</a>
-								<a href="/groups" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider">Groups</a>
+								<a href="/dashboard" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconGroup("size-4") Dashboard</a>
+								<a href="/stats" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconStats("size-4") My Stats</a>
+								<a href="/groups" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconUsers("size-4") Groups</a>
 								<div class="flex items-center gap-3 ml-4 pl-4 border-l border-base-300">
 									if userName != "" {
 										<span class="text-sm text-ink/70 font-body">{ userName }</span>

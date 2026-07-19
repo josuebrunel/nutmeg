@@ -8,7 +8,10 @@ package matches
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "nutmeg/internal/repository"
+import (
+	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
+)
 
 func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -38,7 +41,7 @@ func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL("/groups/" + groupID + "/detail-content"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 7, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 10, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -51,49 +54,57 @@ func LogForm(groupID string, members []repository.MemberInfo) templ.Component {
 		var templ_7745c5c3_Var3 templ.SafeURL
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + groupID + "/matches"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 12, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 15, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"body\" class=\"space-y-6\"><div><div class=\"flex justify-between items-end mb-3\"><h3 class=\"font-oswald text-xl text-turf\">1. Select Players &amp; Assign Teams</h3></div><div class=\"bg-base-200 p-4 rounded\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"body\" class=\"space-y-6\"><div><div class=\"flex justify-between items-end mb-3\"><h3 class=\"font-oswald text-xl text-turf flex items-center gap-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.IconUsers("size-5").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "1. Select Players &amp; Assign Teams</h3></div><div class=\"bg-base-200 p-4 rounded\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, m := range members {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm\"><span class=\"text-sm font-body truncate pr-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm\"><span class=\"text-sm font-body truncate pr-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(m.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 21, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 24, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span> <select name=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span> <select name=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue("team_" + m.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 22, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 25, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"text-xs font-oswald p-1 border rounded bg-chalk\"><option value=\"\">Out</option> <option value=\"a\">Shirts</option> <option value=\"b\">Skins</option></select></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-xs font-oswald p-1 border rounded bg-chalk\"><option value=\"\">Out</option> <option value=\"a\">Shirts</option> <option value=\"b\">Skins</option></select></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div></div><div><h3 class=\"font-oswald text-xl text-turf mb-3\">2. Final Score</h3><div class=\"flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk\"><div class=\"text-center\"><label class=\"font-oswald text-lg mb-2 block\">SHIRTS</label> <input type=\"number\" name=\"score_a\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div><div class=\"font-oswald text-3xl text-gold\">-</div><div class=\"text-center\"><label class=\"font-oswald text-lg text-nutmeg mb-2 block\">SKINS</label> <input type=\"number\" name=\"score_b\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div></div></div><button type=\"submit\" class=\"w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold\">SAVE MATCH</button></form></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div></div><div><h3 class=\"font-oswald text-xl text-turf mb-3\">2. Final Score</h3><div class=\"flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk\"><div class=\"text-center\"><label class=\"font-oswald text-lg mb-2 block\">SHIRTS</label> <input type=\"number\" name=\"score_a\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div><div class=\"font-oswald text-3xl text-gold\">-</div><div class=\"text-center\"><label class=\"font-oswald text-lg text-nutmeg mb-2 block\">SKINS</label> <input type=\"number\" name=\"score_b\" min=\"0\" required class=\"w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0\"></div></div></div><button type=\"submit\" class=\"w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold\">SAVE MATCH</button></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -8,6 +8,8 @@ package auth
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import components "nutmeg/views/components"
+
 func Login(errMsg string, sucMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -41,7 +43,7 @@ func Login(errMsg string, sucMsg string) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 8, Col: 99}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 10, Col: 99}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -60,7 +62,7 @@ func Login(errMsg string, sucMsg string) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sucMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 11, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/login.templ`, Line: 13, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -71,7 +73,15 @@ func Login(errMsg string, sucMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2\">SIGN IN</h2><form method=\"POST\" action=\"/auth/login\" class=\"flex flex-col gap-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Email</label> <input type=\"email\" name=\"email\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"player@pitch.com\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Password</label> <input type=\"password\" name=\"password\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">SIGN IN</button></form><p class=\"mt-4 text-sm text-center text-ink/70 font-body\">No account? <a href=\"/register\" class=\"font-oswald text-gold hover:text-nutmeg underline\">Sign up</a></p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2\">SIGN IN</h2><form method=\"POST\" action=\"/auth/login\" class=\"flex flex-col gap-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Email</label> <input type=\"email\" name=\"email\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"player@pitch.com\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Password</label> <input type=\"password\" name=\"password\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2 flex items-center justify-center gap-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.IconTeam("size-5").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "SIGN IN</button></form><p class=\"mt-4 text-sm text-center text-ink/70 font-body\">No account? <a href=\"/register\" class=\"font-oswald text-gold hover:text-nutmeg underline\">Sign up</a></p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

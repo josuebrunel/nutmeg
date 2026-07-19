@@ -1,6 +1,9 @@
 package home
 
-import "nutmeg/internal/repository"
+import (
+	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
+)
 
 templ Stats(stats *repository.PlayerStats) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -9,18 +12,22 @@ templ Stats(stats *repository.PlayerStats) {
 		</div>
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-pitch")</div>
 				<div class="text-sm font-oswald text-ink/70">Matches</div>
 				<div class="text-3xl font-bold text-pitch font-mono">{ stats.MatchesPlayed }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconTrophy("size-5 text-turf")</div>
 				<div class="text-sm font-oswald text-ink/70">Wins</div>
 				<div class="text-3xl font-bold text-turf font-mono">{ stats.Wins }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconClose("size-5 text-nutmeg")</div>
 				<div class="text-sm font-oswald text-ink/70">Losses</div>
 				<div class="text-3xl font-bold text-nutmeg font-mono">{ stats.Losses }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconGoal("size-5 text-gold")</div>
 				<div class="text-sm font-oswald text-ink/70">Goals</div>
 				<div class="text-3xl font-bold text-gold font-mono">{ stats.Goals }</div>
 			</div>
