@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
@@ -14,12 +13,11 @@ type GroupRepository interface {
 	ListGroups(ctx context.Context, userID string) ([]*model.Group, error)
 	UpdateGroup(ctx context.Context, g *model.Group) error
 	DeleteGroup(ctx context.Context, id string) error
-	AddMember(ctx context.Context, groupID, userID, role string) error
-	RemoveMember(ctx context.Context, groupID, userID string) error
+	AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	RemoveMember(ctx context.Context, groupID, memberID string) error
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
-	GetMember(ctx context.Context, groupID, userID string) (*model.GroupPlayer, error)
+	GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	MemberCount(ctx context.Context, groupID string) (int, error)
-	GetUserByEmail(ctx context.Context, email string) (string, error)
 }
 
 type GroupService struct {
@@ -30,7 +28,7 @@ func NewGroupService(repo GroupRepository) *GroupService {
 	return &GroupService{repo: repo}
 }
 
-func (s *GroupService) Create(ctx context.Context, name string, description *string, userID string) (*model.Group, error) {
+func (s *GroupService) Create(ctx context.Context, name string, description *string, userID string, creatorName, creatorEmail string) (*model.Group, error) {
 	g := &model.Group{
 		Name:        name,
 		Description: description,
@@ -39,7 +37,7 @@ func (s *GroupService) Create(ctx context.Context, name string, description *str
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
 		return nil, err
 	}
-	if err := s.repo.AddMember(ctx, g.ID, userID, "admin"); err != nil {
+	if err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, "admin"); err != nil {
 		return nil, err
 	}
 	return g, nil
@@ -54,22 +52,18 @@ func (s *GroupService) List(ctx context.Context, userID string) ([]*model.Group,
 }
 
 func (s *GroupService) Update(ctx context.Context, g *model.Group, userID string) error {
-	member, err := s.repo.GetMember(ctx, g.ID, userID)
-	if err != nil {
-		return model.ErrNotFound
-	}
-	if member.Role != "admin" {
+	if g.CreatedBy != userID {
 		return model.ErrNotAuthorized
 	}
 	return s.repo.UpdateGroup(ctx, g)
 }
 
 func (s *GroupService) Delete(ctx context.Context, id, userID string) error {
-	member, err := s.repo.GetMember(ctx, id, userID)
+	g, err := s.repo.GetGroup(ctx, id)
 	if err != nil {
 		return model.ErrNotFound
 	}
-	if member.Role != "admin" {
+	if g.CreatedBy != userID {
 		return model.ErrNotAuthorized
 	}
 	return s.repo.DeleteGroup(ctx, id)
@@ -79,30 +73,35 @@ func (s *GroupService) Members(ctx context.Context, groupID string) ([]repositor
 	return s.repo.ListMembers(ctx, groupID)
 }
 
-func (s *GroupService) AddMember(ctx context.Context, groupID, userID, actorID string) error {
-	if userID == "" {
+func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phone, email *string, actorID string) error {
+	if name == "" {
 		return model.ErrInvalidInput
 	}
-	member, err := s.repo.GetMember(ctx, groupID, actorID)
+
+	g, err := s.repo.GetGroup(ctx, groupID)
 	if err != nil {
 		return model.ErrNotFound
 	}
-	if member.Role != "admin" {
+	if g.CreatedBy != actorID {
 		return model.ErrNotAuthorized
 	}
-	return s.repo.AddMember(ctx, groupID, userID, "member")
+
+	return s.repo.AddMember(ctx, groupID, name, phone, email, "member")
 }
 
-func (s *GroupService) RemoveMember(ctx context.Context, groupID, userID, actorID string) error {
-	if userID == actorID {
-		return errors.New("cannot remove yourself")
-	}
-	member, err := s.repo.GetMember(ctx, groupID, actorID)
+func (s *GroupService) RemoveMember(ctx context.Context, groupID, memberID, actorID string) error {
+	g, err := s.repo.GetGroup(ctx, groupID)
 	if err != nil {
 		return model.ErrNotFound
 	}
-	if member.Role != "admin" {
+	if g.CreatedBy != actorID {
 		return model.ErrNotAuthorized
 	}
-	return s.repo.RemoveMember(ctx, groupID, userID)
+
+	_, err = s.repo.GetMember(ctx, groupID, memberID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+
+	return s.repo.RemoveMember(ctx, groupID, memberID)
 }

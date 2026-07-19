@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -60,7 +59,13 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Error: "Name is required"}))
 	}
 
-	g, err := h.service.Create(c.Request().Context(), name, nil, userID)
+	user, err := ezauth.GetUser(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+	creatorName := h.userName(c)
+
+	g, err := h.service.Create(c.Request().Context(), name, nil, userID, creatorName, user.Email)
 	if err != nil {
 		if isHTMX(c) {
 			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
@@ -102,7 +107,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	isAdmin := h.isAdmin(c, members)
+	isAdmin := h.isCreator(c, g)
 
 	leaderboard, _ := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
@@ -242,7 +247,7 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 		return err
 	}
 
-	isAdmin := h.isAdmin(c, members)
+	isAdmin := h.isCreator(c, g)
 
 	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
 }
@@ -254,27 +259,25 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	}
 
 	id := c.Param("id")
-	email := c.FormValue("email")
-	if email == "" {
+	name := c.FormValue("name")
+	if name == "" {
 		if isHTMX(c) {
-			return h.rosterWithToast(c, id, "Email is required", "error")
+			return h.rosterWithToast(c, id, "Name is required", "error")
 		}
-		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Email is required")
+		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Name is required")
 		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	var phonePtr, emailPtr *string
+	if phone := c.FormValue("phone"); phone != "" {
+		phonePtr = &phone
+	}
+	if email := c.FormValue("email"); email != "" {
+		emailPtr = &email
 	}
 
 	ctx := c.Request().Context()
-	targetUserID, err := h.repo.GetUserByEmail(ctx, email)
-	if err != nil {
-		slog.Info("Simulating sending invitation email", "email", email, "group_id", id)
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, "User not found. Invitation sent to "+email, "success")
-		}
-		h.auth.Handler.SetFlash(ctx, "success", "User with email "+email+" does not exist. An invitation email was sent to them!")
-		return c.Redirect(http.StatusFound, "/groups/"+id)
-	}
-
-	if err := h.service.AddMember(ctx, id, targetUserID, userID); err != nil {
+	if err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID); err != nil {
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, err.Error(), "error")
 		}
@@ -283,10 +286,10 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	}
 
 	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Added "+email, "success")
+		return h.rosterWithToast(c, id, "Added "+name, "success")
 	}
 
-	h.auth.Handler.SetFlash(ctx, "success", "Added member "+email+" successfully!")
+	h.auth.Handler.SetFlash(ctx, "success", "Added member "+name+" successfully!")
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
@@ -297,7 +300,7 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	}
 
 	id := c.Param("id")
-	memberID := c.Param("uid")
+	memberID := c.Param("memberId")
 
 	if err := h.service.RemoveMember(c.Request().Context(), id, memberID, userID); err != nil {
 		if isHTMX(c) {
@@ -322,7 +325,7 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 	if err != nil {
 		return err
 	}
-	isAdmin := h.isAdmin(c, members)
+	isAdmin := h.isCreator(c, g)
 
 	c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+message+`","type":"`+toastType+`"}}`)
 	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
@@ -343,17 +346,12 @@ func (h *GroupHandler) userName(c *echo.Context) string {
 	return user.Email
 }
 
-func (h *GroupHandler) isAdmin(c *echo.Context, members []repository.MemberInfo) bool {
+func (h *GroupHandler) isCreator(c *echo.Context, g *model.Group) bool {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
 		return false
 	}
-	for _, m := range members {
-		if m.UserID == userID && m.Role == "admin" {
-			return true
-		}
-	}
-	return false
+	return g.CreatedBy == userID
 }
 
 func stringPtrValue(s *string) string {

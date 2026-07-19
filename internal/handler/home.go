@@ -6,6 +6,7 @@ import (
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
 
+	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
 	"nutmeg/views/pages/home"
 )
@@ -47,7 +48,7 @@ func (h *HomeHandler) Stats(c *echo.Context) error {
 
 	stats, err := h.matchSvc.GetPlayerStats(c.Request().Context(), userID)
 	if err != nil {
-		return err
+		stats = &repository.PlayerStats{}
 	}
 
 	userName := h.getUserName(c)

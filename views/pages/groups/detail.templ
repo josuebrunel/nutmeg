@@ -112,21 +112,28 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 		<h3 class="font-oswald text-2xl text-pitch mb-4">ROSTER</h3>
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4">
 			if isAdmin {
-				<form hx-post={ templ.URL("/groups/" + g.ID + "/members") } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col sm:flex-row gap-2 mb-3">
-					<input type="email" name="email" placeholder="Email address" class="flex-grow border-2 border-pitch rounded px-2 py-1.5 text-sm" required />
+				<form hx-post={ templ.URL("/groups/" + g.ID + "/members") } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col gap-2 mb-3">
+					<input type="text" name="name" placeholder="Name (required)" class="border-2 border-pitch rounded px-2 py-1.5 text-sm" required />
+					<input type="tel" name="phone" placeholder="Phone (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
+					<input type="email" name="email" placeholder="Email (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
 					<button type="submit" class="bg-pitch text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-turf transition-colors whitespace-nowrap">Add</button>
 				</form>
 			}
 			<ul class="space-y-1">
 				for _, m := range members {
 					<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0">
-						<span class="font-body truncate">{ m.Email }</span>
+						<div class="flex flex-col truncate">
+							<span class="font-body truncate">{ m.Name }</span>
+							if m.Email != nil && *m.Email != "" {
+								<span class="text-xs text-ink/50">{ *m.Email }</span>
+							}
+						</div>
 						<div class="flex items-center gap-2 shrink-0">
 							if m.Role == "admin" {
 								<span class="text-xs font-oswald text-gold">Owner</span>
 							}
 							if isAdmin && m.Role != "admin" {
-								<button class="text-nutmeg hover:text-pitch font-oswald text-xs" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.UserID) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm="Remove { m.Email }?">✕</button>
+								<button class="text-nutmeg hover:text-pitch font-oswald text-xs" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm="Remove { m.Name }?">✕</button>
 							}
 						</div>
 					</li>

@@ -39,11 +39,10 @@ func (r *Repository) GetGroup(ctx context.Context, id string) (*model.Group, err
 
 func (r *Repository) ListGroups(ctx context.Context, userID string) ([]*model.Group, error) {
 	query := psql.Select(
-		sm.Columns("g.id", "g.name", "g.description", "g.created_by", "g.created_at", "g.updated_at"),
-		sm.From("groups g"),
-		sm.InnerJoin("group_players gp ON gp.group_id = g.id"),
-		sm.Where(psql.Quote("gp", "user_id").EQ(psql.Arg(userID))),
-		sm.OrderBy("g.name"),
+		sm.Columns("id", "name", "description", "created_by", "created_at", "updated_at"),
+		sm.From("groups"),
+		sm.Where(psql.Quote("created_by").EQ(psql.Arg(userID))),
+		sm.OrderBy("name"),
 	)
 	return bob.All(ctx, r.db, query, scan.StructMapper[*model.Group]())
 }

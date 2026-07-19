@@ -15,19 +15,19 @@ import (
 )
 
 type MemberInfo struct {
-	UserID    string    `db:"user_id"`
-	Email     string    `db:"email"`
-	FirstName string    `db:"first_name"`
-	LastName  string    `db:"last_name"`
+	ID        string    `db:"id"`
+	Name      string    `db:"name"`
+	Phone     *string   `db:"phone"`
+	Email     *string   `db:"email"`
 	Role      string    `db:"role"`
 	JoinedAt  time.Time `db:"joined_at"`
 }
 
-func (r *Repository) AddMember(ctx context.Context, groupID, userID, role string) error {
+func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error {
 	query := psql.Insert(
-		im.Into("group_players", "group_id", "user_id", "role"),
-		im.Values(psql.Arg(groupID, userID, role)),
-		im.OnConflict("group_id", "user_id").DoUpdate(
+		im.Into("group_players", "group_id", "name", "phone", "email", "role"),
+		im.Values(psql.Arg(groupID, name, phone, email, role)),
+		im.OnConflict("group_id", "name").DoUpdate(
 			im.SetCol("role").ToArg(role),
 		),
 	)
@@ -35,11 +35,11 @@ func (r *Repository) AddMember(ctx context.Context, groupID, userID, role string
 	return err
 }
 
-func (r *Repository) RemoveMember(ctx context.Context, groupID, userID string) error {
+func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID string) error {
 	query := psql.Delete(
 		dm.From("group_players"),
 		dm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
-		dm.Where(psql.Quote("user_id").EQ(psql.Arg(userID))),
+		dm.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
 	_, err := bob.Exec(ctx, r.db, query)
 	return err
@@ -47,23 +47,21 @@ func (r *Repository) RemoveMember(ctx context.Context, groupID, userID string) e
 
 func (r *Repository) ListMembers(ctx context.Context, groupID string) ([]MemberInfo, error) {
 	query := psql.Select(
-		sm.Columns("gp.user_id", "u.email", "u.first_name", "u.last_name", "gp.role", "gp.joined_at"),
-		sm.From("group_players gp"),
-		sm.InnerJoin("ezauth_users u ON u.id = gp.user_id"),
-		sm.Where(psql.Quote("gp", "group_id").EQ(psql.Arg(groupID))),
-		sm.OrderBy("gp.role"),
-		sm.OrderBy("u.first_name"),
-		sm.OrderBy("u.last_name"),
-	)
-	return bob.All(ctx, r.db, query, scan.StructMapper[MemberInfo]())
-}
-
-func (r *Repository) GetMember(ctx context.Context, groupID, userID string) (*model.GroupPlayer, error) {
-	query := psql.Select(
-		sm.Columns("id", "group_id", "user_id", "role", "joined_at"),
+		sm.Columns("id", "name", "phone", "email", "role", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
-		sm.Where(psql.Quote("user_id").EQ(psql.Arg(userID))),
+		sm.OrderBy("role"),
+		sm.OrderBy("name"),
+	)
+	return bob.All[MemberInfo](ctx, r.db, query, scan.StructMapper[MemberInfo]())
+}
+
+func (r *Repository) GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error) {
+	query := psql.Select(
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.From("group_players"),
+		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
+		sm.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
 	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
 }
@@ -75,13 +73,4 @@ func (r *Repository) MemberCount(ctx context.Context, groupID string) (int, erro
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 	)
 	return bob.One(ctx, r.db, query, scan.SingleColumnMapper[int])
-}
-
-func (r *Repository) GetUserByEmail(ctx context.Context, email string) (string, error) {
-	query := psql.Select(
-		sm.Columns("id"),
-		sm.From("ezauth_users"),
-		sm.Where(psql.Quote("email").EQ(psql.Arg(email))),
-	)
-	return bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
 }

@@ -23,7 +23,7 @@ type MatchWithTeams struct {
 }
 
 type LeaderboardEntry struct {
-	PlayerID string `db:"player_id"`
+	MemberID string `db:"member_id"`
 	Name     string `db:"name"`
 	Matches  int    `db:"matches"`
 	Wins     int    `db:"wins"`
@@ -152,31 +152,30 @@ func (r *Repository) DeleteMatch(ctx context.Context, matchID string) error {
 func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string) ([]LeaderboardEntry, error) {
 	query := psql.RawQuery(`
 		SELECT
-			gp.user_id AS player_id,
-			COALESCE(u.first_name || ' ' || u.last_name, u.email) AS name,
+			gp.id AS member_id,
+			gp.name AS name,
 			COUNT(DISTINCT mp.match_id) AS matches,
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score > m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score) THEN mp.match_id END) AS wins,
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score < m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score) THEN mp.match_id END) AS losses,
-			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = gp.user_id) AS goals,
-			COUNT(DISTINCT me2.id) FILTER (WHERE me2.assister_id = gp.user_id) AS assists
+			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = gp.id) AS goals,
+			COUNT(DISTINCT me2.id) FILTER (WHERE me2.assister_id = gp.id) AS assists
 		FROM group_players gp
-		JOIN ezauth_users u ON u.id = gp.user_id
-		LEFT JOIN match_players mp ON mp.player_id = gp.user_id AND mp.match_id IN (
+		LEFT JOIN match_players mp ON mp.player_id = gp.id AND mp.match_id IN (
 			SELECT id FROM matches WHERE group_id = $1
 		)
 		LEFT JOIN matches m ON m.id = mp.match_id
-		LEFT JOIN match_events me ON me.match_id = mp.match_id AND me.scorer_id = gp.user_id
-		LEFT JOIN match_events me2 ON me2.match_id = mp.match_id AND me2.assister_id = gp.user_id
+		LEFT JOIN match_events me ON me.match_id = mp.match_id AND me.scorer_id = gp.id
+		LEFT JOIN match_events me2 ON me2.match_id = mp.match_id AND me2.assister_id = gp.id
 		WHERE gp.group_id = $1
-		GROUP BY gp.user_id, u.first_name, u.last_name, u.email
+		GROUP BY gp.id, gp.name
 		ORDER BY wins DESC, goals DESC
 	`, groupID)
 	return bob.All[LeaderboardEntry](ctx, r.db, query, scan.StructMapper[LeaderboardEntry]())
 }
 
-func (r *Repository) GetPlayerStats(ctx context.Context, userID string) (*PlayerStats, error) {
+func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*PlayerStats, error) {
 	query := psql.RawQuery(`
 		SELECT
 			COUNT(DISTINCT mp.match_id) AS matches_played,
@@ -190,6 +189,6 @@ func (r *Repository) GetPlayerStats(ctx context.Context, userID string) (*Player
 		JOIN matches m ON m.id = mp.match_id
 		LEFT JOIN match_events me ON me.match_id = mp.match_id
 		WHERE mp.player_id = $1
-	`, userID)
+	`, memberID)
 	return bob.One[*PlayerStats](ctx, r.db, query, scan.StructMapper[*PlayerStats]())
 }

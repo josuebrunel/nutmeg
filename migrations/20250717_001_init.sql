@@ -13,10 +13,12 @@ CREATE TABLE IF NOT EXISTS groups (
 CREATE TABLE IF NOT EXISTS group_players (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    email VARCHAR(255),
     role VARCHAR(20) NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
     joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(group_id, user_id)
+    UNIQUE(group_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS teams (
@@ -62,7 +64,6 @@ CREATE TABLE IF NOT EXISTS match_players (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_players_group ON group_players(group_id);
-CREATE INDEX IF NOT EXISTS idx_group_players_user ON group_players(user_id);
 CREATE INDEX IF NOT EXISTS idx_teams_group ON teams(group_id);
 CREATE INDEX IF NOT EXISTS idx_matches_group ON matches(group_id);
 CREATE INDEX IF NOT EXISTS idx_match_events_match ON match_events(match_id);

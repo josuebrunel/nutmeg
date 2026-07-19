@@ -18,8 +18,8 @@ templ LogForm(groupID string, members []repository.MemberInfo) {
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 							for _, m := range members {
 								<div class="flex items-center justify-between bg-white p-2 border border-pitch/10 rounded shadow-sm">
-									<span class="text-sm font-body truncate pr-2">{ playerDisplayName(m) }</span>
-									<select name={ "team_" + m.UserID } class="text-xs font-oswald p-1 border rounded bg-chalk">
+									<span class="text-sm font-body truncate pr-2">{ m.Name }</span>
+									<select name={ "team_" + m.ID } class="text-xs font-oswald p-1 border rounded bg-chalk">
 										<option value="">Out</option>
 										<option value="a">Shirts</option>
 										<option value="b">Skins</option>
@@ -47,11 +47,4 @@ templ LogForm(groupID string, members []repository.MemberInfo) {
 			</form>
 		</div>
 	</div>
-}
-
-func playerDisplayName(m repository.MemberInfo) string {
-	if m.FirstName != "" || m.LastName != "" {
-		return m.FirstName + " " + m.LastName
-	}
-	return m.Email
 }
