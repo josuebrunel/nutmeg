@@ -156,20 +156,21 @@ func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string) ([
 			gp.id AS member_id,
 			gp.name AS name,
 			COUNT(DISTINCT mp.match_id) AS matches,
-			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score > m.away_score)
-				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score) THEN mp.match_id END) AS wins,
-			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score < m.away_score)
-				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score) THEN mp.match_id END) AS losses,
-			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = gp.id) AS goals,
-			COUNT(DISTINCT me2.id) FILTER (WHERE me2.assister_id = gp.id) AS assists
+			COUNT(DISTINCT mp.match_id) FILTER (WHERE
+				(m.home_team_id = mp.team_id AND m.home_score > m.away_score)
+				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score)
+			) AS wins,
+			COUNT(DISTINCT mp.match_id) FILTER (WHERE
+				(m.home_team_id = mp.team_id AND m.home_score < m.away_score)
+				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score)
+			) AS losses,
+			COUNT(DISTINCT me.id) AS goals,
+			0 AS assists
 		FROM group_players gp
-		LEFT JOIN match_players mp ON mp.player_id = gp.id AND mp.match_id IN (
-			SELECT id FROM matches WHERE group_id = $1
-		)
-		LEFT JOIN matches m ON m.id = mp.match_id
-		LEFT JOIN match_events me ON me.match_id = mp.match_id AND me.scorer_id = gp.id
-		LEFT JOIN match_events me2 ON me2.match_id = mp.match_id AND me2.assister_id = gp.id
-		WHERE gp.group_id = $1
+		LEFT JOIN matches m ON m.group_id = gp.group_id
+		LEFT JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = gp.id
+		LEFT JOIN match_events me ON me.match_id = m.id AND me.scorer_id = gp.id
+		WHERE gp.group_id = ?
 		GROUP BY gp.id, gp.name
 		ORDER BY wins DESC, goals DESC
 	`, groupID)
@@ -361,18 +362,10 @@ type GlobalStats struct {
 func (r *Repository) GetGlobalStats(ctx context.Context, userID string) (*GlobalStats, error) {
 	query := psql.RawQuery(`
 		SELECT
-			COALESCE((SELECT COUNT(*) FROM matches WHERE group_id IN (
-				SELECT id FROM groups WHERE created_by = $1
-			)), 0) AS total_matches,
-			COALESCE((SELECT COUNT(*) FROM match_events WHERE match_id IN (
-				SELECT id FROM matches WHERE group_id IN (
-					SELECT id FROM groups WHERE created_by = $1
-				)
-			)), 0) AS total_goals,
-			COALESCE((SELECT COUNT(*) FROM group_players WHERE group_id IN (
-				SELECT id FROM groups WHERE created_by = $1
-			)), 0) AS total_players
-	`, userID)
+			(SELECT COUNT(*) FROM matches WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?)) AS total_matches,
+			(SELECT COUNT(*) FROM match_events WHERE match_id IN (SELECT id FROM matches WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?))) AS total_goals,
+			(SELECT COUNT(*) FROM group_players WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?)) AS total_players
+	`, userID, userID, userID)
 	return bob.One[*GlobalStats](ctx, r.db, query, scan.StructMapper[*GlobalStats]())
 }
 
@@ -384,12 +377,12 @@ func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*Play
 				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score) THEN mp.match_id END) AS wins,
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score < m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score) THEN mp.match_id END) AS losses,
-			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = $1) AS goals,
+			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = ?) AS goals,
 			0 AS assists
 		FROM match_players mp
 		JOIN matches m ON m.id = mp.match_id
 		LEFT JOIN match_events me ON me.match_id = mp.match_id
-		WHERE mp.player_id = $1
-	`, memberID)
+		WHERE mp.player_id = ?
+	`, memberID, memberID)
 	return bob.One[*PlayerStats](ctx, r.db, query, scan.StructMapper[*PlayerStats]())
 }

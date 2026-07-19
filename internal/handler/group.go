@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -109,7 +110,10 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 
 	isAdmin := h.isCreator(c, g)
 
-	leaderboard, _ := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	if lbErr != nil {
+		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+	}
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
 	for i, e := range leaderboard {
 		lbEntries[i] = groups.LeaderboardEntry{
@@ -121,7 +125,10 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		}
 	}
 
-	matches, _ := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
+	}
 	matchEntries := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
 		matchEntries[i] = groups.MatchEntry{
@@ -210,7 +217,10 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	id := c.Param("id")
 
-	leaderboard, _ := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	if lbErr != nil {
+		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+	}
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
 	for i, e := range leaderboard {
 		lbEntries[i] = groups.LeaderboardEntry{
@@ -222,7 +232,10 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 		}
 	}
 
-	matches, _ := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
+	}
 	matchEntries := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
 		matchEntries[i] = groups.MatchEntry{

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/josuebrunel/ezauth"
@@ -36,8 +37,9 @@ func (h *HomeHandler) Dashboard(c *echo.Context) error {
 		groups = nil
 	}
 
-	globalStats, err := h.matchSvc.GlobalStats(c.Request().Context(), userID)
-	if err != nil {
+	globalStats, statsErr := h.matchSvc.GlobalStats(c.Request().Context(), userID)
+	if statsErr != nil {
+		slog.Error("failed to get global stats", "user_id", userID, "error", statsErr)
 		globalStats = &repository.GlobalStats{}
 	}
 
@@ -51,8 +53,9 @@ func (h *HomeHandler) Stats(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
-	globalStats, err := h.matchSvc.GlobalStats(c.Request().Context(), userID)
-	if err != nil {
+	globalStats, statsErr := h.matchSvc.GlobalStats(c.Request().Context(), userID)
+	if statsErr != nil {
+		slog.Error("failed to get global stats", "user_id", userID, "error", statsErr)
 		globalStats = &repository.GlobalStats{}
 	}
 
