@@ -259,7 +259,7 @@ func (r *Repository) getMatchTeamIDs(ctx context.Context, exec bob.Executor, mat
 	return ids.Home, ids.Away, nil
 }
 
-func (r *Repository) UpdateMatch(ctx context.Context, matchID string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error {
+func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -277,6 +277,23 @@ func (r *Repository) UpdateMatch(ctx context.Context, matchID string, scoreA, sc
 	}
 
 	homeTeamID, awayTeamID, err := r.getMatchTeamIDs(ctx, tx, matchID)
+	if err != nil {
+		return err
+	}
+
+	_, err = bob.Exec(ctx, tx, psql.Update(
+		um.Table("teams"),
+		um.SetCol("name").ToArg(teamAName),
+		um.Where(psql.Quote("id").EQ(psql.Arg(homeTeamID))),
+	))
+	if err != nil {
+		return err
+	}
+	_, err = bob.Exec(ctx, tx, psql.Update(
+		um.Table("teams"),
+		um.SetCol("name").ToArg(teamBName),
+		um.Where(psql.Quote("id").EQ(psql.Arg(awayTeamID))),
+	))
 	if err != nil {
 		return err
 	}
@@ -333,6 +350,30 @@ func (r *Repository) UpdateMatch(ctx context.Context, matchID string, scoreA, sc
 	}
 
 	return tx.Commit(ctx)
+}
+
+type GlobalStats struct {
+	TotalMatches int `db:"total_matches"`
+	TotalGoals   int `db:"total_goals"`
+	TotalPlayers int `db:"total_players"`
+}
+
+func (r *Repository) GetGlobalStats(ctx context.Context, userID string) (*GlobalStats, error) {
+	query := psql.RawQuery(`
+		SELECT
+			COALESCE((SELECT COUNT(*) FROM matches WHERE group_id IN (
+				SELECT id FROM groups WHERE created_by = $1
+			)), 0) AS total_matches,
+			COALESCE((SELECT COUNT(*) FROM match_events WHERE match_id IN (
+				SELECT id FROM matches WHERE group_id IN (
+					SELECT id FROM groups WHERE created_by = $1
+				)
+			)), 0) AS total_goals,
+			COALESCE((SELECT COUNT(*) FROM group_players WHERE group_id IN (
+				SELECT id FROM groups WHERE created_by = $1
+			)), 0) AS total_players
+	`, userID)
+	return bob.One[*GlobalStats](ctx, r.db, query, scan.StructMapper[*GlobalStats]())
 }
 
 func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*PlayerStats, error) {

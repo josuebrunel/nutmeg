@@ -17,7 +17,8 @@ type MatchRepository interface {
 	GetMatchDetail(ctx context.Context, matchID string) (*repository.MatchDetail, error)
 	GetMatchPlayers(ctx context.Context, matchID string) ([]repository.MatchPlayerRow, error)
 	GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error)
-	UpdateMatch(ctx context.Context, matchID string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error
+	UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error
+	GetGlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error)
 }
 
 type MatchService struct {
@@ -128,6 +129,8 @@ func (s *MatchService) GetPlayerStats(ctx context.Context, userID string) (*repo
 
 type UpdateMatchInput struct {
 	MatchID      string
+	TeamAName    string
+	TeamBName    string
 	ScoreA       int
 	ScoreB       int
 	TeamAPlayers []string
@@ -138,6 +141,8 @@ type UpdateMatchInput struct {
 type EditableMatch struct {
 	MatchID      string
 	GroupID      string
+	TeamAName    string
+	TeamBName    string
 	ScoreA       int
 	ScoreB       int
 	TeamAPlayers []string
@@ -180,6 +185,8 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID string) (*Editab
 	return &EditableMatch{
 		MatchID:      matchID,
 		GroupID:      detail.GroupID,
+		TeamAName:    detail.TeamAName,
+		TeamBName:    detail.TeamBName,
 		ScoreA:       detail.ScoreA,
 		ScoreB:       detail.ScoreB,
 		TeamAPlayers: teamAPlayers,
@@ -190,5 +197,13 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID string) (*Editab
 
 func (s *MatchService) Update(ctx context.Context, input UpdateMatchInput) error {
 	goals := parseGoals(input.GoalsInput)
-	return s.repo.UpdateMatch(ctx, input.MatchID, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals)
+	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals)
+}
+
+func (s *MatchService) GlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error) {
+	stats, err := s.repo.GetGlobalStats(ctx, userID)
+	if err != nil {
+		return &repository.GlobalStats{}, nil
+	}
+	return stats, nil
 }

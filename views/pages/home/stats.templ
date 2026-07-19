@@ -5,37 +5,32 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Stats(stats *repository.PlayerStats) {
+templ Stats(stats *repository.GlobalStats) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="border-b-2 border-pitch pb-4 mb-8">
-			<h2 class="font-oswald text-4xl text-pitch font-bold">MY STATS</h2>
+			<h2 class="font-oswald text-4xl text-pitch font-bold">GLOBAL STATS</h2>
 		</div>
-		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+		<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
 				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-pitch")</div>
-				<div class="text-sm font-oswald text-ink/70">Matches</div>
-				<div class="text-3xl font-bold text-pitch font-mono">{ stats.MatchesPlayed }</div>
-			</div>
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconTrophy("size-5 text-turf")</div>
-				<div class="text-sm font-oswald text-ink/70">Wins</div>
-				<div class="text-3xl font-bold text-turf font-mono">{ stats.Wins }</div>
-			</div>
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconClose("size-5 text-nutmeg")</div>
-				<div class="text-sm font-oswald text-ink/70">Losses</div>
-				<div class="text-3xl font-bold text-nutmeg font-mono">{ stats.Losses }</div>
+				<div class="text-sm font-oswald text-ink/70">Total Matches</div>
+				<div class="text-3xl font-bold text-pitch font-mono">{ stats.TotalMatches }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
 				<div class="flex justify-center mb-1">@components.IconGoal("size-5 text-gold")</div>
-				<div class="text-sm font-oswald text-ink/70">Goals</div>
-				<div class="text-3xl font-bold text-gold font-mono">{ stats.Goals }</div>
+				<div class="text-sm font-oswald text-ink/70">Total Goals</div>
+				<div class="text-3xl font-bold text-gold font-mono">{ stats.TotalGoals }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconUsers("size-5 text-turf")</div>
+				<div class="text-sm font-oswald text-ink/70">Total Players</div>
+				<div class="text-3xl font-bold text-turf font-mono">{ stats.TotalPlayers }</div>
 			</div>
 		</div>
-		if stats.MatchesPlayed == 0 {
+		if stats.TotalMatches == 0 {
 			<div class="bg-white rounded-xl p-8 shadow border border-pitch/10 text-center">
-				<p class="text-ink/60 font-body mb-4">No matches played yet. Stats will appear once you play.</p>
-				<a href="/groups" class="font-oswald bg-turf text-chalk px-4 py-2 rounded inline-block">Join a Group</a>
+				<p class="text-ink/60 font-body mb-4">No activity yet. Create a group and log some matches!</p>
+				<a href="/groups" class="font-oswald bg-turf text-chalk px-4 py-2 rounded inline-block">Get Started</a>
 			</div>
 		}
 	</div>

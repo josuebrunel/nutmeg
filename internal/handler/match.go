@@ -86,10 +86,19 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
 
+	teamAName := c.FormValue("team_a_name")
+	teamBName := c.FormValue("team_b_name")
+	if teamAName == "" {
+		teamAName = "Shirts"
+	}
+	if teamBName == "" {
+		teamBName = "Skins"
+	}
+
 	input := service.CreateMatchInput{
 		GroupID:      groupID,
-		TeamAName:    "Shirts",
-		TeamBName:    "Skins",
+		TeamAName:    teamAName,
+		TeamBName:    teamBName,
 		ScoreA:       scoreA,
 		ScoreB:       scoreB,
 		CreatedBy:    userID,
@@ -146,11 +155,13 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 	}
 
 	editData := &matches.MatchEditData{
-		MatchID: matchID,
-		ScoreA:  editable.ScoreA,
-		ScoreB:  editable.ScoreB,
-		Teams:   teams,
-		Goals:   editable.Goals,
+		MatchID:   matchID,
+		TeamAName: editable.TeamAName,
+		TeamBName: editable.TeamBName,
+		ScoreA:    editable.ScoreA,
+		ScoreB:    editable.ScoreB,
+		Teams:     teams,
+		Goals:     editable.Goals,
 	}
 
 	return render.Component(c, matches.LogForm(groupID, members, editData))
@@ -170,8 +181,19 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
 
+	teamAName := c.FormValue("team_a_name")
+	teamBName := c.FormValue("team_b_name")
+	if teamAName == "" {
+		teamAName = "Shirts"
+	}
+	if teamBName == "" {
+		teamBName = "Skins"
+	}
+
 	input := service.UpdateMatchInput{
 		MatchID:      matchID,
+		TeamAName:    teamAName,
+		TeamBName:    teamBName,
 		ScoreA:       scoreA,
 		ScoreB:       scoreB,
 		TeamAPlayers: teamAPlayers,

@@ -48,12 +48,12 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, lead
 							<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm">
 								<div class="flex w-full">
 									<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
-										<div class="font-oswald text-xs mb-1">SHIRTS</div>
+										<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
 										<div class="ticket-score text-2xl">{ m.ScoreA }</div>
 									</div>
 									<div class="ticket-perforation"></div>
 									<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
-										<div class="font-oswald text-xs mb-1 text-nutmeg">SKINS</div>
+										<div class="font-oswald text-xs mb-1">{ m.TeamB }</div>
 										<div class="ticket-score text-2xl">{ m.ScoreB }</div>
 									</div>
 								</div>

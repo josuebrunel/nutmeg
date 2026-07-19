@@ -1,16 +1,20 @@
 package matches
 
 import (
+	"strings"
+
 	"nutmeg/internal/repository"
 	components "nutmeg/views/components"
 )
 
 type MatchEditData struct {
-	MatchID string
-	ScoreA  int
-	ScoreB  int
-	Teams   map[string]string
-	Goals   map[string]int
+	MatchID   string
+	TeamAName string
+	TeamBName string
+	ScoreA    int
+	ScoreB    int
+	Teams     map[string]string
+	Goals     map[string]int
 }
 
 func formAction(groupID string, editData *MatchEditData) string {
@@ -50,6 +54,19 @@ func teamVal(editData *MatchEditData, playerID string) string {
 	return ""
 }
 
+func teamName(editData *MatchEditData, team string) string {
+	if editData == nil {
+		if team == "a" {
+			return "Shirts"
+		}
+		return "Skins"
+	}
+	if team == "a" {
+		return editData.TeamAName
+	}
+	return editData.TeamBName
+}
+
 templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData) {
 	<div>
 		<button hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
@@ -78,8 +95,8 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 										<input type="number" name={ "goals_" + m.ID } min="0" value={ intVal(editData, m.ID) } class="w-12 text-center text-sm border border-pitch/30 rounded py-1" />
 										<select name={ "team_" + m.ID } class="text-xs font-oswald p-1 border rounded bg-chalk">
 											<option value="" if teamVal(editData, m.ID) == "" { selected }>Out</option>
-											<option value="a" if teamVal(editData, m.ID) == "a" { selected }>Shirts</option>
-											<option value="b" if teamVal(editData, m.ID) == "b" { selected }>Skins</option>
+											<option value="a" if teamVal(editData, m.ID) == "a" { selected }>Team A</option>
+											<option value="b" if teamVal(editData, m.ID) == "b" { selected }>Team B</option>
 										</select>
 									</div>
 								</div>
@@ -88,15 +105,29 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 					</div>
 				</div>
 				<div>
-					<h3 class="font-oswald text-xl text-turf mb-3">2. Final Score</h3>
+					<h3 class="font-oswald text-xl text-turf flex items-center gap-2 mb-3">@components.IconEdit("size-5") 2. Team Names</h3>
+					<div class="flex items-center justify-center gap-4 sm:gap-8 bg-base-200 p-4 rounded">
+						<div class="text-center">
+							<label class="font-oswald text-sm mb-1 block">Team A Name</label>
+							<input type="text" name="team_a_name" value={ teamName(editData, "a") } class="w-28 sm:w-36 text-center text-sm font-mono border-2 border-pitch/30 rounded py-1.5" />
+						</div>
+						<div class="font-oswald text-2xl text-ink/30">VS</div>
+						<div class="text-center">
+							<label class="font-oswald text-sm mb-1 block">Team B Name</label>
+							<input type="text" name="team_b_name" value={ teamName(editData, "b") } class="w-28 sm:w-36 text-center text-sm font-mono border-2 border-pitch/30 rounded py-1.5" />
+						</div>
+					</div>
+				</div>
+				<div>
+					<h3 class="font-oswald text-xl text-turf mb-3">3. Final Score</h3>
 					<div class="flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk">
 						<div class="text-center">
-							<label class="font-oswald text-lg mb-2 block">SHIRTS</label>
+							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "a")) }</label>
 							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
 						</div>
 						<div class="font-oswald text-3xl text-gold">-</div>
 						<div class="text-center">
-							<label class="font-oswald text-lg text-nutmeg mb-2 block">SKINS</label>
+							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "b")) }</label>
 							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } required class="w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0" />
 						</div>
 					</div>

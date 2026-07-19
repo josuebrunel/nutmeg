@@ -36,8 +36,13 @@ func (h *HomeHandler) Dashboard(c *echo.Context) error {
 		groups = nil
 	}
 
+	globalStats, err := h.matchSvc.GlobalStats(c.Request().Context(), userID)
+	if err != nil {
+		globalStats = &repository.GlobalStats{}
+	}
+
 	userName := h.getUserName(c)
-	return page(c, "Dashboard", true, "", userName, home.Dashboard(groups))
+	return page(c, "Dashboard", true, "", userName, home.Dashboard(groups, globalStats))
 }
 
 func (h *HomeHandler) Stats(c *echo.Context) error {
@@ -46,13 +51,13 @@ func (h *HomeHandler) Stats(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
-	stats, err := h.matchSvc.GetPlayerStats(c.Request().Context(), userID)
+	globalStats, err := h.matchSvc.GlobalStats(c.Request().Context(), userID)
 	if err != nil {
-		stats = &repository.PlayerStats{}
+		globalStats = &repository.GlobalStats{}
 	}
 
 	userName := h.getUserName(c)
-	return page(c, "My Stats", true, "", userName, home.Stats(stats))
+	return page(c, "My Stats", true, "", userName, home.Stats(globalStats))
 }
 
 func (h *HomeHandler) getUserName(c *echo.Context) string {
