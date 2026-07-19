@@ -73,6 +73,11 @@ func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 	return teamAPlayers, teamBPlayers
 }
 
+func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
+	c.Response().Header().Set("HX-Redirect", "/groups/"+groupID)
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *MatchHandler) Create(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -108,10 +113,17 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	}
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {
+		if isHTMX(c) {
+			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			return c.NoContent(http.StatusOK)
+		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
 
+	if isHTMX(c) {
+		return h.htmxRedirect(c, groupID)
+	}
 	h.auth.Handler.SetFlash(c.Request().Context(), "success", "Match logged!")
 	return c.Redirect(http.StatusFound, "/groups/"+groupID)
 }
@@ -126,9 +138,16 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 	groupID := c.Param("id")
 
 	if err := h.service.Delete(c.Request().Context(), matchID, ""); err != nil {
+		if isHTMX(c) {
+			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			return c.NoContent(http.StatusOK)
+		}
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
 
+	if isHTMX(c) {
+		return h.htmxRedirect(c, groupID)
+	}
 	return c.Redirect(http.StatusFound, "/groups/"+groupID)
 }
 
@@ -202,10 +221,17 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 	}
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {
+		if isHTMX(c) {
+			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			return c.NoContent(http.StatusOK)
+		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
 
+	if isHTMX(c) {
+		return h.htmxRedirect(c, groupID)
+	}
 	h.auth.Handler.SetFlash(c.Request().Context(), "success", "Match updated!")
 	return c.Redirect(http.StatusFound, "/groups/"+groupID)
 }

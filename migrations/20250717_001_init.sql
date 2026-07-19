@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE TABLE IF NOT EXISTS matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    home_team_id UUID NOT NULL REFERENCES teams(id),
-    away_team_id UUID NOT NULL REFERENCES teams(id),
+    home_team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    away_team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     home_score INTEGER NOT NULL DEFAULT 0,
     away_score INTEGER NOT NULL DEFAULT 0,
     played_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE TABLE IF NOT EXISTS match_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     match_id UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    team_id UUID NOT NULL REFERENCES teams(id),
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     scorer_id UUID NOT NULL,
     assister_id UUID,
     minute INTEGER,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS match_events (
 CREATE TABLE IF NOT EXISTS match_players (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     match_id UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    team_id UUID NOT NULL REFERENCES teams(id),
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     player_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(match_id, player_id)
