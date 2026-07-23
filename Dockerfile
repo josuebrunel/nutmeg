@@ -1,10 +1,10 @@
 # Build
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 
 RUN apk add --no-cache git curl make
 
-RUN go install github.com/a-h/templ/cmd/templ@latest
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/a-h/templ/cmd/templ@v0.3.1020
+RUN go install github.com/air-verse/air@v1.65.3
 
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
