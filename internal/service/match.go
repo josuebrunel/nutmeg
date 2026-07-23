@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 )
 
@@ -104,7 +105,36 @@ func (s *MatchService) ListByGroup(ctx context.Context, groupID string) ([]repos
 	return matches, nil
 }
 
+func (s *MatchService) AuthorizeGroupAccess(ctx context.Context, groupID, userID string) error {
+	g, err := s.groupRepo.GetGroup(ctx, groupID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+	if g.CreatedBy != userID {
+		return model.ErrNotAuthorized
+	}
+	return nil
+}
+
+func (s *MatchService) authorizeMatchAccess(ctx context.Context, matchID, userID string) error {
+	detail, err := s.repo.GetMatchDetail(ctx, matchID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+	g, err := s.groupRepo.GetGroup(ctx, detail.GroupID)
+	if err != nil {
+		return err
+	}
+	if g.CreatedBy != userID {
+		return model.ErrNotAuthorized
+	}
+	return nil
+}
+
 func (s *MatchService) Delete(ctx context.Context, matchID, userID string) error {
+	if err := s.authorizeMatchAccess(ctx, matchID, userID); err != nil {
+		return err
+	}
 	return s.repo.DeleteMatch(ctx, matchID)
 }
 
@@ -129,6 +159,7 @@ func (s *MatchService) GetPlayerStats(ctx context.Context, userID string) (*repo
 
 type UpdateMatchInput struct {
 	MatchID      string
+	UserID       string
 	TeamAName    string
 	TeamBName    string
 	ScoreA       int
@@ -150,7 +181,11 @@ type EditableMatch struct {
 	Goals        map[string]int
 }
 
-func (s *MatchService) GetEditable(ctx context.Context, matchID string) (*EditableMatch, error) {
+func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) (*EditableMatch, error) {
+	if err := s.authorizeMatchAccess(ctx, matchID, userID); err != nil {
+		return nil, err
+	}
+
 	detail, err := s.repo.GetMatchDetail(ctx, matchID)
 	if err != nil {
 		return nil, err
@@ -196,6 +231,9 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID string) (*Editab
 }
 
 func (s *MatchService) Update(ctx context.Context, input UpdateMatchInput) error {
+	if err := s.authorizeMatchAccess(ctx, input.MatchID, input.UserID); err != nil {
+		return err
+	}
 	goals := parseGoals(input.GoalsInput)
 	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals)
 }

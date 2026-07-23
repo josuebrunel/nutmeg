@@ -69,7 +69,7 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 	g, err := h.service.Create(c.Request().Context(), name, nil, userID, creatorName, user.Email)
 	if err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Name: name, Error: err.Error()}))
@@ -89,7 +89,7 @@ func (h *GroupHandler) groupListFragment(c *echo.Context, userID string) error {
 	}
 
 	referer := c.Request().Header.Get("HX-Current-URL")
-	c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"Group created!","type":"success"}}`)
+	c.Response().Header().Set("HX-Trigger", toastHXTrigger("Group created!", "success"))
 	if strings.Contains(referer, "/dashboard") {
 		return render.Component(c, home.DashboardGroupList(list))
 	}
@@ -97,10 +97,19 @@ func (h *GroupHandler) groupListFragment(c *echo.Context, userID string) error {
 }
 
 func (h *GroupHandler) Detail(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
 		return err
+	}
+
+	if g.CreatedBy != userID {
+		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	members, err := h.service.Members(c.Request().Context(), id)
@@ -108,7 +117,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	isAdmin := h.isCreator(c, g)
+	isAdmin := true
 
 	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
 	if lbErr != nil {
@@ -149,10 +158,19 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
 		return err
+	}
+
+	if g.CreatedBy != userID {
+		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	return page(c, "Edit Group", true, g.ID, h.userName(c), groups.Form(g.ID, &groups.FormData{
@@ -215,7 +233,19 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 }
 
 func (h *GroupHandler) DetailContent(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+	if g.CreatedBy != userID {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
 
 	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
 	if lbErr != nil {
@@ -253,10 +283,18 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 }
 
 func (h *GroupHandler) RosterContent(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
 		return err
+	}
+	if g.CreatedBy != userID {
+		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	members, err := h.service.Members(c.Request().Context(), id)
@@ -264,7 +302,7 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 		return err
 	}
 
-	isAdmin := h.isCreator(c, g)
+	isAdmin := true
 
 	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
 }
@@ -344,7 +382,7 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 	}
 	isAdmin := h.isCreator(c, g)
 
-	c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+message+`","type":"`+toastType+`"}}`)
+	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
 	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
 }
 

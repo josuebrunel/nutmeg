@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,13 @@ import (
 	"nutmeg/views/pages/matches"
 )
 
+func toastHXTrigger(message, toastType string) string {
+	data, _ := json.Marshal(map[string]map[string]string{
+		"showToast": {"message": message, "type": toastType},
+	})
+	return string(data)
+}
+
 type MatchHandler struct {
 	auth    *ezauth.EzAuth
 	service *service.MatchService
@@ -25,12 +33,21 @@ func NewMatchHandler(auth *ezauth.EzAuth, svc *service.MatchService, repo *repos
 }
 
 func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
-	id := c.Param("id")
-	members, err := h.repo.ListMembers(c.Request().Context(), id)
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	groupID := c.Param("id")
+	if err := h.service.AuthorizeGroupAccess(c.Request().Context(), groupID, userID); err != nil {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	members, err := h.repo.ListMembers(c.Request().Context(), groupID)
 	if err != nil {
 		return err
 	}
-	return render.Component(c, matches.LogForm(id, members, nil))
+	return render.Component(c, matches.LogForm(groupID, members, nil))
 }
 
 func (h *MatchHandler) parseGoalsFromForm(c *echo.Context) string {
@@ -85,6 +102,9 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	}
 
 	groupID := c.Param("id")
+	if err := h.service.AuthorizeGroupAccess(c.Request().Context(), groupID, userID); err != nil {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
 	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
 	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
 
@@ -114,7 +134,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
@@ -129,7 +149,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 }
 
 func (h *MatchHandler) Delete(c *echo.Context) error {
-	_, err := h.auth.GetUserID(c.Request().Context())
+	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
 		return c.Redirect(http.StatusFound, "/login")
 	}
@@ -137,9 +157,9 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 	matchID := c.Param("mid")
 	groupID := c.Param("id")
 
-	if err := h.service.Delete(c.Request().Context(), matchID, ""); err != nil {
+	if err := h.service.Delete(c.Request().Context(), matchID, userID); err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
@@ -152,6 +172,11 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 }
 
 func (h *MatchHandler) EditModal(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	groupID := c.Param("id")
 	matchID := c.Param("mid")
 
@@ -160,7 +185,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 		return err
 	}
 
-	editable, err := h.service.GetEditable(c.Request().Context(), matchID)
+	editable, err := h.service.GetEditable(c.Request().Context(), matchID, userID)
 	if err != nil {
 		return err
 	}
@@ -187,7 +212,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 }
 
 func (h *MatchHandler) Update(c *echo.Context) error {
-	_, err := h.auth.GetUserID(c.Request().Context())
+	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
 		return c.Redirect(http.StatusFound, "/login")
 	}
@@ -211,6 +236,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 
 	input := service.UpdateMatchInput{
 		MatchID:      matchID,
+		UserID:       userID,
 		TeamAName:    teamAName,
 		TeamBName:    teamBName,
 		ScoreA:       scoreA,
@@ -222,7 +248,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"`+err.Error()+`","type":"error"}}`)
+			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
