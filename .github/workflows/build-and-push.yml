@@ -31,7 +31,7 @@ jobs:
       - run: go vet ./...
       - run: go test ./... -count=1
         env:
-          DB_DSN: postgres://postgres:postgres@postgres:5432/nutmeg?sslmode=disable
+          DB_DSN: postgres://postgres:postgres@localhost:5432/nutmeg?sslmode=disable
 
   build-and-push:
     needs: test
