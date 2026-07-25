@@ -25,7 +25,7 @@ import (
 
 func main() {
 	var cfg config.Config
-	if err := xenv.LoadEnvFile(".env", &cfg); err != nil {
+	if err := xenv.Load(&cfg); err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
