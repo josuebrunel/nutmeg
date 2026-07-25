@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
@@ -90,6 +91,22 @@ func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 	return teamAPlayers, teamBPlayers
 }
 
+// parsePlayedAt reads the optional "played_at" date field (YYYY-MM-DD) and
+// combines it with the current time-of-day, so same-day matches keep natural
+// ordering and an unset/invalid value simply falls back to now.
+func parsePlayedAt(c *echo.Context) time.Time {
+	now := time.Now()
+	val := c.FormValue("played_at")
+	if val == "" {
+		return now
+	}
+	d, err := time.Parse("2006-01-02", val)
+	if err != nil {
+		return now
+	}
+	return time.Date(d.Year(), d.Month(), d.Day(), now.Hour(), now.Minute(), now.Second(), 0, now.Location())
+}
+
 func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
 	c.Response().Header().Set("HX-Redirect", "/groups/"+groupID)
 	return c.NoContent(http.StatusOK)
@@ -130,6 +147,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
+		PlayedAt:     parsePlayedAt(c),
 	}
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {
@@ -206,6 +224,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 		ScoreB:    editable.ScoreB,
 		Teams:     teams,
 		Goals:     editable.Goals,
+		PlayedAt:  editable.PlayedAt,
 	}
 
 	return render.Component(c, matches.LogForm(groupID, members, editData))
@@ -244,6 +263,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
+		PlayedAt:     parsePlayedAt(c),
 	}
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {

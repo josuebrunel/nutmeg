@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 )
 
 type MatchRepository interface {
-	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int) error
+	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error
 	ListMatchesByGroup(ctx context.Context, groupID string) ([]repository.MatchWithTeams, error)
 	DeleteMatch(ctx context.Context, matchID string) error
 	GetGroupLeaderboard(ctx context.Context, groupID string) ([]repository.LeaderboardEntry, error)
@@ -18,7 +19,7 @@ type MatchRepository interface {
 	GetMatchDetail(ctx context.Context, matchID string) (*repository.MatchDetail, error)
 	GetMatchPlayers(ctx context.Context, matchID string) ([]repository.MatchPlayerRow, error)
 	GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error)
-	UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error
+	UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error
 	GetGlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error)
 }
 
@@ -41,6 +42,7 @@ type CreateMatchInput struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	GoalsInput   string
+	PlayedAt     time.Time
 }
 
 func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) error {
@@ -55,7 +57,7 @@ func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) error
 	}
 
 	goals := parseGoals(input.GoalsInput)
-	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals)
+	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, input.PlayedAt)
 }
 
 func parseGoals(input string) map[string]int {
@@ -167,6 +169,7 @@ type UpdateMatchInput struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	GoalsInput   string
+	PlayedAt     time.Time
 }
 
 type EditableMatch struct {
@@ -179,6 +182,7 @@ type EditableMatch struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	Goals        map[string]int
+	PlayedAt     time.Time
 }
 
 func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) (*EditableMatch, error) {
@@ -227,6 +231,7 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) 
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		Goals:        goals,
+		PlayedAt:     detail.PlayedAt,
 	}, nil
 }
 
@@ -235,7 +240,7 @@ func (s *MatchService) Update(ctx context.Context, input UpdateMatchInput) error
 		return err
 	}
 	goals := parseGoals(input.GoalsInput)
-	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals)
+	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals, input.PlayedAt)
 }
 
 func (s *MatchService) GlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error) {

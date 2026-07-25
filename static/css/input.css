@@ -190,6 +190,21 @@
 @keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes toast-out { from { transform: translateY(0); opacity: 1; } to { transform: translateY(20px); opacity: 0; } }
 
+.match-player-row .goal-stepper {
+  display: none;
+}
+.match-player-row:has(.team-radio[value="a"]:checked) .goal-stepper,
+.match-player-row:has(.team-radio[value="b"]:checked) .goal-stepper {
+  display: flex;
+}
+.team-toggle .team-opt {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.team-toggle .team-opt:has(.team-radio:checked) {
+  background-color: #0A3B18;
+  color: #FFD700;
+}
+
 @media (max-width: 640px) {
   .ticket-stub { flex-direction: column; min-height: auto; }
   .ticket-perforation { width: 100%; height: 0; border-left: none; border-top: 2px dashed #FFD700; }

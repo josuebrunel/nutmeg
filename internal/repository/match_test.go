@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
@@ -167,7 +168,7 @@ func TestCreateMatchThenList(t *testing.T) {
 
 	err := repo.CreateMatch(ctx, testGroupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{testAliceID, testCarolID}, []string{testBobID},
-		map[string]int{testAliceID: 2})
+		map[string]int{testAliceID: 2}, time.Now())
 	if err != nil {
 		t.Fatalf("CreateMatch failed: %v", err)
 	}
@@ -226,7 +227,7 @@ func seedForLeaderboard(t *testing.T, repo *Repository, groupID, aliceID, bobID,
 
 	err := repo.CreateMatch(ctx, groupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{aliceID, carolID}, []string{bobID},
-		map[string]int{aliceID: 2})
+		map[string]int{aliceID: 2}, time.Now())
 	if err != nil {
 		t.Fatalf("CreateMatch failed: %v", err)
 	}

@@ -41,7 +41,7 @@ type PlayerStats struct {
 	Assists       int `db:"assists"`
 }
 
-func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int) error {
+func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -58,8 +58,8 @@ func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBN
 	}
 
 	matchID, err := bob.One[string](ctx, tx, psql.Insert(
-		im.Into("matches", "group_id", "home_team_id", "away_team_id", "home_score", "away_score", "created_by"),
-		im.Values(psql.Arg(groupID, teamA, teamB, scoreA, scoreB, createdBy)),
+		im.Into("matches", "group_id", "home_team_id", "away_team_id", "home_score", "away_score", "created_by", "played_at"),
+		im.Values(psql.Arg(groupID, teamA, teamB, scoreA, scoreB, createdBy, playedAt)),
 		im.Returning("id"),
 	), scan.SingleColumnMapper[string])
 	if err != nil {
@@ -260,7 +260,7 @@ func (r *Repository) getMatchTeamIDs(ctx context.Context, exec bob.Executor, mat
 	return ids.Home, ids.Away, nil
 }
 
-func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) error {
+func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -271,6 +271,7 @@ func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBN
 		um.Table("matches"),
 		um.SetCol("home_score").ToArg(scoreA),
 		um.SetCol("away_score").ToArg(scoreB),
+		um.SetCol("played_at").ToArg(playedAt),
 		um.Where(psql.Quote("id").EQ(psql.Arg(matchID))),
 	))
 	if err != nil {
