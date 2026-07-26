@@ -1,5 +1,9 @@
 package home
 
+import (
+	components "nutmeg/views/components"
+)
+
 templ Landing() {
 	<div>
 		<section class="stadium-gradient py-24 relative overflow-hidden" aria-labelledby="hero-heading">
@@ -20,17 +24,25 @@ templ Landing() {
 					</div>
 					<div class="relative bg-ink/20 border-2 border-turf p-1 rounded-sm hidden lg:block">
 						<div class="bg-chalk p-8 text-center">
-							<h3 class="font-oswald text-2xl text-ink mb-6">WEEKLY HIGHLIGHTS</h3>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="bg-ink text-chalk p-4 rounded-sm font-mono">
-									<div class="text-sm opacity-50 font-oswald">SHIRTS</div>
-									<div class="text-4xl font-bold">4</div>
-								</div>
-								<div class="bg-ink text-chalk p-4 rounded-sm font-mono">
-									<div class="text-sm opacity-50 font-oswald">SKINS</div>
-									<div class="text-4xl font-bold">2</div>
-								</div>
-							</div>
+							<svg viewBox="0 0 200 200" class="w-48 h-48 mx-auto" role="img" aria-label="Soccer ball">
+								<circle cx="100" cy="100" r="92" class="fill-chalk stroke-ink" stroke-width="4"></circle>
+								<polygon points="100,58 130.5,80.6 118.9,116.4 81.1,116.4 69.5,80.6" class="fill-pitch stroke-ink" stroke-width="3" stroke-linejoin="round"></polygon>
+								<g class="stroke-ink" stroke-width="3" stroke-linecap="round" fill="none">
+									<line x1="100" y1="58" x2="100" y2="16"></line>
+									<line x1="130.5" y1="80.6" x2="168" y2="55"></line>
+									<line x1="118.9" y1="116.4" x2="152" y2="152"></line>
+									<line x1="81.1" y1="116.4" x2="48" y2="152"></line>
+									<line x1="69.5" y1="80.6" x2="32" y2="55"></line>
+								</g>
+								<g class="fill-turf">
+									<polygon points="100,16 112,28 88,28"></polygon>
+									<polygon points="168,55 178,70 158,70"></polygon>
+									<polygon points="152,152 160,168 138,160"></polygon>
+									<polygon points="48,152 40,168 62,160"></polygon>
+									<polygon points="32,55 22,70 42,70"></polygon>
+								</g>
+							</svg>
+							<h3 class="font-oswald text-2xl text-ink mt-6">TRACK EVERY MATCH</h3>
 						</div>
 					</div>
 				</div>
@@ -46,14 +58,23 @@ templ Landing() {
 				</div>
 				<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 					<article class="bg-white rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-md">
+						<div class="w-12 h-12 rounded-full bg-turf/10 text-turf flex items-center justify-center mb-4">
+							@components.IconGroup("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Groups &amp; Rosters</h3>
 						<p class="text-ink/60 font-body text-sm">One shared roster for your regulars — no copying names from last week.</p>
 					</article>
 					<article class="bg-white rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-md">
+						<div class="w-12 h-12 rounded-full bg-nutmeg/10 text-nutmeg flex items-center justify-center mb-4">
+							@components.IconMatch("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Match Logging</h3>
 						<p class="text-ink/60 font-body text-sm">Log scores, goals, and assists in seconds. Every match builds your history.</p>
 					</article>
 					<article class="bg-white rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-md">
+						<div class="w-12 h-12 rounded-full bg-gold/10 text-gold flex items-center justify-center mb-4">
+							@components.IconTrophy("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Live Leaderboard</h3>
 						<p class="text-ink/60 font-body text-sm">Wins, losses, goals, and assists updated in real time.</p>
 					</article>
@@ -70,22 +91,30 @@ templ Landing() {
 				</div>
 				<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
 					<div class="text-center">
-						<div class="w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4 font-oswald text-xl font-bold">1</div>
+						<div class="w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4">
+							@components.IconGroup("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Create Group</h3>
 						<p class="text-ink/60 font-body text-sm">Add your regulars to one shared roster.</p>
 					</div>
 					<div class="text-center">
-						<div class="w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4 font-oswald text-xl font-bold">2</div>
+						<div class="w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4">
+							@components.IconTeam("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Split Sides</h3>
 						<p class="text-ink/60 font-body text-sm">Check who showed, divide into two teams.</p>
 					</div>
 					<div class="text-center">
-						<div class="w-12 h-12 rounded-full bg-nutmeg text-chalk flex items-center justify-center mx-auto mb-4 font-oswald text-xl font-bold">3</div>
+						<div class="w-12 h-12 rounded-full bg-nutmeg text-chalk flex items-center justify-center mx-auto mb-4">
+							@components.IconMatch("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Log Match</h3>
 						<p class="text-ink/60 font-body text-sm">Enter score, tag goals and assists.</p>
 					</div>
 					<div class="text-center">
-						<div class="w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4 font-oswald text-xl font-bold">4</div>
+						<div class="w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4">
+							@components.IconTrophy("size-6")
+						</div>
 						<h3 class="font-oswald text-lg font-semibold text-pitch mb-2">Check Board</h3>
 						<p class="text-ink/60 font-body text-sm">Leaderboard updates instantly.</p>
 					</div>

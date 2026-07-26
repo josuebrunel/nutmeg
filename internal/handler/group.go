@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -108,7 +110,8 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	if g.CreatedBy != userID {
+	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	if !canEdit {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
@@ -116,8 +119,6 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-
-	isAdmin := true
 
 	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
 	if lbErr != nil {
@@ -154,7 +155,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, isAdmin, lbEntries, matchEntries, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, lbEntries, matchEntries, successMsg, errMsg))
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
@@ -169,7 +170,7 @@ func (h *GroupHandler) Edit(c *echo.Context) error {
 		return err
 	}
 
-	if g.CreatedBy != userID {
+	if !h.service.CanEdit(c.Request().Context(), g, userID) {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
@@ -243,7 +244,7 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	if g.CreatedBy != userID {
+	if !h.service.CanEdit(c.Request().Context(), g, userID) {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
@@ -293,7 +294,8 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	if g.CreatedBy != userID {
+	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	if !canEdit {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
@@ -302,9 +304,7 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 		return err
 	}
 
-	isAdmin := true
-
-	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -314,8 +314,9 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	}
 
 	id := c.Param("id")
-	name := c.FormValue("name")
-	if name == "" {
+	raw := c.FormValue("name")
+	names := splitNames(raw)
+	if len(names) == 0 {
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, "Name is required", "error")
 		}
@@ -323,16 +324,35 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
-	var phonePtr, emailPtr *string
-	if phone := c.FormValue("phone"); phone != "" {
-		phonePtr = &phone
-	}
-	if email := c.FormValue("email"); email != "" {
-		emailPtr = &email
+	ctx := c.Request().Context()
+
+	if len(names) == 1 {
+		name := names[0]
+		var phonePtr, emailPtr *string
+		if phone := c.FormValue("phone"); phone != "" {
+			phonePtr = &phone
+		}
+		if email := c.FormValue("email"); email != "" {
+			emailPtr = &email
+		}
+
+		if err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID); err != nil {
+			if isHTMX(c) {
+				return h.rosterWithToast(c, id, err.Error(), "error")
+			}
+			h.auth.Handler.SetFlash(ctx, "error", err.Error())
+			return c.Redirect(http.StatusFound, "/groups/"+id)
+		}
+
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, "Added "+name, "success")
+		}
+		h.auth.Handler.SetFlash(ctx, "success", "Added member "+name+" successfully!")
+		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
-	ctx := c.Request().Context()
-	if err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID); err != nil {
+	added, err := h.service.AddMembers(ctx, id, names, userID)
+	if err != nil {
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, err.Error(), "error")
 		}
@@ -340,12 +360,25 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
+	msg := fmt.Sprintf("Added %d players", len(added))
 	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Added "+name, "success")
+		return h.rosterWithToast(c, id, msg, "success")
 	}
-
-	h.auth.Handler.SetFlash(ctx, "success", "Added member "+name+" successfully!")
+	h.auth.Handler.SetFlash(ctx, "success", msg)
 	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+// splitNames turns a comma-separated "name" field into a deduplicated-free
+// list of trimmed, non-empty names.
+func splitNames(raw string) []string {
+	parts := strings.Split(raw, ",")
+	names := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if n := strings.TrimSpace(p); n != "" {
+			names = append(names, n)
+		}
+	}
+	return names
 }
 
 func (h *GroupHandler) RemoveMember(c *echo.Context) error {
@@ -371,7 +404,57 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
+func (h *GroupHandler) PromoteMember(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+
+	if err := h.service.PromoteMember(c.Request().Context(), id, memberID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Member promoted to admin", "success")
+	}
+
+	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+func (h *GroupHandler) DemoteMember(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+
+	if err := h.service.DemoteMember(c.Request().Context(), id, memberID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Admin demoted to member", "success")
+	}
+
+	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
 func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastType string) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return err
+	}
 	g, err := h.service.Get(c.Request().Context(), groupID)
 	if err != nil {
 		return err
@@ -380,10 +463,24 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 	if err != nil {
 		return err
 	}
-	isAdmin := h.isCreator(c, g)
+	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.RosterColumn(g, members, isAdmin))
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail))
+}
+
+// rosterViewData computes what the roster UI needs to know about the current
+// viewer: whether they can edit (Owner or promoted admin), whether they are
+// the Owner specifically, and the Owner's email (used to tell the Owner's
+// roster row apart from a promoted admin's row, since both carry
+// group_players.role == "admin").
+func (h *GroupHandler) rosterViewData(ctx context.Context, g *model.Group, userID string) (canEdit, isOwner bool, ownerEmail string) {
+	isOwner = g.CreatedBy == userID
+	canEdit = h.service.CanEdit(ctx, g, userID)
+	if owner, err := h.auth.Repo.UserGetByID(ctx, g.CreatedBy); err == nil {
+		ownerEmail = owner.Email
+	}
+	return
 }
 
 func isHTMX(c *echo.Context) bool {
@@ -396,14 +493,6 @@ func (h *GroupHandler) userName(c *echo.Context) string {
 		return ""
 	}
 	return user.DisplayName()
-}
-
-func (h *GroupHandler) isCreator(c *echo.Context, g *model.Group) bool {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return false
-	}
-	return g.CreatedBy == userID
 }
 
 func stringPtrValue(s *string) string {

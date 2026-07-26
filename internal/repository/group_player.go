@@ -9,18 +9,19 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/dm"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
+	"github.com/stephenafamo/bob/dialect/psql/um"
 	"github.com/stephenafamo/scan"
 
 	"nutmeg/internal/model"
 )
 
 type MemberInfo struct {
-	ID        string    `db:"id"`
-	Name      string    `db:"name"`
-	Phone     *string   `db:"phone"`
-	Email     *string   `db:"email"`
-	Role      string    `db:"role"`
-	JoinedAt  time.Time `db:"joined_at"`
+	ID       string    `db:"id"`
+	Name     string    `db:"name"`
+	Phone    *string   `db:"phone"`
+	Email    *string   `db:"email"`
+	Role     string    `db:"role"`
+	JoinedAt time.Time `db:"joined_at"`
 }
 
 func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error {
@@ -30,6 +31,17 @@ func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone,
 		im.OnConflict("group_id", "name").DoUpdate(
 			im.SetCol("role").ToArg(role),
 		),
+	)
+	_, err := bob.Exec(ctx, r.db, query)
+	return err
+}
+
+func (r *Repository) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
+	query := psql.Update(
+		um.Table("group_players"),
+		um.SetCol("role").ToArg(role),
+		um.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
+		um.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
 	_, err := bob.Exec(ctx, r.db, query)
 	return err

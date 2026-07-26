@@ -5,22 +5,26 @@ import (
 	"errors"
 	"testing"
 
+	ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
+
 	"nutmeg/internal/assert"
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 )
 
 type mockGroupRepo struct {
-	createGroupFn  func(ctx context.Context, g *model.Group) error
-	getGroupFn     func(ctx context.Context, id string) (*model.Group, error)
-	listGroupsFn   func(ctx context.Context, userID string) ([]*model.Group, error)
-	updateGroupFn  func(ctx context.Context, g *model.Group) error
-	deleteGroupFn  func(ctx context.Context, id string) error
-	addMemberFn    func(ctx context.Context, groupID, name string, phone, email *string, role string) error
-	removeMemberFn func(ctx context.Context, groupID, memberID string) error
-	listMembersFn  func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
-	getMemberFn    func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
-	memberCountFn  func(ctx context.Context, groupID string) (int, error)
+	createGroupFn      func(ctx context.Context, g *model.Group) error
+	getGroupFn         func(ctx context.Context, id string) (*model.Group, error)
+	listGroupsFn       func(ctx context.Context, userID string) ([]*model.Group, error)
+	getGroupsByIDsFn   func(ctx context.Context, ids []string) ([]*model.Group, error)
+	updateGroupFn      func(ctx context.Context, g *model.Group) error
+	deleteGroupFn      func(ctx context.Context, id string) error
+	addMemberFn        func(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	removeMemberFn     func(ctx context.Context, groupID, memberID string) error
+	listMembersFn      func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
+	getMemberFn        func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
+	memberCountFn      func(ctx context.Context, groupID string) (int, error)
+	updateMemberRoleFn func(ctx context.Context, groupID, memberID, role string) error
 }
 
 func (m *mockGroupRepo) CreateGroup(ctx context.Context, g *model.Group) error {
@@ -31,6 +35,9 @@ func (m *mockGroupRepo) GetGroup(ctx context.Context, id string) (*model.Group, 
 }
 func (m *mockGroupRepo) ListGroups(ctx context.Context, userID string) ([]*model.Group, error) {
 	return m.listGroupsFn(ctx, userID)
+}
+func (m *mockGroupRepo) GetGroupsByIDs(ctx context.Context, ids []string) ([]*model.Group, error) {
+	return m.getGroupsByIDsFn(ctx, ids)
 }
 func (m *mockGroupRepo) UpdateGroup(ctx context.Context, g *model.Group) error {
 	return m.updateGroupFn(ctx, g)
@@ -52,6 +59,39 @@ func (m *mockGroupRepo) GetMember(ctx context.Context, groupID, memberID string)
 }
 func (m *mockGroupRepo) MemberCount(ctx context.Context, groupID string) (int, error) {
 	return m.memberCountFn(ctx, groupID)
+}
+func (m *mockGroupRepo) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
+	return m.updateMemberRoleFn(ctx, groupID, memberID, role)
+}
+
+type mockAuthUserRepo struct {
+	userGetByIDFn    func(ctx context.Context, id string) (*ezauthmodels.User, error)
+	userGetByEmailFn func(ctx context.Context, email string) (*ezauthmodels.User, error)
+	userUpdateFn     func(ctx context.Context, user *ezauthmodels.User) (*ezauthmodels.User, error)
+}
+
+func (m *mockAuthUserRepo) UserGetByID(ctx context.Context, id string) (*ezauthmodels.User, error) {
+	return m.userGetByIDFn(ctx, id)
+}
+func (m *mockAuthUserRepo) UserGetByEmail(ctx context.Context, email string) (*ezauthmodels.User, error) {
+	return m.userGetByEmailFn(ctx, email)
+}
+func (m *mockAuthUserRepo) UserUpdate(ctx context.Context, user *ezauthmodels.User) (*ezauthmodels.User, error) {
+	return m.userUpdateFn(ctx, user)
+}
+
+func defaultAuthMock() *mockAuthUserRepo {
+	return &mockAuthUserRepo{
+		userGetByIDFn: func(_ context.Context, id string) (*ezauthmodels.User, error) {
+			return &ezauthmodels.User{ID: id}, nil
+		},
+		userGetByEmailFn: func(_ context.Context, email string) (*ezauthmodels.User, error) {
+			return nil, errors.New("not found")
+		},
+		userUpdateFn: func(_ context.Context, user *ezauthmodels.User) (*ezauthmodels.User, error) {
+			return user, nil
+		},
+	}
 }
 
 func defaultMock() *mockGroupRepo {
@@ -88,13 +128,19 @@ func defaultMock() *mockGroupRepo {
 		memberCountFn: func(_ context.Context, groupID string) (int, error) {
 			return 0, nil
 		},
+		getGroupsByIDsFn: func(_ context.Context, ids []string) ([]*model.Group, error) {
+			return nil, nil
+		},
+		updateMemberRoleFn: func(_ context.Context, groupID, memberID, role string) error {
+			return nil
+		},
 	}
 }
 
 func TestCreate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		g, err := svc.Create(context.Background(), "test group", nil, "user-1", "Test User", "test@email.com")
 		assert.NoErr(t, err)
 		assert.NotNil(t, g)
@@ -107,7 +153,7 @@ func TestCreate(t *testing.T) {
 		m.createGroupFn = func(_ context.Context, g *model.Group) error {
 			return errors.New("db error")
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		_, err := svc.Create(context.Background(), "test", nil, "user-1", "Test", "t@t.com")
 		assert.NotNil(t, err)
 	})
@@ -117,7 +163,7 @@ func TestCreate(t *testing.T) {
 		m.addMemberFn = func(_ context.Context, groupID, name string, phone, email *string, role string) error {
 			return errors.New("db error")
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		_, err := svc.Create(context.Background(), "test", nil, "user-1", "Test", "t@t.com")
 		assert.NotNil(t, err)
 	})
@@ -129,7 +175,7 @@ func TestGet(t *testing.T) {
 		m.getGroupFn = func(_ context.Context, id string) (*model.Group, error) {
 			return &model.Group{ID: id, Name: "found", CreatedBy: "user-1"}, nil
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		g, err := svc.Get(context.Background(), "g-1")
 		assert.NoErr(t, err)
 		assert.Eq(t, g.Name, "found")
@@ -140,7 +186,7 @@ func TestGet(t *testing.T) {
 		m.getGroupFn = func(_ context.Context, id string) (*model.Group, error) {
 			return nil, model.ErrNotFound
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		_, err := svc.Get(context.Background(), "nonexistent")
 		assert.ErrIs(t, err, model.ErrNotFound)
 	})
@@ -156,7 +202,7 @@ func TestList(t *testing.T) {
 		m.listGroupsFn = func(_ context.Context, userID string) ([]*model.Group, error) {
 			return groups, nil
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		result, err := svc.List(context.Background(), "user-1")
 		assert.NoErr(t, err)
 		assert.Eq(t, len(result), 2)
@@ -167,7 +213,7 @@ func TestList(t *testing.T) {
 		m.listGroupsFn = func(_ context.Context, userID string) ([]*model.Group, error) {
 			return []*model.Group{}, nil
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		result, err := svc.List(context.Background(), "user-1")
 		assert.NoErr(t, err)
 		assert.Eq(t, len(result), 0)
@@ -177,14 +223,14 @@ func TestList(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	t.Run("creatorCanUpdate", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.Update(context.Background(), &model.Group{ID: "g-1", CreatedBy: "user-1"}, "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("nonCreatorCannotUpdate", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.Update(context.Background(), &model.Group{ID: "g-1", CreatedBy: "user-1"}, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
@@ -193,14 +239,14 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	t.Run("creatorCanDelete", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.Delete(context.Background(), "g-1", "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("nonCreatorCannotDelete", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.Delete(context.Background(), "g-1", "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
@@ -210,7 +256,7 @@ func TestDelete(t *testing.T) {
 		m.getGroupFn = func(_ context.Context, id string) (*model.Group, error) {
 			return nil, model.ErrNotFound
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.Delete(context.Background(), "nonexistent", "user-1")
 		assert.ErrIs(t, err, model.ErrNotFound)
 	})
@@ -219,21 +265,21 @@ func TestDelete(t *testing.T) {
 func TestAddMember(t *testing.T) {
 	t.Run("creatorCanAdd", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("emptyName", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.AddMember(context.Background(), "g-1", "", nil, nil, "user-1")
 		assert.ErrIs(t, err, model.ErrInvalidInput)
 	})
 
 	t.Run("nonCreatorCannotAdd", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
@@ -242,14 +288,14 @@ func TestAddMember(t *testing.T) {
 func TestRemoveMember(t *testing.T) {
 	t.Run("creatorCanRemove", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.RemoveMember(context.Background(), "g-1", "member-1", "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("nonCreatorCannotRemove", func(t *testing.T) {
 		m := defaultMock()
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.RemoveMember(context.Background(), "g-1", "member-1", "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
@@ -259,7 +305,7 @@ func TestRemoveMember(t *testing.T) {
 		m.getMemberFn = func(_ context.Context, groupID, memberID string) (*model.GroupPlayer, error) {
 			return nil, model.ErrNotFound
 		}
-		svc := NewGroupService(m)
+		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.RemoveMember(context.Background(), "g-1", "nonexistent", "user-1")
 		assert.ErrIs(t, err, model.ErrNotFound)
 	})

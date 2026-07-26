@@ -47,6 +47,23 @@ func (r *Repository) ListGroups(ctx context.Context, userID string) ([]*model.Gr
 	return bob.All(ctx, r.db, query, scan.StructMapper[*model.Group]())
 }
 
+func (r *Repository) GetGroupsByIDs(ctx context.Context, ids []string) ([]*model.Group, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	args := make([]bob.Expression, len(ids))
+	for i, id := range ids {
+		args[i] = psql.Arg(id)
+	}
+	query := psql.Select(
+		sm.Columns("id", "name", "description", "created_by", "created_at", "updated_at"),
+		sm.From("groups"),
+		sm.Where(psql.Quote("id").In(args...)),
+		sm.OrderBy("name"),
+	)
+	return bob.All(ctx, r.db, query, scan.StructMapper[*model.Group]())
+}
+
 func (r *Repository) UpdateGroup(ctx context.Context, g *model.Group) error {
 	query := psql.Update(
 		um.Table("groups"),
