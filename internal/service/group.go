@@ -22,6 +22,13 @@ type GroupRepository interface {
 	GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	MemberCount(ctx context.Context, groupID string) (int, error)
 	UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error
+	GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
+
+	CreateJoinRequest(ctx context.Context, groupID, userID, name, email string) error
+	GetPendingJoinRequest(ctx context.Context, groupID, userID string) (*model.JoinRequest, error)
+	GetJoinRequest(ctx context.Context, groupID, requestID string) (*model.JoinRequest, error)
+	ListPendingJoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error)
+	UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error
 }
 
 // AuthUserRepository is the subset of ezauth's user repository GroupService
@@ -224,6 +231,89 @@ func (s *GroupService) PromoteMember(ctx context.Context, groupID, memberID, act
 	}
 
 	return s.repo.UpdateMemberRole(ctx, groupID, memberID, "admin")
+}
+
+// RequestToJoin records a pending request for userID to join g, identified by
+// their ezauth account's name/email. Rejects if userID already owns/belongs
+// to the group or already has a pending request.
+func (s *GroupService) RequestToJoin(ctx context.Context, g *model.Group, userID string) error {
+	if g.CreatedBy == userID {
+		return model.ErrAlreadyMember
+	}
+
+	user, err := s.authRepo.UserGetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.repo.GetMemberByEmail(ctx, g.ID, user.Email); err == nil {
+		return model.ErrAlreadyMember
+	}
+	if _, err := s.repo.GetPendingJoinRequest(ctx, g.ID, userID); err == nil {
+		return model.ErrRequestAlreadyPending
+	}
+
+	return s.repo.CreateJoinRequest(ctx, g.ID, userID, user.DisplayName(), user.Email)
+}
+
+// ViewerJoinStatus reports how userID relates to g, for driving the "Request
+// to Join" CTA on the public leaderboard: "anonymous" (no session), "owner",
+// "member" (roster email matches their account), "pending" (has an open
+// request), or "none" (free to request).
+func (s *GroupService) ViewerJoinStatus(ctx context.Context, g *model.Group, userID string) string {
+	if userID == "" {
+		return "anonymous"
+	}
+	if g.CreatedBy == userID {
+		return "owner"
+	}
+
+	if user, err := s.authRepo.UserGetByID(ctx, userID); err == nil {
+		if _, err := s.repo.GetMemberByEmail(ctx, g.ID, user.Email); err == nil {
+			return "member"
+		}
+	}
+	if _, err := s.repo.GetPendingJoinRequest(ctx, g.ID, userID); err == nil {
+		return "pending"
+	}
+	return "none"
+}
+
+// JoinRequests lists a group's pending join requests, for the admin-facing
+// roster view.
+func (s *GroupService) JoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
+	return s.repo.ListPendingJoinRequests(ctx, groupID)
+}
+
+// ApproveJoinRequest is CanEdit-gated like AddMember, since approving a
+// request is equivalent to an admin manually adding that member.
+func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) error {
+	if !s.CanEdit(ctx, g, actorID) {
+		return model.ErrNotAuthorized
+	}
+
+	req, err := s.repo.GetJoinRequest(ctx, g.ID, requestID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+
+	if err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
+		return err
+	}
+	return s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved")
+}
+
+// RejectJoinRequest is CanEdit-gated, same level as ApproveJoinRequest.
+func (s *GroupService) RejectJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) error {
+	if !s.CanEdit(ctx, g, actorID) {
+		return model.ErrNotAuthorized
+	}
+
+	if _, err := s.repo.GetJoinRequest(ctx, g.ID, requestID); err != nil {
+		return model.ErrNotFound
+	}
+
+	return s.repo.UpdateJoinRequestStatus(ctx, requestID, "rejected")
 }
 
 // DemoteMember reverses PromoteMember. Owner-only.

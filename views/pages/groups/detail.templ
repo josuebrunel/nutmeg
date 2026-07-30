@@ -6,7 +6,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, leaderboard []LeaderboardEntry, matches []MatchEntry, successMsg string, errMsg string) {
+templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, successMsg string, errMsg string) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="flex flex-wrap items-center justify-between gap-3 mb-8 border-b-2 border-pitch pb-4">
 			<div class="flex items-center gap-3">
@@ -35,9 +35,9 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 		}
 		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 			<div class="lg:col-span-5" id="detail-content-area">
-				@DetailContent(leaderboard, matches)
+				@DetailContent(g.ID, leaderboard, matches)
 			</div>
-			@RosterColumn(g, members, isAdmin, isOwner, ownerEmail)
+			@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests)
 			<div class="lg:col-span-4">
 				<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
 				<div class="space-y-4">
@@ -73,45 +73,99 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 	</div>
 }
 
-templ DetailContent(leaderboard []LeaderboardEntry, matches []MatchEntry) {
+templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []MatchEntry) {
 	<div>
-		<h3 class="font-oswald text-2xl text-pitch mb-4">LEADERBOARD</h3>
-		<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
-			<table class="w-full text-left border-collapse">
-				<thead class="bg-pitch text-chalk font-oswald text-sm">
-					<tr>
-						<th class="p-3">Rnk</th>
-						<th class="p-3">Player</th>
-						<th class="p-3 text-center">W</th>
-						<th class="p-3 text-center">L</th>
-						<th class="p-3 text-center">G</th>
-						<th class="p-3 text-center">A</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-pitch/10">
-					if len(leaderboard) == 0 {
-						<tr><td colspan="6" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
-					} else {
-						for i, p := range leaderboard {
-							<tr class="hover:bg-chalk/50 transition-colors">
-								<td class="p-3 font-mono font-bold text-pitch">{ i + 1 }</td>
-								<td class="p-3 font-medium">{ p.Name }</td>
-								<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
-								<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
-								<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
-								<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
-							</tr>
-						}
-					}
-				</tbody>
-			</table>
+		<div class="flex items-center justify-between mb-4">
+			<h3 class="font-oswald text-2xl text-pitch">LEADERBOARD</h3>
+			<a href={ templ.URL("/groups/" + groupID + "/leaderboard") } target="_blank" rel="noopener" class="text-xs font-oswald text-turf hover:text-pitch transition-colors">Share</a>
+		</div>
+		@leaderboardTable(leaderboard)
+	</div>
+}
+
+templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, successMsg string, errMsg string) {
+	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<h2 class="font-oswald text-2xl sm:text-4xl text-pitch font-bold mb-6 border-b-2 border-pitch pb-4">{ g.Name }</h2>
+		if errMsg != "" {
+			<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
+		}
+		if successMsg != "" {
+			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
+		}
+		@leaderboardTable(leaderboard)
+		<div class="mt-6">
+			switch joinStatus {
+				case "anonymous":
+					<a href="/login" class="font-oswald bg-turf text-ink px-4 py-2 rounded-sm font-bold shadow hover:bg-gold transition-colors inline-block">Log in to request to join</a>
+				case "owner":
+				case "member":
+					<span class="font-oswald text-sm text-turf">You're already a member</span>
+				case "pending":
+					<span class="font-oswald text-sm text-ink/60">Join request pending</span>
+				default:
+					<form method="post" action={ templ.URL("/groups/" + g.ID + "/join-requests") }>
+						<button type="submit" class="font-oswald bg-turf text-ink px-4 py-2 rounded-sm font-bold shadow hover:bg-gold transition-colors">Request to Join</button>
+					</form>
+			}
 		</div>
 	</div>
 }
 
-templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string) {
+templ leaderboardTable(leaderboard []LeaderboardEntry) {
+	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
+		<table class="w-full text-left border-collapse">
+			<thead class="bg-pitch text-chalk font-oswald text-sm">
+				<tr>
+					<th class="p-3">Rnk</th>
+					<th class="p-3">Player</th>
+					<th class="p-3 text-center">W</th>
+					<th class="p-3 text-center">L</th>
+					<th class="p-3 text-center">G</th>
+					<th class="p-3 text-center">A</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-pitch/10">
+				if len(leaderboard) == 0 {
+					<tr><td colspan="6" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
+				} else {
+					for i, p := range leaderboard {
+						<tr class="hover:bg-chalk/50 transition-colors">
+							<td class="p-3 font-mono font-bold text-pitch">{ i + 1 }</td>
+							<td class="p-3 font-medium">{ p.Name }</td>
+							<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
+							<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
+							<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
+							<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry) {
 	<div id="roster-column" class="lg:col-span-3">
 		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconUsers("size-6") ROSTER</h3>
+		if isAdmin && len(joinRequests) > 0 {
+			<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4 mb-4">
+				<h4 class="font-oswald text-sm text-pitch mb-2">JOIN REQUESTS</h4>
+				<ul class="space-y-1">
+					for _, r := range joinRequests {
+						<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0">
+							<div class="flex flex-col truncate">
+								<span class="font-body truncate">{ r.Name }</span>
+								<span class="text-xs text-ink/50">{ r.Email }</span>
+							</div>
+							<div class="flex items-center gap-2 shrink-0">
+								<button class="text-turf hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/approve") } hx-target="#roster-column" hx-swap="outerHTML">Approve</button>
+								<button class="text-nutmeg hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/reject") } hx-target="#roster-column" hx-swap="outerHTML">Reject</button>
+							</div>
+						</li>
+					}
+				</ul>
+			</div>
+		}
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4">
 			if isAdmin {
 				<form hx-post={ templ.URL("/groups/" + g.ID + "/members") } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col gap-2 mb-3">
@@ -165,6 +219,12 @@ func isRosterOwner(m repository.MemberInfo, ownerEmail string) bool {
 // isPromotedAdmin reports whether m is an admin row that isn't the Owner.
 func isPromotedAdmin(m repository.MemberInfo, ownerEmail string) bool {
 	return m.Role == "admin" && !isRosterOwner(m, ownerEmail)
+}
+
+type JoinRequestEntry struct {
+	ID    string
+	Name  string
+	Email string
 }
 
 type LeaderboardEntry struct {

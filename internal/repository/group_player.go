@@ -78,6 +78,16 @@ func (r *Repository) GetMember(ctx context.Context, groupID, memberID string) (*
 	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
 }
 
+func (r *Repository) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
+	query := psql.Select(
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.From("group_players"),
+		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
+		sm.Where(psql.Quote("email").EQ(psql.Arg(email))),
+	)
+	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
+}
+
 func (r *Repository) MemberCount(ctx context.Context, groupID string) (int, error) {
 	query := psql.Select(
 		sm.Columns(psql.Raw("COUNT(*)")),

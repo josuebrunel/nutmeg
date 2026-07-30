@@ -63,13 +63,28 @@ CREATE TABLE IF NOT EXISTS match_players (
     UNIQUE(match_id, player_id)
 );
 
+CREATE TABLE IF NOT EXISTS group_join_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_group_players_group ON group_players(group_id);
 CREATE INDEX IF NOT EXISTS idx_teams_group ON teams(group_id);
 CREATE INDEX IF NOT EXISTS idx_matches_group ON matches(group_id);
 CREATE INDEX IF NOT EXISTS idx_match_events_match ON match_events(match_id);
 CREATE INDEX IF NOT EXISTS idx_match_players_match ON match_players(match_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_group_join_requests_pending_unique
+    ON group_join_requests(group_id, user_id) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_group_join_requests_group ON group_join_requests(group_id);
 
 -- +goose Down
+DROP TABLE IF EXISTS group_join_requests CASCADE;
 DROP TABLE IF EXISTS match_players CASCADE;
 DROP TABLE IF EXISTS match_events CASCADE;
 DROP TABLE IF EXISTS matches CASCADE;

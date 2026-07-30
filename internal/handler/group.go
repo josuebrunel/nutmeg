@@ -152,10 +152,132 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		}
 	}
 
+	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
+
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, lbEntries, matchEntries, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, successMsg, errMsg))
+}
+
+// PublicLeaderboard renders a group's leaderboard for anyone, logged in or
+// not — unlike Detail/DetailContent it doesn't require a session or CanEdit,
+// since the leaderboard data itself isn't scoped to the viewer.
+func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	if lbErr != nil {
+		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+	}
+	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
+	for i, e := range leaderboard {
+		lbEntries[i] = groups.LeaderboardEntry{
+			Name:    e.Name,
+			Wins:    e.Wins,
+			Losses:  e.Losses,
+			Goals:   e.Goals,
+			Assists: e.Assists,
+		}
+	}
+
+	ctx := c.Request().Context()
+	isLoggedIn := false
+	userName := ""
+	userID := ""
+	if user, err := ezauth.GetUser(ctx); err == nil {
+		isLoggedIn = true
+		userName = user.DisplayName()
+		if uid, err := h.auth.GetUserID(ctx); err == nil {
+			userID = uid
+		}
+	}
+	joinStatus := h.service.ViewerJoinStatus(ctx, g, userID)
+
+	successMsg := h.auth.GetSuccessMessage(ctx)
+	errMsg := h.auth.GetErrorMessage(ctx)
+
+	return page(c, g.Name+" Leaderboard", isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, successMsg, errMsg))
+}
+
+func (h *GroupHandler) RequestJoin(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.RequestToJoin(ctx, g, userID); err != nil {
+		h.auth.Handler.SetFlash(ctx, "error", err.Error())
+		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
+	}
+
+	h.auth.Handler.SetFlash(ctx, "success", "Request sent! The group admin will review it.")
+	return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
+}
+
+func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	reqID := c.Param("reqId")
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.ApproveJoinRequest(ctx, g, reqID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Member approved", "success")
+	}
+	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	reqID := c.Param("reqId")
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.RejectJoinRequest(ctx, g, reqID, userID); err != nil {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, err.Error(), "error")
+		}
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, "Request rejected", "success")
+	}
+	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
@@ -280,7 +402,7 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 		}
 	}
 
-	return render.Component(c, groups.DetailContent(lbEntries, matchEntries))
+	return render.Component(c, groups.DetailContent(id, lbEntries, matchEntries))
 }
 
 func (h *GroupHandler) RosterContent(c *echo.Context) error {
@@ -304,7 +426,9 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 		return err
 	}
 
-	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail))
+	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
+
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -464,9 +588,29 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 		return err
 	}
 	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	joinRequests := h.joinRequestEntries(c.Request().Context(), groupID, canEdit)
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail))
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests))
+}
+
+// joinRequestEntries returns the group's pending join requests as view
+// entries, or nil if the viewer can't manage the roster (canEdit is false)
+// or the fetch fails.
+func (h *GroupHandler) joinRequestEntries(ctx context.Context, groupID string, canEdit bool) []groups.JoinRequestEntry {
+	if !canEdit {
+		return nil
+	}
+	requests, err := h.service.JoinRequests(ctx, groupID)
+	if err != nil {
+		slog.Error("failed to list join requests", "group_id", groupID, "error", err)
+		return nil
+	}
+	entries := make([]groups.JoinRequestEntry, len(requests))
+	for i, r := range requests {
+		entries[i] = groups.JoinRequestEntry{ID: r.ID, Name: r.Name, Email: r.Email}
+	}
+	return entries
 }
 
 // rosterViewData computes what the roster UI needs to know about the current
