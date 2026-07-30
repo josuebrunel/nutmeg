@@ -8,36 +8,38 @@ import (
 
 templ Dashboard(groups []*model.Group, stats *repository.GlobalStats) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-8 border-b-2 border-pitch pb-4">
-			<div>
-				<h2 class="font-oswald text-4xl text-pitch font-bold">YOUR STATS</h2>
-				<p class="text-ink/70 font-body mt-1">Your groups and activity at a glance</p>
+		<div class="stadium-gradient rounded-xl px-5 py-6 sm:px-8 sm:py-8 mb-12">
+			<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-6">
+				<div>
+					<h2 class="font-oswald text-4xl text-chalk font-bold">YOUR STATS</h2>
+					<p class="text-chalk/70 font-body mt-1">Your groups and activity at a glance</p>
+				</div>
+				<form hx-post="/groups" hx-target="#dashboard-groups" hx-swap="outerHTML" class="flex gap-2 w-full sm:w-auto">
+					<input type="text" name="name" placeholder="New group name" class="flex-grow sm:w-48 bg-chalk/10 border-2 border-chalk/30 text-chalk placeholder-chalk/50 rounded px-3 py-2 text-sm focus:border-turf focus:outline-none" required />
+					<button type="submit" class="font-oswald bg-turf text-pitch-night px-4 py-2 rounded hover:bg-gold transition-colors text-sm whitespace-nowrap">Create</button>
+				</form>
 			</div>
-			<form hx-post="/groups" hx-target="#dashboard-groups" hx-swap="outerHTML" class="flex gap-2 w-full sm:w-auto">
-				<input type="text" name="name" placeholder="New group name" class="flex-grow sm:w-48 border-2 border-pitch rounded px-3 py-2 text-sm" required />
-				<button type="submit" class="font-oswald bg-turf text-chalk px-4 py-2 rounded hover:bg-pitch transition-colors text-sm whitespace-nowrap">Create</button>
-			</form>
-		</div>
-		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconGroup("size-5 text-pitch")</div>
-				<div class="text-sm font-oswald text-ink/70">Groups</div>
-				<div class="text-3xl font-bold text-pitch font-mono">{ len(groups) }</div>
-			</div>
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-turf")</div>
-				<div class="text-sm font-oswald text-ink/70">Total Matches</div>
-				<div class="text-3xl font-bold text-turf font-mono">{ stats.TotalMatches }</div>
-			</div>
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconGoal("size-5 text-nutmeg")</div>
-				<div class="text-sm font-oswald text-ink/70">Total Goals</div>
-				<div class="text-3xl font-bold text-nutmeg font-mono">{ stats.TotalGoals }</div>
-			</div>
-			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
-				<div class="flex justify-center mb-1">@components.IconUsers("size-5 text-gold")</div>
-				<div class="text-sm font-oswald text-ink/70">Total Players</div>
-				<div class="text-3xl font-bold text-gold font-mono">{ stats.TotalPlayers }</div>
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<div class="scoreboard-tile text-center">
+					<div class="flex justify-center mb-1 text-turf">@components.IconJersey("size-5")</div>
+					<div class="scoreboard-lbl">Groups</div>
+					<div class="scoreboard-num">{ len(groups) }</div>
+				</div>
+				<div class="scoreboard-tile text-center">
+					<div class="flex justify-center mb-1 text-turf">@components.IconWhistle("size-5")</div>
+					<div class="scoreboard-lbl">Total Matches</div>
+					<div class="scoreboard-num">{ stats.TotalMatches }</div>
+				</div>
+				<div class="scoreboard-tile text-center">
+					<div class="flex justify-center mb-1 text-turf">@components.IconGoal("size-5")</div>
+					<div class="scoreboard-lbl">Total Goals</div>
+					<div class="scoreboard-num">{ stats.TotalGoals }</div>
+				</div>
+				<div class="scoreboard-tile text-center">
+					<div class="flex justify-center mb-1 text-turf">@components.IconUsers("size-5")</div>
+					<div class="scoreboard-lbl">Total Players</div>
+					<div class="scoreboard-num">{ stats.TotalPlayers }</div>
+				</div>
 			</div>
 		</div>
 		@DashboardGroupList(groups)
@@ -54,11 +56,15 @@ templ DashboardGroupList(groups []*model.Group) {
 		} else {
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				for _, g := range groups {
-					<a href={ templ.URL("/groups/" + g.ID) } class="block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group">
-						<h4 class="font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors">{ g.Name }</h4>
+					<a href={ templ.URL("/groups/" + g.ID) } class="relative block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group overflow-hidden">
+						<div class="absolute top-3 right-3 text-pitch/10 group-hover:text-gold/30 transition-colors">
+							@components.IconCornerFlag("size-10")
+						</div>
+						<h4 class="relative font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors">{ g.Name }</h4>
 						if g.Description != nil {
-							<p class="font-body text-sm text-ink/60">{ *g.Description }</p>
+							<p class="relative font-body text-sm text-ink/60">{ *g.Description }</p>
 						}
+						<div class="grass-stripe-accent h-1 -mx-6 -mb-6 mt-4"></div>
 					</a>
 				}
 			</div>

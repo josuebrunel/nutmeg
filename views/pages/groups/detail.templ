@@ -8,11 +8,11 @@ import (
 
 templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, successMsg string, errMsg string) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<div class="flex flex-wrap items-center justify-between gap-3 mb-8 border-b-2 border-pitch pb-4">
+		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex flex-wrap items-center justify-between gap-3">
 			<div class="flex items-center gap-3">
-				<h2 class="font-oswald text-2xl sm:text-4xl text-pitch font-bold">{ g.Name }</h2>
+				<h2 class="font-oswald text-2xl sm:text-4xl text-chalk font-bold">{ g.Name }</h2>
 				if isAdmin {
-					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="text-turf hover:text-pitch transition-colors" aria-label="Edit group name">
+					<a href={ templ.URL("/groups/" + g.ID + "/edit") } class="text-turf hover:text-gold transition-colors" aria-label="Edit group name">
 						@components.IconEdit("size-5")
 					</a>
 				}
@@ -21,8 +21,8 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 				if isOwner {
 					<button class="font-oswald bg-nutmeg text-chalk px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors flex items-center gap-1" hx-delete={ templ.URL("/groups/" + g.ID) } hx-confirm="Delete this group? This cannot be undone." hx-target="body">@components.IconTrash("size-4") Delete</button>
 				}
-				<button hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#detail-content-area" hx-swap="innerHTML" class="font-oswald bg-gold text-pitch border-2 border-gold px-3 py-1.5 rounded hover:bg-pitch hover:text-gold transition-colors flex items-center gap-1 text-sm">
-					@components.IconPlus("size-4")
+				<button hx-get={ templ.URL("/groups/" + g.ID + "/match-modal") } hx-target="#detail-content-area" hx-swap="innerHTML" class="font-oswald bg-gold text-pitch border-2 border-gold px-3 py-1.5 rounded hover:bg-turf hover:border-turf transition-colors flex items-center gap-1 text-sm">
+					@components.IconWhistle("size-4")
 					Log Match
 				</button>
 			</div>
@@ -45,7 +45,8 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 						<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
 					} else {
 						for _, m := range matches {
-							<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm">
+							<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden">
+								<div class="grass-stripe-accent h-1 w-full"></div>
 								<div class="flex w-full">
 									<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
 										<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
@@ -91,7 +92,9 @@ templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []Ma
 
 templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<h2 class="font-oswald text-2xl sm:text-4xl text-pitch font-bold mb-6 border-b-2 border-pitch pb-4">{ g.Name }</h2>
+		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-6">
+			<h2 class="font-oswald text-2xl sm:text-4xl text-chalk font-bold">{ g.Name }</h2>
+		</div>
 		if errMsg != "" {
 			<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
 		}
@@ -165,7 +168,7 @@ templ leaderboardTable(leaderboard []LeaderboardEntry) {
 
 templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry) {
 	<div id="roster-column" class="lg:col-span-3">
-		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconUsers("size-6") ROSTER</h3>
+		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconJersey("size-6") ROSTER</h3>
 		if isAdmin && len(joinRequests) > 0 {
 			<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4 mb-4">
 				<h4 class="font-oswald text-sm text-pitch mb-2">JOIN REQUESTS</h4>

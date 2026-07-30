@@ -1,17 +1,11 @@
-@import "tailwindcss";
-@plugin "daisyui";
-
-@theme {
-  --color-pitch: #0A3B18;
-  --color-turf: #1ED760;
-  --color-nutmeg: #FF4500;
-  --color-gold: #FFD700;
-  --color-chalk: #FFFFFF;
-  --color-ink: #1A1A1A;
-  --font-heading: 'Oswald', sans-serif;
-  --font-body: 'Work Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
+/* This file is served directly to the browser (no Tailwind CLI build step in
+   this repo) — it must be plain CSS the browser can parse on its own. Custom
+   theme tokens (colors/fonts) live in the inline `<style type="text/tailwindcss">`
+   block in views/layout/base.templ instead, which is what the
+   @tailwindcss/browser runtime script actually reads; `@import "tailwindcss"`/
+   `@plugin "daisyui"` here are Tailwind-CLI-only directives that a bare
+   browser can't resolve (they were causing a failed same-origin fetch and
+   silently breaking every custom color/font on the page). */
 
 @layer base {
   :root {
@@ -55,7 +49,65 @@
 }
 
 .stadium-gradient {
-  background: linear-gradient(135deg, #0A3B18 0%, #175429 100%);
+  position: relative;
+  background:
+    radial-gradient(ellipse 900px 500px at 12% -10%, rgba(30, 215, 96, 0.30), transparent 60%),
+    radial-gradient(ellipse 700px 450px at 100% 0%, rgba(255, 215, 0, 0.14), transparent 55%),
+    linear-gradient(160deg, #0A3B18 0%, #062710 100%);
+  overflow: hidden;
+}
+.stadium-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(65deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 26px, transparent 26px, transparent 52px);
+  pointer-events: none;
+}
+
+/* Faint mown-grass stripe texture for light content sections — the low-opacity
+   "grass everywhere, not just the hero" treatment. */
+.grass-texture {
+  background-image: repeating-linear-gradient(65deg, rgba(10,59,24,0.05) 0px, rgba(10,59,24,0.05) 26px, rgba(10,59,24,0.02) 26px, rgba(10,59,24,0.02) 52px);
+}
+
+/* Dark "scoreboard" stat tile — sits inside a .stadium-gradient masthead. */
+.scoreboard-tile {
+  position: relative;
+  background: linear-gradient(160deg, #1A1A1A 0%, #060907 100%);
+  border-radius: 8px;
+  padding: 1rem 0.75rem;
+  overflow: hidden;
+}
+.scoreboard-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(65deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 14px, transparent 14px, transparent 28px);
+  pointer-events: none;
+}
+.scoreboard-tile > * {
+  position: relative;
+}
+.scoreboard-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #1ED760;
+}
+.scoreboard-lbl {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.6);
+  margin-top: 0.3rem;
+}
+
+/* Mown-stripe accent bar for group cards. */
+.grass-stripe-accent {
+  background-image: repeating-linear-gradient(90deg, #1ED760 0px, #1ED760 10px, #159146 10px, #159146 20px);
 }
 
 .ticket-stub {

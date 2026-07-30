@@ -37,7 +37,7 @@ func Landing() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconGroup("size-6").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconJersey("size-6").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -45,7 +45,7 @@ func Landing() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconMatch("size-6").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconWhistle("size-6").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -61,7 +61,7 @@ func Landing() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconGroup("size-6").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconJersey("size-6").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -77,7 +77,7 @@ func Landing() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconMatch("size-6").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconWhistle("size-6").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

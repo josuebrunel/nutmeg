@@ -35,91 +35,91 @@ func Dashboard(groups []*model.Group, stats *repository.GlobalStats) templ.Compo
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8\"><div class=\"flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-8 border-b-2 border-pitch pb-4\"><div><h2 class=\"font-oswald text-4xl text-pitch font-bold\">YOUR STATS</h2><p class=\"text-ink/70 font-body mt-1\">Your groups and activity at a glance</p></div><form hx-post=\"/groups\" hx-target=\"#dashboard-groups\" hx-swap=\"outerHTML\" class=\"flex gap-2 w-full sm:w-auto\"><input type=\"text\" name=\"name\" placeholder=\"New group name\" class=\"flex-grow sm:w-48 border-2 border-pitch rounded px-3 py-2 text-sm\" required> <button type=\"submit\" class=\"font-oswald bg-turf text-chalk px-4 py-2 rounded hover:bg-pitch transition-colors text-sm whitespace-nowrap\">Create</button></form></div><div class=\"grid grid-cols-2 md:grid-cols-4 gap-4 mb-12\"><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"flex justify-center mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8\"><div class=\"stadium-gradient rounded-xl px-5 py-6 sm:px-8 sm:py-8 mb-12\"><div class=\"flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-6\"><div><h2 class=\"font-oswald text-4xl text-chalk font-bold\">YOUR STATS</h2><p class=\"text-chalk/70 font-body mt-1\">Your groups and activity at a glance</p></div><form hx-post=\"/groups\" hx-target=\"#dashboard-groups\" hx-swap=\"outerHTML\" class=\"flex gap-2 w-full sm:w-auto\"><input type=\"text\" name=\"name\" placeholder=\"New group name\" class=\"flex-grow sm:w-48 bg-chalk/10 border-2 border-chalk/30 text-chalk placeholder-chalk/50 rounded px-3 py-2 text-sm focus:border-turf focus:outline-none\" required> <button type=\"submit\" class=\"font-oswald bg-turf text-pitch-night px-4 py-2 rounded hover:bg-gold transition-colors text-sm whitespace-nowrap\">Create</button></form></div><div class=\"grid grid-cols-2 md:grid-cols-4 gap-4\"><div class=\"scoreboard-tile text-center\"><div class=\"flex justify-center mb-1 text-turf\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconGroup("size-5 text-pitch").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconJersey("size-5").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"text-sm font-oswald text-ink/70\">Groups</div><div class=\"text-3xl font-bold text-pitch font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"scoreboard-lbl\">Groups</div><div class=\"scoreboard-num\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(len(groups))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 25, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 26, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"flex justify-center mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><div class=\"scoreboard-tile text-center\"><div class=\"flex justify-center mb-1 text-turf\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconMatch("size-5 text-turf").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconWhistle("size-5").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"text-sm font-oswald text-ink/70\">Total Matches</div><div class=\"text-3xl font-bold text-turf font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"scoreboard-lbl\">Total Matches</div><div class=\"scoreboard-num\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(stats.TotalMatches)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 30, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 31, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"flex justify-center mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div><div class=\"scoreboard-tile text-center\"><div class=\"flex justify-center mb-1 text-turf\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconGoal("size-5 text-nutmeg").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconGoal("size-5").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"text-sm font-oswald text-ink/70\">Total Goals</div><div class=\"text-3xl font-bold text-nutmeg font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"scoreboard-lbl\">Total Goals</div><div class=\"scoreboard-num\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(stats.TotalGoals)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 35, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 36, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10 text-center\"><div class=\"flex justify-center mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"scoreboard-tile text-center\"><div class=\"flex justify-center mb-1 text-turf\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.IconUsers("size-5 text-gold").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.IconUsers("size-5").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><div class=\"text-sm font-oswald text-ink/70\">Total Players</div><div class=\"text-3xl font-bold text-gold font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><div class=\"scoreboard-lbl\">Total Players</div><div class=\"scoreboard-num\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(stats.TotalPlayers)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 40, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 41, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -178,59 +178,67 @@ func DashboardGroupList(groups []*model.Group) templ.Component {
 				var templ_7745c5c3_Var7 templ.SafeURL
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + g.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 57, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 59, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group\"><h4 class=\"font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"relative block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group overflow-hidden\"><div class=\"absolute top-3 right-3 text-pitch/10 group-hover:text-gold/30 transition-colors\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = components.IconCornerFlag("size-10").Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div><h4 class=\"relative font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 58, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 63, Col: 111}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</h4>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</h4>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if g.Description != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"font-body text-sm text-ink/60\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"relative font-body text-sm text-ink/60\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(*g.Description)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 60, Col: 64}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/dashboard.templ`, Line: 65, Col: 73}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div class=\"grass-stripe-accent h-1 -mx-6 -mb-6 mt-4\"></div></a>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

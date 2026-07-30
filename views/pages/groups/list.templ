@@ -1,6 +1,9 @@
 package groups
 
-import "nutmeg/internal/model"
+import (
+	"nutmeg/internal/model"
+	components "nutmeg/views/components"
+)
 
 templ List(groups []*model.Group) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -24,11 +27,15 @@ templ GroupGrid(groups []*model.Group) {
 		} else {
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				for _, g := range groups {
-					<a href={ templ.URL("/groups/" + g.ID) } class="block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group">
-						<h3 class="font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors">{ g.Name }</h3>
+					<a href={ templ.URL("/groups/" + g.ID) } class="relative block bg-white p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group overflow-hidden">
+						<div class="absolute top-3 right-3 text-pitch/10 group-hover:text-gold/30 transition-colors">
+							@components.IconCornerFlag("size-10")
+						</div>
+						<h3 class="relative font-oswald text-xl text-pitch mb-2 group-hover:text-gold transition-colors">{ g.Name }</h3>
 						if g.Description != nil {
-							<p class="font-body text-sm text-ink/60">{ *g.Description }</p>
+							<p class="relative font-body text-sm text-ink/60">{ *g.Description }</p>
 						}
+						<div class="grass-stripe-accent h-1 -mx-6 -mb-6 mt-4"></div>
 					</a>
 				}
 			</div>
