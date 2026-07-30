@@ -76,8 +76,14 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []MatchEntry) {
 	<div>
 		<div class="flex items-center justify-between mb-4">
-			<h3 class="font-oswald text-2xl text-pitch">LEADERBOARD</h3>
-			<a href={ templ.URL("/groups/" + groupID + "/leaderboard") } target="_blank" rel="noopener" class="text-xs font-oswald text-turf hover:text-pitch transition-colors">Share</a>
+			<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
+				@components.IconTrophy("size-6")
+				LEADERBOARD
+			</h3>
+			<a href={ templ.URL("/groups/" + groupID + "/leaderboard") } target="_blank" rel="noopener" class="font-oswald bg-turf text-chalk px-2.5 py-1 rounded text-xs hover:bg-pitch transition-colors flex items-center gap-1">
+				@components.IconShare("size-3.5")
+				Share
+			</a>
 		</div>
 		@leaderboardTable(leaderboard)
 	</div>
@@ -92,6 +98,10 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 		if successMsg != "" {
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
+		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">
+			@components.IconTrophy("size-6")
+			LEADERBOARD
+		</h3>
 		@leaderboardTable(leaderboard)
 		<div class="mt-6">
 			switch joinStatus {
@@ -130,7 +140,16 @@ templ leaderboardTable(leaderboard []LeaderboardEntry) {
 				} else {
 					for i, p := range leaderboard {
 						<tr class="hover:bg-chalk/50 transition-colors">
-							<td class="p-3 font-mono font-bold text-pitch">{ i + 1 }</td>
+							<td class="p-3 font-mono font-bold text-pitch">
+								if i == 0 {
+									<span class="inline-flex items-center gap-1 text-gold">
+										@components.IconTrophy("size-4")
+										1
+									</span>
+								} else {
+									{ i + 1 }
+								}
+							</td>
 							<td class="p-3 font-medium">{ p.Name }</td>
 							<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
 							<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
@@ -158,8 +177,14 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 								<span class="text-xs text-ink/50">{ r.Email }</span>
 							</div>
 							<div class="flex items-center gap-2 shrink-0">
-								<button class="text-turf hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/approve") } hx-target="#roster-column" hx-swap="outerHTML">Approve</button>
-								<button class="text-nutmeg hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/reject") } hx-target="#roster-column" hx-swap="outerHTML">Reject</button>
+								<button class="font-oswald text-xs bg-turf text-chalk hover:bg-pitch px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/approve") } hx-target="#roster-column" hx-swap="outerHTML">
+									@components.IconCheck("size-3.5")
+									Approve
+								</button>
+								<button class="font-oswald text-xs bg-nutmeg text-chalk hover:bg-red-700 px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/reject") } hx-target="#roster-column" hx-swap="outerHTML">
+									@components.IconClose("size-3.5")
+									Reject
+								</button>
 							</div>
 						</li>
 					}
@@ -172,7 +197,10 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 					<input type="text" name="name" placeholder="Name(s) — comma separated" class="border-2 border-pitch rounded px-2 py-1.5 text-sm" required />
 					<input type="tel" name="phone" placeholder="Phone (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
 					<input type="email" name="email" placeholder="Email (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
-					<button type="submit" class="bg-pitch text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-turf transition-colors whitespace-nowrap">Add</button>
+					<button type="submit" class="bg-pitch text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-turf transition-colors whitespace-nowrap flex items-center justify-center gap-1">
+						@components.IconPlus("size-3.5")
+						Add
+					</button>
 				</form>
 			}
 			<ul class="space-y-1">
@@ -193,13 +221,21 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 							}
 							if isOwner && !isRosterOwner(m, ownerEmail) {
 								if isPromotedAdmin(m, ownerEmail) {
-									<button class="text-turf hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Demote " + m.Name + " to member?" }>Demote</button>
+									<button class="font-oswald text-xs bg-gold/20 text-pitch hover:bg-gold px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Demote " + m.Name + " to member?" }>
+										@components.IconArrowDown("size-3.5")
+										Demote
+									</button>
 								} else {
-									<button class="text-turf hover:text-pitch font-oswald text-xs" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Promote " + m.Name + " to admin?" }>Promote</button>
+									<button class="font-oswald text-xs bg-turf/10 text-turf hover:bg-turf hover:text-chalk px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Promote " + m.Name + " to admin?" }>
+										@components.IconArrowUp("size-3.5")
+										Promote
+									</button>
 								}
 							}
 							if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
-								<button class="text-nutmeg hover:text-pitch font-oswald text-xs" hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>✕</button>
+								<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
+									@components.IconClose("size-3.5")
+								</button>
 							}
 						</div>
 					</li>
