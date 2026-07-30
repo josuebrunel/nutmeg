@@ -93,20 +93,20 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 				return templ_7745c5c3_Err
 			}
 			if userName != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"text-sm text-ink/70 font-body\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<a href=\"/account\" class=\"text-sm text-ink/70 font-body hover:text-turf transition-colors\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(userName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 42, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout/base.templ`, Line: 42, Col: 111}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</a> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -126,7 +126,7 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 			return templ_7745c5c3_Err
 		}
 		if isLoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/auth/logout\" class=\"block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded\">SIGN OUT</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/account\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Account</a> <a href=\"/auth/logout\" class=\"block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded\">SIGN OUT</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

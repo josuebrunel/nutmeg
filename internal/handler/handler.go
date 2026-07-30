@@ -11,24 +11,26 @@ import (
 )
 
 type Handler struct {
-	auth  *ezauth.EzAuth
-	repo  *repository.Repository
-	Home  *HomeHandler
-	Auth  *AuthHandler
-	Group *GroupHandler
-	Match *MatchHandler
+	auth    *ezauth.EzAuth
+	repo    *repository.Repository
+	Home    *HomeHandler
+	Auth    *AuthHandler
+	Account *AccountHandler
+	Group   *GroupHandler
+	Match   *MatchHandler
 }
 
 func New(auth *ezauth.EzAuth, repo *repository.Repository) *Handler {
 	groupSvc := service.NewGroupService(repo, auth.Repo)
 	matchSvc := service.NewMatchService(repo, repo)
 	return &Handler{
-		auth:  auth,
-		repo:  repo,
-		Home:  &HomeHandler{groupSvc: groupSvc, auth: auth, matchSvc: matchSvc},
-		Auth:  NewAuthHandler(auth),
-		Group: NewGroupHandler(auth, groupSvc, matchSvc, repo),
-		Match: NewMatchHandler(auth, matchSvc, repo),
+		auth:    auth,
+		repo:    repo,
+		Home:    &HomeHandler{groupSvc: groupSvc, auth: auth, matchSvc: matchSvc},
+		Auth:    NewAuthHandler(auth),
+		Account: NewAccountHandler(auth),
+		Group:   NewGroupHandler(auth, groupSvc, matchSvc, repo),
+		Match:   NewMatchHandler(auth, matchSvc, repo),
 	}
 }
 

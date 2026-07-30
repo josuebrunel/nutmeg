@@ -1,0 +1,59 @@
+package account
+
+import ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
+
+templ Form(user *ezauthmodels.User, successMsg string, errMsg string) {
+	<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<h2 class="font-oswald text-3xl text-pitch font-bold mb-6">MY ACCOUNT</h2>
+		if errMsg != "" {
+			<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
+		}
+		if successMsg != "" {
+			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
+		}
+		<div class="bg-white p-8 rounded-xl shadow border-2 border-pitch mb-8">
+			<h3 class="font-oswald text-xl text-pitch font-bold mb-4">PROFILE</h3>
+			<form method="POST" action="/account" class="space-y-4">
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div>
+						<label class="font-oswald text-ink mb-1 block">First Name</label>
+						<input type="text" name="first_name" value={ user.FirstName } class="w-full border-2 border-pitch rounded px-4 py-2" />
+					</div>
+					<div>
+						<label class="font-oswald text-ink mb-1 block">Last Name</label>
+						<input type="text" name="last_name" value={ user.LastName } class="w-full border-2 border-pitch rounded px-4 py-2" />
+					</div>
+				</div>
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Username</label>
+					<input type="text" name="username" value={ user.Username } placeholder="pickup_king" class="w-full border-2 border-pitch rounded px-4 py-2" />
+				</div>
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Email</label>
+					<input type="email" name="email" value={ user.Email } required class="w-full border-2 border-pitch rounded px-4 py-2" />
+				</div>
+				<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2">SAVE CHANGES</button>
+			</form>
+		</div>
+		if user.IsLocal() {
+			<div class="bg-white p-8 rounded-xl shadow border-2 border-pitch">
+				<h3 class="font-oswald text-xl text-pitch font-bold mb-4">CHANGE PASSWORD</h3>
+				<form method="POST" action="/account/password" class="space-y-4">
+					<div>
+						<label class="font-oswald text-ink mb-1 block">Current Password</label>
+						<input type="password" name="current_password" required class="w-full border-2 border-pitch rounded px-4 py-2" />
+					</div>
+					<div>
+						<label class="font-oswald text-ink mb-1 block">New Password</label>
+						<input type="password" name="new_password" required minlength="8" class="w-full border-2 border-pitch rounded px-4 py-2" />
+					</div>
+					<div>
+						<label class="font-oswald text-ink mb-1 block">Confirm New Password</label>
+						<input type="password" name="new_password_confirm" required minlength="8" class="w-full border-2 border-pitch rounded px-4 py-2" />
+					</div>
+					<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2">UPDATE PASSWORD</button>
+				</form>
+			</div>
+		}
+	</div>
+}

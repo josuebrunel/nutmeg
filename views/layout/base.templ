@@ -39,7 +39,7 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 								<a href="/groups" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconUsers("size-4") Groups</a>
 								<div class="flex items-center gap-3 ml-4 pl-4 border-l border-base-300">
 									if userName != "" {
-										<span class="text-sm text-ink/70 font-body">{ userName }</span>
+										<a href="/account" class="text-sm text-ink/70 font-body hover:text-turf transition-colors">{ userName }</a>
 									}
 									<a href="/auth/logout" class="font-oswald text-nutmeg hover:text-pitch transition-colors">SIGN OUT</a>
 								</div>
@@ -69,6 +69,7 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 							<a href="/dashboard" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Dashboard</a>
 							<a href="/stats" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
 							<a href="/groups" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
+							<a href="/account" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Account</a>
 							<a href="/auth/logout" class="block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded">SIGN OUT</a>
 						</div>
 					} else {
