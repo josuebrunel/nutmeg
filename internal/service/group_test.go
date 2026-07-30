@@ -25,6 +25,13 @@ type mockGroupRepo struct {
 	getMemberFn        func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	memberCountFn      func(ctx context.Context, groupID string) (int, error)
 	updateMemberRoleFn func(ctx context.Context, groupID, memberID, role string) error
+	getMemberByEmailFn func(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
+
+	createJoinRequestFn       func(ctx context.Context, groupID, userID, name, email string) error
+	getPendingJoinRequestFn   func(ctx context.Context, groupID, userID string) (*model.JoinRequest, error)
+	getJoinRequestFn          func(ctx context.Context, groupID, requestID string) (*model.JoinRequest, error)
+	listPendingJoinRequestsFn func(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error)
+	updateJoinRequestStatusFn func(ctx context.Context, requestID, status string) error
 }
 
 func (m *mockGroupRepo) CreateGroup(ctx context.Context, g *model.Group) error {
@@ -62,6 +69,24 @@ func (m *mockGroupRepo) MemberCount(ctx context.Context, groupID string) (int, e
 }
 func (m *mockGroupRepo) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
 	return m.updateMemberRoleFn(ctx, groupID, memberID, role)
+}
+func (m *mockGroupRepo) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
+	return m.getMemberByEmailFn(ctx, groupID, email)
+}
+func (m *mockGroupRepo) CreateJoinRequest(ctx context.Context, groupID, userID, name, email string) error {
+	return m.createJoinRequestFn(ctx, groupID, userID, name, email)
+}
+func (m *mockGroupRepo) GetPendingJoinRequest(ctx context.Context, groupID, userID string) (*model.JoinRequest, error) {
+	return m.getPendingJoinRequestFn(ctx, groupID, userID)
+}
+func (m *mockGroupRepo) GetJoinRequest(ctx context.Context, groupID, requestID string) (*model.JoinRequest, error) {
+	return m.getJoinRequestFn(ctx, groupID, requestID)
+}
+func (m *mockGroupRepo) ListPendingJoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
+	return m.listPendingJoinRequestsFn(ctx, groupID)
+}
+func (m *mockGroupRepo) UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error {
+	return m.updateJoinRequestStatusFn(ctx, requestID, status)
 }
 
 type mockAuthUserRepo struct {
@@ -132,6 +157,24 @@ func defaultMock() *mockGroupRepo {
 			return nil, nil
 		},
 		updateMemberRoleFn: func(_ context.Context, groupID, memberID, role string) error {
+			return nil
+		},
+		getMemberByEmailFn: func(_ context.Context, groupID, email string) (*model.GroupPlayer, error) {
+			return nil, errors.New("not found")
+		},
+		createJoinRequestFn: func(_ context.Context, groupID, userID, name, email string) error {
+			return nil
+		},
+		getPendingJoinRequestFn: func(_ context.Context, groupID, userID string) (*model.JoinRequest, error) {
+			return nil, errors.New("not found")
+		},
+		getJoinRequestFn: func(_ context.Context, groupID, requestID string) (*model.JoinRequest, error) {
+			return &model.JoinRequest{ID: requestID, GroupID: groupID, Status: "pending"}, nil
+		},
+		listPendingJoinRequestsFn: func(_ context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
+			return nil, nil
+		},
+		updateJoinRequestStatusFn: func(_ context.Context, requestID, status string) error {
 			return nil
 		},
 	}

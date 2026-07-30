@@ -16,7 +16,7 @@ RUN go mod download
 
 COPY . .
 
-RUN templ generate && go build -ldflags="-s -w" -o bin/server ./cmd/server
+RUN templ generate && go build -ldflags="-s -w" -o bin/nutmeg ./cmd/server
 
 EXPOSE 8080 4000
 
@@ -27,9 +27,9 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /opt/nutmeg
-COPY --from=build /go/src/app/bin/server /opt/nutmeg/server
+COPY --from=build /go/src/app/bin/nutmeg /opt/nutmeg/nutmeg
 COPY --from=build /go/src/app/static /opt/nutmeg/static
 
 EXPOSE 8080
 
-CMD ["./server"]
+CMD ["./nutmeg"]

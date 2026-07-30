@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,6 +25,9 @@ import (
 )
 
 func main() {
+	migrateFlag := flag.String("migrate", "", "run migrations (up or down) then exit, without starting the server")
+	flag.Parse()
+
 	var cfg config.Config
 	if err := xenv.Load(&cfg); err != nil {
 		slog.Error("failed to load config", "error", err)
@@ -36,6 +40,27 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	if *migrateFlag != "" {
+		switch *migrateFlag {
+		case "up":
+			if err := database.Migrate(db, migrations.FS); err != nil {
+				slog.Error("migration up failed", "error", err)
+				os.Exit(1)
+			}
+			slog.Info("migration up complete")
+		case "down":
+			if err := database.MigrateDown(db, migrations.FS); err != nil {
+				slog.Error("migration down failed", "error", err)
+				os.Exit(1)
+			}
+			slog.Info("migration down complete")
+		default:
+			slog.Error(`invalid -migrate value, must be "up" or "down"`, "value", *migrateFlag)
+			os.Exit(1)
+		}
+		return
+	}
 
 	if err := database.Migrate(db, migrations.FS); err != nil {
 		slog.Error("failed to run migrations", "error", err)

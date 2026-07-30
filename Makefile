@@ -6,10 +6,10 @@ dev:
 
 build:
 	templ generate
-	go build -buildvcs=false -ldflags="-s -w" -o bin/server ./cmd/server
+	go build -buildvcs=false -ldflags="-s -w" -o bin/nutmeg ./cmd/server
 
 run: build
-	./bin/server
+	./bin/nutmeg
 
 db:
 	docker compose up -d db
