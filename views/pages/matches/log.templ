@@ -164,12 +164,12 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 					<div class="flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk">
 						<div class="text-center">
 							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "a")) }</label>
-							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } data-team="a" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0"/>
+							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } data-team="a" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
 						</div>
 						<div class="font-oswald text-3xl text-gold">-</div>
 						<div class="text-center">
 							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "b")) }</label>
-							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } data-team="b" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-pitch py-2 rounded border-0"/>
+							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } data-team="b" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
 						</div>
 					</div>
 				</div>

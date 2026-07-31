@@ -96,7 +96,16 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(echo.WrapMiddleware(auth.SessionMiddleware))
 
-	e.Static("/static", "static")
+	// no-cache (not "no store") so browsers always revalidate with the server
+	// before reusing a cached CSS/JS file — otherwise a deploy that changes
+	// static/css/input.css or static/js/*.js can go unnoticed by a returning
+	// visitor's browser for as long as its cache stays fresh.
+	e.Static("/static", "static", func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			c.Response().Header().Set(echo.HeaderCacheControl, "no-cache")
+			return next(c)
+		}
+	})
 
 	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
 
