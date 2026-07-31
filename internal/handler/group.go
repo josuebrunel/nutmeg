@@ -395,6 +395,10 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/dashboard")
 }
 
+// DetailContent re-renders the full swappable group body (leaderboard,
+// roster, recent matches) — used to restore it after the match-log form's
+// "Cancel" link, since logging/editing a match now swaps the whole area,
+// not just the leaderboard.
 func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -406,8 +410,15 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	if !h.service.CanEdit(c.Request().Context(), g, userID) {
+
+	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	if !canEdit {
 		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	members, err := h.service.Members(c.Request().Context(), id)
+	if err != nil {
+		return err
 	}
 
 	sortBy := c.QueryParam("sort")
@@ -446,7 +457,9 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 		}
 	}
 
-	return render.Component(c, groups.DetailContent(id, lbEntries, matchEntries, sortBy))
+	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
+
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, sortBy))
 }
 
 func (h *GroupHandler) RosterContent(c *echo.Context) error {

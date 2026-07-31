@@ -104,7 +104,7 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 		<button hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
 			&larr; Cancel
 		</button>
-		<div class="bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch">
+		<div class="bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch max-w-5xl mx-auto">
 			<div class="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<h3 class="font-oswald text-2xl text-pitch font-bold">
 					if editData != nil {
@@ -124,7 +124,7 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Tap Each Player's Team, Then Tally Goals &amp; Assists</h3>
 					</div>
 					<div class="bg-base-200 p-4 rounded">
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 							for _, m := range members {
 								<div class="match-player-row bg-white p-2 border border-pitch/10 rounded shadow-sm">
 									<div class="flex items-center justify-between gap-2 mb-1">

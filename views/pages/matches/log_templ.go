@@ -141,7 +141,7 @@ func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEdi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-target=\"#detail-content-area\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-turf hover:text-pitch font-oswald mb-6\">&larr; Cancel</button><div class=\"bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch\"><div class=\"flex flex-wrap items-center justify-between gap-3 mb-6\"><h3 class=\"font-oswald text-2xl text-pitch font-bold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" hx-target=\"#detail-content-area\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-turf hover:text-pitch font-oswald mb-6\">&larr; Cancel</button><div class=\"bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch max-w-5xl mx-auto\"><div class=\"flex flex-wrap items-center justify-between gap-3 mb-6\"><h3 class=\"font-oswald text-2xl text-pitch font-bold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -190,7 +190,7 @@ func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEdi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "1. Tap Each Player's Team, Then Tally Goals &amp; Assists</h3></div><div class=\"bg-base-200 p-4 rounded\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "1. Tap Each Player's Team, Then Tally Goals &amp; Assists</h3></div><div class=\"bg-base-200 p-4 rounded\"><div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

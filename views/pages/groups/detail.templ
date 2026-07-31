@@ -33,60 +33,68 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 		if successMsg != "" {
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
-		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-			<div class="lg:col-span-5" id="detail-content-area">
-				@DetailContent(g.ID, leaderboard, matches, sortBy)
-			</div>
-			@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests)
-			<div class="lg:col-span-4">
-				<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
-				<div class="space-y-4">
-					if len(matches) == 0 {
-						<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
-					} else {
-						for _, m := range matches {
-							<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden">
-								<div class="grass-stripe-accent h-1 w-full"></div>
-								<div class="flex w-full">
-									<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
-										<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
-										<div class="ticket-score text-2xl">{ m.ScoreA }</div>
-									</div>
-									<div class="ticket-perforation"></div>
-									<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
-										<div class="font-oswald text-xs mb-1">{ m.TeamB }</div>
-										<div class="ticket-score text-2xl">{ m.ScoreB }</div>
-									</div>
-								</div>
-								<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
-									<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
-									<div class="flex items-center gap-2">
-										<button class="text-xs font-oswald text-turf hover:text-pitch" hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">@components.IconEdit("size-3.5")</button>
-										<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">@components.IconTrash("size-3.5") Remove</button>
-									</div>
-								</div>
-							</div>
-						}
-					}
-				</div>
-			</div>
+		<div id="detail-content-area">
+			@GroupContent(g, members, isAdmin, isOwner, ownerEmail, joinRequests, leaderboard, matches, sortBy)
 		</div>
 	</div>
 }
 
-templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string) {
-	<div>
-		<div class="flex items-center justify-between mb-4">
-			<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
-				@components.IconTrophy("size-6")
-				LEADERBOARD
-			</h3>
-			<a href={ templ.URL("/groups/" + groupID + "/leaderboard") } target="_blank" rel="noopener" class="font-oswald bg-turf text-chalk px-2.5 py-1 rounded text-xs hover:bg-pitch transition-colors flex items-center gap-1">
-				@components.IconShare("size-3.5")
-				Share
-			</a>
+// GroupContent is the swappable body of a group's page: the leaderboard,
+// roster, and recent-matches columns. Logging or editing a match swaps this
+// entire block (id="detail-content-area", set by the caller) for the
+// match-log form, and "Cancel" swaps it back in via GroupHandler.DetailContent.
+templ GroupContent(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string) {
+	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+		<div class="lg:col-span-5">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
+					@components.IconTrophy("size-6")
+					LEADERBOARD
+				</h3>
+				<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } target="_blank" rel="noopener" class="font-oswald bg-turf text-chalk px-2.5 py-1 rounded text-xs hover:bg-pitch transition-colors flex items-center gap-1">
+					@components.IconShare("size-3.5")
+					Share
+				</a>
+			</div>
+			@leaderboardTable(g.ID, "/groups/"+g.ID, leaderboard, sortBy)
 		</div>
-		@leaderboardTable(groupID, "/groups/"+groupID, leaderboard, sortBy)
+		@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests)
+		@RecentMatchesColumn(matches)
+	</div>
+}
+
+templ RecentMatchesColumn(matches []MatchEntry) {
+	<div class="lg:col-span-4">
+		<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
+		<div class="space-y-4">
+			if len(matches) == 0 {
+				<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
+			} else {
+				for _, m := range matches {
+					<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden">
+						<div class="grass-stripe-accent h-1 w-full"></div>
+						<div class="flex w-full">
+							<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
+								<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
+								<div class="ticket-score text-2xl">{ m.ScoreA }</div>
+							</div>
+							<div class="ticket-perforation"></div>
+							<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
+								<div class="font-oswald text-xs mb-1">{ m.TeamB }</div>
+								<div class="ticket-score text-2xl">{ m.ScoreB }</div>
+							</div>
+						</div>
+						<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
+							<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
+							<div class="flex items-center gap-2">
+								<button class="text-xs font-oswald text-turf hover:text-pitch" hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">@components.IconEdit("size-3.5")</button>
+								<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">@components.IconTrash("size-3.5") Remove</button>
+							</div>
+						</div>
+					</div>
+				}
+			}
+		</div>
 	</div>
 }
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -48,7 +49,17 @@ func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
+	sortMembersByName(members)
 	return render.Component(c, matches.LogForm(groupID, members, nil))
+}
+
+// sortMembersByName sorts members alphabetically by name (case-insensitive)
+// in place — used only for the match-log form's player list, which is
+// easier to scan alphabetically than the Roster panel's admin-first order.
+func sortMembersByName(members []repository.MemberInfo) {
+	sort.Slice(members, func(i, j int) bool {
+		return strings.ToLower(members[i].Name) < strings.ToLower(members[j].Name)
+	})
 }
 
 func (h *MatchHandler) parseGoalsFromForm(c *echo.Context) string {
@@ -227,6 +238,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
+	sortMembersByName(members)
 
 	editable, err := h.service.GetEditable(c.Request().Context(), matchID, userID)
 	if err != nil {
