@@ -1,6 +1,8 @@
 package groups
 
 import (
+	"strings"
+
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 	components "nutmeg/views/components"
@@ -87,6 +89,9 @@ templ LeaderboardSection(groupID string, sortBy string, leaderboard []Leaderboar
 				Share
 			</a>
 		</div>
+		if fullWidth {
+			<input type="text" class="leaderboard-search w-full border-2 border-pitch/20 rounded px-3 py-2 text-sm mb-3" placeholder="Search players…" aria-label="Search players"/>
+		}
 		@leaderboardTable(groupID, "/groups/"+groupID, leaderboard, sortBy, leaderboardLimit(fullWidth, len(leaderboard)), leaderboardShowAllURL(fullWidth, groupID, sortBy))
 	</div>
 }
@@ -206,7 +211,7 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 // Matches sections render visibly by default — large imported rosters (e.g.
 // a CSV import) can easily run into the dozens, and showing all of them at
 // once turns the group page into an endless scroll.
-const defaultVisibleLimit = 20
+const defaultVisibleLimit = 10
 
 // extraRowClass hides rows beyond defaultVisibleLimit and tags them with a
 // marker class so the "Show all" button's click handler (static/js/main.js)
@@ -251,7 +256,7 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 					<tr><td colspan="8" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
 				} else {
 					for i, p := range visibleLeaderboardRows(leaderboard, limit, showAllURL) {
-						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) }>
+						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) } data-player-name={ strings.ToLower(p.Name) }>
 							<td class="p-3 font-mono font-bold text-pitch">
 								if i == 0 {
 									<span class="inline-flex items-center gap-1 text-gold">

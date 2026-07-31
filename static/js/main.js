@@ -40,6 +40,17 @@ document.addEventListener('click', function (evt) {
   btn.parentElement.remove()
 })
 
+// Leaderboard search — only rendered in the expanded (full-width) leaderboard
+// view; filters visible rows by player name as the user types. Delegated on
+// document so it keeps working after htmx swaps.
+document.addEventListener('input', function (evt) {
+  if (!evt.target.matches('.leaderboard-search')) return
+  var query = evt.target.value.trim().toLowerCase()
+  document.querySelectorAll('[data-player-name]').forEach(function (row) {
+    row.classList.toggle('hidden', query !== '' && !row.dataset.playerName.includes(query))
+  })
+})
+
 function showToast(message, type) {
   var container = document.getElementById('toast-container')
   if (!container) return
