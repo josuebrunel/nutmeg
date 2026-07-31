@@ -16,6 +16,7 @@ type MatchEditData struct {
 	ScoreB    int
 	Teams     map[string]string
 	Goals     map[string]int
+	Assists   map[string]int
 	PlayedAt  time.Time
 }
 
@@ -41,6 +42,16 @@ func intVal(editData *MatchEditData, playerID string) int {
 		return 0
 	}
 	if v, ok := editData.Goals[playerID]; ok {
+		return v
+	}
+	return 0
+}
+
+func assistVal(editData *MatchEditData, playerID string) int {
+	if editData == nil {
+		return 0
+	}
+	if v, ok := editData.Assists[playerID]; ok {
 		return v
 	}
 	return 0
@@ -110,14 +121,30 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 			<form id="match-form" method="POST" action={ templ.URL(formAction(groupID, editData)) } hx-target="body" class="space-y-6">
 				<div>
 					<div class="flex justify-between items-end mb-3">
-						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Tap Each Player's Team, Then Tally Goals</h3>
+						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Tap Each Player's Team, Then Tally Goals &amp; Assists</h3>
 					</div>
 					<div class="bg-base-200 p-4 rounded">
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 							for _, m := range members {
 								<div class="match-player-row bg-white p-2 border border-pitch/10 rounded shadow-sm">
-									<span class="text-sm font-body font-semibold truncate block mb-1">{ m.Name }</span>
-									<div class="flex items-center justify-between gap-2">
+									<div class="flex items-center justify-between gap-2 mb-1">
+										<span class="text-sm font-body font-semibold truncate">{ m.Name }</span>
+										<div class="team-toggle inline-flex rounded overflow-hidden border border-pitch/30 shrink-0 text-xs font-oswald">
+											<label class="team-opt px-2 py-1 cursor-pointer bg-chalk">
+												<input type="radio" name={ "team_" + m.ID } value="" class="team-radio sr-only" if teamVal(editData, m.ID) == "" { checked }/>
+												OUT
+											</label>
+											<label class="team-opt px-2 py-1 cursor-pointer bg-chalk border-l border-pitch/30">
+												<input type="radio" name={ "team_" + m.ID } value="a" class="team-radio sr-only" if teamVal(editData, m.ID) == "a" { checked }/>
+												A
+											</label>
+											<label class="team-opt px-2 py-1 cursor-pointer bg-chalk border-l border-pitch/30">
+												<input type="radio" name={ "team_" + m.ID } value="b" class="team-radio sr-only" if teamVal(editData, m.ID) == "b" { checked }/>
+												B
+											</label>
+										</div>
+									</div>
+									<div class="flex items-center gap-3">
 									<div class="goal-stepper items-center gap-1 shrink-0">
 										@components.IconGoal("size-4")
 										<button type="button" class="goal-dec w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Decrease goals for " + m.Name }>&minus;</button>
@@ -125,19 +152,12 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 										<button type="button" class="goal-inc w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Increase goals for " + m.Name }>+</button>
 										<input type="hidden" name={ "goals_" + m.ID } class="goal-input" value={ intVal(editData, m.ID) }/>
 									</div>
-									<div class="team-toggle inline-flex rounded overflow-hidden border border-pitch/30 shrink-0 text-xs font-oswald ml-auto">
-										<label class="team-opt px-2 py-1 cursor-pointer bg-chalk">
-											<input type="radio" name={ "team_" + m.ID } value="" class="team-radio sr-only" if teamVal(editData, m.ID) == "" { checked }/>
-											OUT
-										</label>
-										<label class="team-opt px-2 py-1 cursor-pointer bg-chalk border-l border-pitch/30">
-											<input type="radio" name={ "team_" + m.ID } value="a" class="team-radio sr-only" if teamVal(editData, m.ID) == "a" { checked }/>
-											A
-										</label>
-										<label class="team-opt px-2 py-1 cursor-pointer bg-chalk border-l border-pitch/30">
-											<input type="radio" name={ "team_" + m.ID } value="b" class="team-radio sr-only" if teamVal(editData, m.ID) == "b" { checked }/>
-											B
-										</label>
+									<div class="assist-stepper items-center gap-1 shrink-0">
+										@components.IconBoot("size-4")
+										<button type="button" class="assist-dec w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Decrease assists for " + m.Name }>&minus;</button>
+										<span class="assist-count w-4 text-center text-sm font-mono">{ assistVal(editData, m.ID) }</span>
+										<button type="button" class="assist-inc w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Increase assists for " + m.Name }>+</button>
+										<input type="hidden" name={ "assists_" + m.ID } class="assist-input" value={ assistVal(editData, m.ID) }/>
 									</div>
 									</div>
 								</div>

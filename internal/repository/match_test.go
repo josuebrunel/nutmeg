@@ -36,11 +36,11 @@ func openTestDB(t *testing.T) *Repository {
 }
 
 var (
-	testGroupID  = "a0000000-0000-0000-0000-000000000001"
-	testAliceID  = "a0000000-0000-0000-0000-000000000002"
-	testBobID    = "a0000000-0000-0000-0000-000000000003"
-	testCarolID  = "a0000000-0000-0000-0000-000000000004"
-	testCreator  = "a0000000-0000-0000-0000-0000000000ff"
+	testGroupID = "a0000000-0000-0000-0000-000000000001"
+	testAliceID = "a0000000-0000-0000-0000-000000000002"
+	testBobID   = "a0000000-0000-0000-0000-000000000003"
+	testCarolID = "a0000000-0000-0000-0000-000000000004"
+	testCreator = "a0000000-0000-0000-0000-0000000000ff"
 )
 
 func TestGetGroupLeaderboard(t *testing.T) {
@@ -48,7 +48,7 @@ func TestGetGroupLeaderboard(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("empty group", func(t *testing.T) {
-		entries, err := repo.GetGroupLeaderboard(ctx, "00000000-0000-0000-0000-000000000000")
+		entries, err := repo.GetGroupLeaderboard(ctx, "00000000-0000-0000-0000-000000000000", "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -61,7 +61,7 @@ func TestGetGroupLeaderboard(t *testing.T) {
 		cleanup := seedForLeaderboard(t, repo, testGroupID, testAliceID, testBobID, testCarolID)
 		t.Cleanup(cleanup)
 
-		entries, err := repo.GetGroupLeaderboard(ctx, testGroupID)
+		entries, err := repo.GetGroupLeaderboard(ctx, testGroupID, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -89,6 +89,9 @@ func TestGetGroupLeaderboard(t *testing.T) {
 		}
 		if alice.Wins != 1 {
 			t.Fatalf("Alice wins: want 1, got %d", alice.Wins)
+		}
+		if alice.Draws != 0 {
+			t.Fatalf("Alice draws: want 0, got %d", alice.Draws)
 		}
 		if alice.Losses != 0 {
 			t.Fatalf("Alice losses: want 0, got %d", alice.Losses)
@@ -122,6 +125,9 @@ func TestGetGroupLeaderboard(t *testing.T) {
 		if carol.Goals != 0 {
 			t.Fatalf("Carol goals: want 0, got %d", carol.Goals)
 		}
+		if carol.Assists != 1 {
+			t.Fatalf("Carol assists: want 1, got %d", carol.Assists)
+		}
 	})
 }
 
@@ -153,6 +159,12 @@ func TestGetGlobalStats(t *testing.T) {
 		if stats.TotalGoals != 2 {
 			t.Fatalf("TotalGoals: want 2, got %d", stats.TotalGoals)
 		}
+		if stats.TotalAssists != 1 {
+			t.Fatalf("TotalAssists: want 1, got %d", stats.TotalAssists)
+		}
+		if stats.TotalDraws != 0 {
+			t.Fatalf("TotalDraws: want 0, got %d", stats.TotalDraws)
+		}
 		if stats.TotalPlayers != 3 {
 			t.Fatalf("TotalPlayers: want 3, got %d", stats.TotalPlayers)
 		}
@@ -168,7 +180,7 @@ func TestCreateMatchThenList(t *testing.T) {
 
 	err := repo.CreateMatch(ctx, testGroupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{testAliceID, testCarolID}, []string{testBobID},
-		map[string]int{testAliceID: 2}, time.Now())
+		map[string]int{testAliceID: 2}, map[string]int{}, time.Now())
 	if err != nil {
 		t.Fatalf("CreateMatch failed: %v", err)
 	}
@@ -227,7 +239,7 @@ func seedForLeaderboard(t *testing.T, repo *Repository, groupID, aliceID, bobID,
 
 	err := repo.CreateMatch(ctx, groupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{aliceID, carolID}, []string{bobID},
-		map[string]int{aliceID: 2}, time.Now())
+		map[string]int{aliceID: 2}, map[string]int{carolID: 1}, time.Now())
 	if err != nil {
 		t.Fatalf("CreateMatch failed: %v", err)
 	}

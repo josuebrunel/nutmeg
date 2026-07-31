@@ -78,6 +78,8 @@ CREATE INDEX IF NOT EXISTS idx_group_players_group ON group_players(group_id);
 CREATE INDEX IF NOT EXISTS idx_teams_group ON teams(group_id);
 CREATE INDEX IF NOT EXISTS idx_matches_group ON matches(group_id);
 CREATE INDEX IF NOT EXISTS idx_match_events_match ON match_events(match_id);
+CREATE INDEX IF NOT EXISTS idx_match_events_scorer ON match_events(scorer_id);
+CREATE INDEX IF NOT EXISTS idx_match_events_assister ON match_events(assister_id);
 CREATE INDEX IF NOT EXISTS idx_match_players_match ON match_players(match_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_group_join_requests_pending_unique
     ON group_join_requests(group_id, user_id) WHERE status = 'pending';

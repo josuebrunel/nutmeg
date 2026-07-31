@@ -74,6 +74,29 @@ func (h *MatchHandler) parseGoalsFromForm(c *echo.Context) string {
 	return strings.Join(parts, ",")
 }
 
+func (h *MatchHandler) parseAssistsFromForm(c *echo.Context) string {
+	var parts []string
+	for key, values := range c.Request().Form {
+		if strings.HasPrefix(key, "assists_") {
+			pid := strings.TrimPrefix(key, "assists_")
+			if len(values) > 0 {
+				count := values[0]
+				n, err := strconv.Atoi(count)
+				if err != nil || n <= 0 {
+					continue
+				}
+				// Determine team from team_* field
+				team := c.FormValue("team_" + pid)
+				if team == "" {
+					continue
+				}
+				parts = append(parts, pid+":"+team+":"+count)
+			}
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
 func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 	var teamAPlayers, teamBPlayers []string
 	for key, values := range c.Request().Form {
@@ -127,6 +150,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
+	assistsInput := h.parseAssistsFromForm(c)
 
 	teamAName := c.FormValue("team_a_name")
 	teamBName := c.FormValue("team_b_name")
@@ -147,6 +171,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
+		AssistsInput: assistsInput,
 		PlayedAt:     parsePlayedAt(c),
 	}
 
@@ -224,6 +249,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 		ScoreB:    editable.ScoreB,
 		Teams:     teams,
 		Goals:     editable.Goals,
+		Assists:   editable.Assists,
 		PlayedAt:  editable.PlayedAt,
 	}
 
@@ -243,6 +269,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
+	assistsInput := h.parseAssistsFromForm(c)
 
 	teamAName := c.FormValue("team_a_name")
 	teamBName := c.FormValue("team_b_name")
@@ -263,6 +290,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
+		AssistsInput: assistsInput,
 		PlayedAt:     parsePlayedAt(c),
 	}
 

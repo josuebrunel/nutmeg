@@ -16,6 +16,7 @@ import (
 	"nutmeg/internal/service"
 	"nutmeg/views/pages/groups"
 	"nutmeg/views/pages/home"
+	"nutmeg/views/pages/players"
 )
 
 type GroupHandler struct {
@@ -120,15 +121,19 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	sortBy := c.QueryParam("sort")
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
 	for i, e := range leaderboard {
 		lbEntries[i] = groups.LeaderboardEntry{
+			ID:      e.MemberID,
 			Name:    e.Name,
+			Matches: e.Matches,
 			Wins:    e.Wins,
+			Draws:   e.Draws,
 			Losses:  e.Losses,
 			Goals:   e.Goals,
 			Assists: e.Assists,
@@ -157,7 +162,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, sortBy, successMsg, errMsg))
 }
 
 // PublicLeaderboard renders a group's leaderboard for anyone, logged in or
@@ -170,15 +175,19 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 		return err
 	}
 
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	sortBy := c.QueryParam("sort")
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
 	for i, e := range leaderboard {
 		lbEntries[i] = groups.LeaderboardEntry{
+			ID:      e.MemberID,
 			Name:    e.Name,
+			Matches: e.Matches,
 			Wins:    e.Wins,
+			Draws:   e.Draws,
 			Losses:  e.Losses,
 			Goals:   e.Goals,
 			Assists: e.Assists,
@@ -201,7 +210,38 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(ctx)
 	errMsg := h.auth.GetErrorMessage(ctx)
 
-	return page(c, g.Name+" Leaderboard", isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, successMsg, errMsg))
+	return page(c, g.Name+" Leaderboard", isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, sortBy, successMsg, errMsg))
+}
+
+// PlayerProfile renders a single player's stats. Like PublicLeaderboard,
+// it's public/unauthenticated — anyone with the link can view a player's
+// stats within a group's shareable leaderboard.
+func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	player, err := h.repo.GetMember(ctx, id, memberID)
+	if err != nil {
+		return err
+	}
+	stats, err := h.matchSvc.GetPlayerStats(ctx, memberID)
+	if err != nil {
+		return err
+	}
+
+	isLoggedIn := false
+	userName := ""
+	if user, err := ezauth.GetUser(ctx); err == nil {
+		isLoggedIn = true
+		userName = user.DisplayName()
+	}
+
+	return page(c, player.Name+" — "+g.Name, isLoggedIn, "", userName, players.Profile(g, player, stats))
 }
 
 func (h *GroupHandler) RequestJoin(c *echo.Context) error {
@@ -370,15 +410,19 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id)
+	sortBy := c.QueryParam("sort")
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
 	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
 	for i, e := range leaderboard {
 		lbEntries[i] = groups.LeaderboardEntry{
+			ID:      e.MemberID,
 			Name:    e.Name,
+			Matches: e.Matches,
 			Wins:    e.Wins,
+			Draws:   e.Draws,
 			Losses:  e.Losses,
 			Goals:   e.Goals,
 			Assists: e.Assists,
@@ -402,7 +446,7 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 		}
 	}
 
-	return render.Component(c, groups.DetailContent(id, lbEntries, matchEntries))
+	return render.Component(c, groups.DetailContent(id, lbEntries, matchEntries, sortBy))
 }
 
 func (h *GroupHandler) RosterContent(c *echo.Context) error {

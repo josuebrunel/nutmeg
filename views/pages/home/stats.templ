@@ -22,6 +22,16 @@ templ Stats(stats *repository.GlobalStats) {
 				<div class="text-3xl font-bold text-gold font-mono">{ stats.TotalGoals }</div>
 			</div>
 			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconBoot("size-5 text-turf")</div>
+				<div class="text-sm font-oswald text-ink/70">Total Assists</div>
+				<div class="text-3xl font-bold text-turf font-mono">{ stats.TotalAssists }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconTrophy("size-5 text-pitch")</div>
+				<div class="text-sm font-oswald text-ink/70">Draws</div>
+				<div class="text-3xl font-bold text-pitch font-mono">{ stats.TotalDraws }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
 				<div class="flex justify-center mb-1">@components.IconUsers("size-5 text-turf")</div>
 				<div class="text-sm font-oswald text-ink/70">Total Players</div>
 				<div class="text-3xl font-bold text-turf font-mono">{ stats.TotalPlayers }</div>

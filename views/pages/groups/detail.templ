@@ -6,7 +6,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, successMsg string, errMsg string) {
+templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string, successMsg string, errMsg string) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex flex-wrap items-center justify-between gap-3">
 			<div class="flex items-center gap-3">
@@ -35,7 +35,7 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 		}
 		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 			<div class="lg:col-span-5" id="detail-content-area">
-				@DetailContent(g.ID, leaderboard, matches)
+				@DetailContent(g.ID, leaderboard, matches, sortBy)
 			</div>
 			@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests)
 			<div class="lg:col-span-4">
@@ -74,7 +74,7 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 	</div>
 }
 
-templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []MatchEntry) {
+templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string) {
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
@@ -86,11 +86,11 @@ templ DetailContent(groupID string, leaderboard []LeaderboardEntry, matches []Ma
 				Share
 			</a>
 		</div>
-		@leaderboardTable(leaderboard)
+		@leaderboardTable(groupID, "/groups/"+groupID, leaderboard, sortBy)
 	</div>
 }
 
-templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, successMsg string, errMsg string) {
+templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, sortBy string, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-6">
 			<h2 class="font-oswald text-2xl sm:text-4xl text-chalk font-bold">{ g.Name }</h2>
@@ -105,7 +105,7 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 			@components.IconTrophy("size-6")
 			LEADERBOARD
 		</h3>
-		@leaderboardTable(leaderboard)
+		@leaderboardTable(g.ID, "/groups/"+g.ID+"/leaderboard", leaderboard, sortBy)
 		<div class="mt-6">
 			switch joinStatus {
 				case "anonymous":
@@ -124,14 +124,23 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 	</div>
 }
 
-templ leaderboardTable(leaderboard []LeaderboardEntry) {
+templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []LeaderboardEntry, activeSort string) {
 	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
+		<div class="flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-oswald text-ink/50">
+			<span>Sort:</span>
+			@sortLink(sortBaseURL, "", "Wins", activeSort)
+			@sortLink(sortBaseURL, "goals", "Goals", activeSort)
+			@sortLink(sortBaseURL, "assists", "Assists", activeSort)
+			@sortLink(sortBaseURL, "matches", "Matches", activeSort)
+		</div>
 		<table class="w-full text-left border-collapse">
 			<thead class="bg-pitch text-chalk font-oswald text-sm">
 				<tr>
 					<th class="p-3">Rnk</th>
 					<th class="p-3">Player</th>
+					<th class="p-3 text-center">MP</th>
 					<th class="p-3 text-center">W</th>
+					<th class="p-3 text-center">D</th>
 					<th class="p-3 text-center">L</th>
 					<th class="p-3 text-center">G</th>
 					<th class="p-3 text-center">A</th>
@@ -139,7 +148,7 @@ templ leaderboardTable(leaderboard []LeaderboardEntry) {
 			</thead>
 			<tbody class="divide-y divide-pitch/10">
 				if len(leaderboard) == 0 {
-					<tr><td colspan="6" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
+					<tr><td colspan="8" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
 				} else {
 					for i, p := range leaderboard {
 						<tr class="hover:bg-chalk/50 transition-colors">
@@ -153,8 +162,12 @@ templ leaderboardTable(leaderboard []LeaderboardEntry) {
 									{ i + 1 }
 								}
 							</td>
-							<td class="p-3 font-medium">{ p.Name }</td>
+							<td class="p-3 font-medium">
+								<a href={ templ.URL("/groups/" + groupID + "/players/" + p.ID) } class="hover:text-turf hover:underline">{ p.Name }</a>
+							</td>
+							<td class="p-3 text-center font-mono text-ink/70">{ p.Matches }</td>
 							<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
+							<td class="p-3 text-center font-mono text-ink/50">{ p.Draws }</td>
 							<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
@@ -164,6 +177,26 @@ templ leaderboardTable(leaderboard []LeaderboardEntry) {
 			</tbody>
 		</table>
 	</div>
+}
+
+templ sortLink(baseURL, sortKey, label, activeSort string) {
+	<a href={ templ.URL(sortLinkHref(baseURL, sortKey)) } class={ sortLinkClass(sortKey, activeSort) }>{ label }</a>
+}
+
+// sortLinkHref builds the leaderboard sort link — the default "Wins" sort
+// omits the ?sort param entirely so it matches the table's default ORDER BY.
+func sortLinkHref(baseURL, sortKey string) string {
+	if sortKey == "" {
+		return baseURL
+	}
+	return baseURL + "?sort=" + sortKey
+}
+
+func sortLinkClass(sortKey, activeSort string) string {
+	if sortKey == activeSort {
+		return "font-bold text-turf underline"
+	}
+	return "hover:text-turf"
 }
 
 templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry) {
@@ -267,8 +300,11 @@ type JoinRequestEntry struct {
 }
 
 type LeaderboardEntry struct {
+	ID      string
 	Name    string
+	Matches int
 	Wins    int
+	Draws   int
 	Losses  int
 	Goals   int
 	Assists int

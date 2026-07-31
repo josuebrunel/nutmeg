@@ -21,6 +21,23 @@ document.addEventListener('click', function (evt) {
   recomputeScore(stepper.closest('form'))
 })
 
+document.addEventListener('click', function (evt) {
+  var incBtn = evt.target.closest('.assist-inc')
+  var decBtn = evt.target.closest('.assist-dec')
+  if (!incBtn && !decBtn) return
+
+  var stepper = evt.target.closest('.assist-stepper')
+  if (!stepper) return
+
+  var input = stepper.querySelector('.assist-input')
+  var display = stepper.querySelector('.assist-count')
+  var value = parseInt(input.value, 10) || 0
+  value = incBtn ? value + 1 : Math.max(0, value - 1)
+
+  input.value = value
+  display.textContent = value
+})
+
 document.addEventListener('change', function (evt) {
   if (evt.target.matches('.team-radio')) {
     recomputeScore(evt.target.closest('form'))

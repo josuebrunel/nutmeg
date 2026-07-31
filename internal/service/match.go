@@ -11,15 +11,16 @@ import (
 )
 
 type MatchRepository interface {
-	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error
+	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error
 	ListMatchesByGroup(ctx context.Context, groupID string) ([]repository.MatchWithTeams, error)
 	DeleteMatch(ctx context.Context, matchID string) error
-	GetGroupLeaderboard(ctx context.Context, groupID string) ([]repository.LeaderboardEntry, error)
+	GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]repository.LeaderboardEntry, error)
 	GetPlayerStats(ctx context.Context, userID string) (*repository.PlayerStats, error)
 	GetMatchDetail(ctx context.Context, matchID string) (*repository.MatchDetail, error)
 	GetMatchPlayers(ctx context.Context, matchID string) ([]repository.MatchPlayerRow, error)
 	GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error)
-	UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error
+	GetMatchAssists(ctx context.Context, matchID string) (map[string]int, error)
+	UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error
 	GetGlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error)
 }
 
@@ -42,6 +43,7 @@ type CreateMatchInput struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	GoalsInput   string
+	AssistsInput string
 	PlayedAt     time.Time
 }
 
@@ -56,14 +58,21 @@ func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) error
 		return errors.New("scores cannot be negative")
 	}
 
-	goals := parseGoals(input.GoalsInput)
-	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, input.PlayedAt)
+	goals := parseTally(input.GoalsInput)
+	assists := parseTally(input.AssistsInput)
+	if err := validateAssists(goals, assists, input.TeamBPlayers); err != nil {
+		return err
+	}
+	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
 }
 
-func parseGoals(input string) map[string]int {
-	goals := make(map[string]int)
+// parseTally parses a comma-separated "playerID:team:count" string — the
+// shared encoding used by both the goal and assist form fields — into a
+// per-player tally map.
+func parseTally(input string) map[string]int {
+	tally := make(map[string]int)
 	if input == "" {
-		return goals
+		return tally
 	}
 	parts := strings.Split(input, ",")
 	for _, part := range parts {
@@ -80,9 +89,42 @@ func parseGoals(input string) map[string]int {
 		if c, err := parseInt(fields[2]); err == nil {
 			count = c
 		}
-		goals[playerID] = count
+		tally[playerID] = count
 	}
-	return goals
+	return tally
+}
+
+func contains(slice []string, val string) bool {
+	for _, s := range slice {
+		if s == val {
+			return true
+		}
+	}
+	return false
+}
+
+// validateAssists rejects a per-team assist tally that exceeds that team's
+// goal tally — an assist implies an associated goal, so it can never exceed it.
+func validateAssists(goals, assists map[string]int, teamBPlayers []string) error {
+	var goalsA, goalsB, assistsA, assistsB int
+	for pid, c := range goals {
+		if contains(teamBPlayers, pid) {
+			goalsB += c
+		} else {
+			goalsA += c
+		}
+	}
+	for pid, c := range assists {
+		if contains(teamBPlayers, pid) {
+			assistsB += c
+		} else {
+			assistsA += c
+		}
+	}
+	if assistsA > goalsA || assistsB > goalsB {
+		return errors.New("a team cannot have more assists than goals")
+	}
+	return nil
 }
 
 func parseInt(s string) (int, error) {
@@ -140,8 +182,8 @@ func (s *MatchService) Delete(ctx context.Context, matchID, userID string) error
 	return s.repo.DeleteMatch(ctx, matchID)
 }
 
-func (s *MatchService) GetLeaderboard(ctx context.Context, groupID string) ([]repository.LeaderboardEntry, error) {
-	entries, err := s.repo.GetGroupLeaderboard(ctx, groupID)
+func (s *MatchService) GetLeaderboard(ctx context.Context, groupID string, sortBy string) ([]repository.LeaderboardEntry, error) {
+	entries, err := s.repo.GetGroupLeaderboard(ctx, groupID, sortBy)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +211,7 @@ type UpdateMatchInput struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	GoalsInput   string
+	AssistsInput string
 	PlayedAt     time.Time
 }
 
@@ -182,6 +225,7 @@ type EditableMatch struct {
 	TeamAPlayers []string
 	TeamBPlayers []string
 	Goals        map[string]int
+	Assists      map[string]int
 	PlayedAt     time.Time
 }
 
@@ -199,6 +243,10 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) 
 		return nil, err
 	}
 	goals, err := s.repo.GetMatchGoals(ctx, matchID)
+	if err != nil {
+		return nil, err
+	}
+	assists, err := s.repo.GetMatchAssists(ctx, matchID)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +268,9 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) 
 	if goals == nil {
 		goals = make(map[string]int)
 	}
+	if assists == nil {
+		assists = make(map[string]int)
+	}
 
 	return &EditableMatch{
 		MatchID:      matchID,
@@ -231,6 +282,7 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) 
 		TeamAPlayers: teamAPlayers,
 		TeamBPlayers: teamBPlayers,
 		Goals:        goals,
+		Assists:      assists,
 		PlayedAt:     detail.PlayedAt,
 	}, nil
 }
@@ -239,8 +291,12 @@ func (s *MatchService) Update(ctx context.Context, input UpdateMatchInput) error
 	if err := s.authorizeMatchAccess(ctx, input.MatchID, input.UserID); err != nil {
 		return err
 	}
-	goals := parseGoals(input.GoalsInput)
-	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals, input.PlayedAt)
+	goals := parseTally(input.GoalsInput)
+	assists := parseTally(input.AssistsInput)
+	if err := validateAssists(goals, assists, input.TeamBPlayers); err != nil {
+		return err
+	}
+	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
 }
 
 func (s *MatchService) GlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error) {

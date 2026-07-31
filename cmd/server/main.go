@@ -122,6 +122,7 @@ func main() {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 	e.GET("/groups/:id/leaderboard", h.Group.PublicLeaderboard)
+	e.GET("/groups/:id/players/:memberId", h.Group.PlayerProfile)
 
 	// Authenticated routes
 	app := e.Group("")

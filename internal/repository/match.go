@@ -28,6 +28,7 @@ type LeaderboardEntry struct {
 	Name     string `db:"name"`
 	Matches  int    `db:"matches"`
 	Wins     int    `db:"wins"`
+	Draws    int    `db:"draws"`
 	Losses   int    `db:"losses"`
 	Goals    int    `db:"goals"`
 	Assists  int    `db:"assists"`
@@ -36,12 +37,13 @@ type LeaderboardEntry struct {
 type PlayerStats struct {
 	MatchesPlayed int `db:"matches_played"`
 	Wins          int `db:"wins"`
+	Draws         int `db:"draws"`
 	Losses        int `db:"losses"`
 	Goals         int `db:"goals"`
 	Assists       int `db:"assists"`
 }
 
-func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error {
+func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -85,23 +87,62 @@ func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBN
 		}
 	}
 
+	if err := insertGoalEvents(ctx, tx, matchID, teamA, teamB, teamBPlayers, goals, assists); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// insertGoalEvents writes one match_events row per goal, distributing the
+// flat per-player assist tally across that team's goal rows (one assister
+// per goal row, first-come-first-served) so assist counts can later be
+// derived with a simple COUNT(...WHERE assister_id = ?) query. The pairing
+// of a specific assist to a specific goal row is arbitrary — only the
+// per-team, per-match assist total is meaningful.
+func insertGoalEvents(ctx context.Context, tx bob.Executor, matchID, teamA, teamB string, teamBPlayers []string, goals, assists map[string]int) error {
+	assistQueueA, assistQueueB := buildAssistQueues(assists, teamBPlayers)
+
 	for playerID, count := range goals {
 		teamID := teamA
+		queue := &assistQueueA
 		if contains(teamBPlayers, playerID) {
 			teamID = teamB
+			queue = &assistQueueB
 		}
 		for i := 0; i < count; i++ {
-			_, err = bob.Exec(ctx, tx, psql.Insert(
-				im.Into("match_events", "match_id", "team_id", "scorer_id"),
-				im.Values(psql.Arg(matchID, teamID, playerID)),
+			var assisterID *string
+			if len(*queue) > 0 {
+				a := (*queue)[0]
+				assisterID = &a
+				*queue = (*queue)[1:]
+			}
+			_, err := bob.Exec(ctx, tx, psql.Insert(
+				im.Into("match_events", "match_id", "team_id", "scorer_id", "assister_id"),
+				im.Values(psql.Arg(matchID, teamID, playerID, assisterID)),
 			))
 			if err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
 
-	return tx.Commit(ctx)
+// buildAssistQueues flattens the assist tally into per-team queues of
+// assister player IDs, one entry per assist, so each queue can be popped
+// once per goal-event row inserted for that team.
+func buildAssistQueues(assists map[string]int, teamBPlayers []string) (queueA, queueB []string) {
+	for playerID, count := range assists {
+		for i := 0; i < count; i++ {
+			if contains(teamBPlayers, playerID) {
+				queueB = append(queueB, playerID)
+			} else {
+				queueA = append(queueA, playerID)
+			}
+		}
+	}
+	return
 }
 
 func insertTeam(ctx context.Context, exec bob.Executor, groupID, name string) (string, error) {
@@ -150,7 +191,23 @@ func (r *Repository) DeleteMatch(ctx context.Context, matchID string) error {
 	return err
 }
 
-func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string) ([]LeaderboardEntry, error) {
+// leaderboardOrderClause whitelists the leaderboard sort key so it can be
+// safely spliced into the raw SQL's ORDER BY without risking injection from
+// an arbitrary query param.
+func leaderboardOrderClause(sortBy string) string {
+	switch sortBy {
+	case "goals":
+		return "goals DESC, wins DESC"
+	case "assists":
+		return "assists DESC, wins DESC"
+	case "matches":
+		return "matches DESC, wins DESC"
+	default:
+		return "wins DESC, goals DESC"
+	}
+}
+
+func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]LeaderboardEntry, error) {
 	query := psql.RawQuery(`
 		SELECT
 			gp.id AS member_id,
@@ -160,19 +217,21 @@ func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string) ([
 				(m.home_team_id = mp.team_id AND m.home_score > m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score)
 			) AS wins,
+			COUNT(DISTINCT mp.match_id) FILTER (WHERE m.home_score = m.away_score) AS draws,
 			COUNT(DISTINCT mp.match_id) FILTER (WHERE
 				(m.home_team_id = mp.team_id AND m.home_score < m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score)
 			) AS losses,
 			COUNT(DISTINCT me.id) AS goals,
-			0 AS assists
+			COUNT(DISTINCT mea.id) AS assists
 		FROM group_players gp
 		LEFT JOIN matches m ON m.group_id = gp.group_id
 		LEFT JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = gp.id
 		LEFT JOIN match_events me ON me.match_id = m.id AND me.scorer_id = gp.id
+		LEFT JOIN match_events mea ON mea.match_id = m.id AND mea.assister_id = gp.id
 		WHERE gp.group_id = ?
 		GROUP BY gp.id, gp.name
-		ORDER BY wins DESC, goals DESC
+		ORDER BY `+leaderboardOrderClause(sortBy)+`
 	`, groupID)
 	return bob.All[LeaderboardEntry](ctx, r.db, query, scan.StructMapper[LeaderboardEntry]())
 }
@@ -242,6 +301,28 @@ func (r *Repository) GetMatchGoals(ctx context.Context, matchID string) (map[str
 	return goals, nil
 }
 
+func (r *Repository) GetMatchAssists(ctx context.Context, matchID string) (map[string]int, error) {
+	type assistRow struct {
+		AssisterID string `db:"assister_id"`
+		Count      int    `db:"count"`
+	}
+	query := psql.RawQuery(`
+		SELECT assister_id, COUNT(*) AS count
+		FROM match_events
+		WHERE match_id = ? AND assister_id IS NOT NULL
+		GROUP BY assister_id
+	`, matchID)
+	rows, err := bob.All[assistRow](ctx, r.db, query, scan.StructMapper[assistRow]())
+	if err != nil {
+		return nil, err
+	}
+	assists := make(map[string]int)
+	for _, row := range rows {
+		assists[row.AssisterID] = row.Count
+	}
+	return assists, nil
+}
+
 type matchTeamIDs struct {
 	Home string `db:"home_team_id"`
 	Away string `db:"away_team_id"`
@@ -260,7 +341,7 @@ func (r *Repository) getMatchTeamIDs(ctx context.Context, exec bob.Executor, mat
 	return ids.Home, ids.Away, nil
 }
 
-func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int, playedAt time.Time) error {
+func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -335,20 +416,8 @@ func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBN
 		return err
 	}
 
-	for playerID, count := range goals {
-		teamID := homeTeamID
-		if contains(teamBPlayers, playerID) {
-			teamID = awayTeamID
-		}
-		for i := 0; i < count; i++ {
-			_, err = bob.Exec(ctx, tx, psql.Insert(
-				im.Into("match_events", "match_id", "team_id", "scorer_id"),
-				im.Values(psql.Arg(matchID, teamID, playerID)),
-			))
-			if err != nil {
-				return err
-			}
-		}
+	if err := insertGoalEvents(ctx, tx, matchID, homeTeamID, awayTeamID, teamBPlayers, goals, assists); err != nil {
+		return err
 	}
 
 	return tx.Commit(ctx)
@@ -357,6 +426,8 @@ func (r *Repository) UpdateMatch(ctx context.Context, matchID, teamAName, teamBN
 type GlobalStats struct {
 	TotalMatches int `db:"total_matches"`
 	TotalGoals   int `db:"total_goals"`
+	TotalAssists int `db:"total_assists"`
+	TotalDraws   int `db:"total_draws"`
 	TotalPlayers int `db:"total_players"`
 }
 
@@ -365,8 +436,10 @@ func (r *Repository) GetGlobalStats(ctx context.Context, userID string) (*Global
 		SELECT
 			(SELECT COUNT(*) FROM matches WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?)) AS total_matches,
 			(SELECT COUNT(*) FROM match_events WHERE match_id IN (SELECT id FROM matches WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?))) AS total_goals,
+			(SELECT COUNT(*) FROM match_events WHERE assister_id IS NOT NULL AND match_id IN (SELECT id FROM matches WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?))) AS total_assists,
+			(SELECT COUNT(*) FROM matches WHERE home_score = away_score AND group_id IN (SELECT id FROM groups WHERE created_by = ?)) AS total_draws,
 			(SELECT COUNT(*) FROM group_players WHERE group_id IN (SELECT id FROM groups WHERE created_by = ?)) AS total_players
-	`, userID, userID, userID)
+	`, userID, userID, userID, userID, userID)
 	return bob.One[*GlobalStats](ctx, r.db, query, scan.StructMapper[*GlobalStats]())
 }
 
@@ -376,14 +449,15 @@ func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*Play
 			COUNT(DISTINCT mp.match_id) AS matches_played,
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score > m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score) THEN mp.match_id END) AS wins,
+			COUNT(DISTINCT CASE WHEN m.home_score = m.away_score THEN mp.match_id END) AS draws,
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score < m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score) THEN mp.match_id END) AS losses,
 			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = ?) AS goals,
-			0 AS assists
+			COUNT(DISTINCT me.id) FILTER (WHERE me.assister_id = ?) AS assists
 		FROM match_players mp
 		JOIN matches m ON m.id = mp.match_id
 		LEFT JOIN match_events me ON me.match_id = mp.match_id
 		WHERE mp.player_id = ?
-	`, memberID, memberID)
+	`, memberID, memberID, memberID)
 	return bob.One[*PlayerStats](ctx, r.db, query, scan.StructMapper[*PlayerStats]())
 }

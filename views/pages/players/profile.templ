@@ -1,0 +1,48 @@
+package players
+
+import (
+	"nutmeg/internal/model"
+	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
+)
+
+templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats) {
+	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8">
+			<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
+			<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2">{ player.Name }</h2>
+		</div>
+		<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-pitch")</div>
+				<div class="text-sm font-oswald text-ink/70">Matches Played</div>
+				<div class="text-3xl font-bold text-pitch font-mono">{ stats.MatchesPlayed }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconTrophy("size-5 text-gold")</div>
+				<div class="text-sm font-oswald text-ink/70">Wins</div>
+				<div class="text-3xl font-bold text-turf font-mono">{ stats.Wins }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconMatch("size-5 text-ink/50")</div>
+				<div class="text-sm font-oswald text-ink/70">Draws</div>
+				<div class="text-3xl font-bold text-pitch font-mono">{ stats.Draws }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconClose("size-5 text-nutmeg")</div>
+				<div class="text-sm font-oswald text-ink/70">Losses</div>
+				<div class="text-3xl font-bold text-nutmeg font-mono">{ stats.Losses }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconGoal("size-5 text-gold")</div>
+				<div class="text-sm font-oswald text-ink/70">Goals</div>
+				<div class="text-3xl font-bold text-gold font-mono">{ stats.Goals }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center">
+				<div class="flex justify-center mb-1">@components.IconBoot("size-5 text-turf")</div>
+				<div class="text-sm font-oswald text-ink/70">Assists</div>
+				<div class="text-3xl font-bold text-turf font-mono">{ stats.Assists }</div>
+			</div>
+		</div>
+	</div>
+}

@@ -242,11 +242,14 @@
 @keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes toast-out { from { transform: translateY(0); opacity: 1; } to { transform: translateY(20px); opacity: 0; } }
 
-.match-player-row .goal-stepper {
+.match-player-row .goal-stepper,
+.match-player-row .assist-stepper {
   display: none;
 }
 .match-player-row:has(.team-radio[value="a"]:checked) .goal-stepper,
-.match-player-row:has(.team-radio[value="b"]:checked) .goal-stepper {
+.match-player-row:has(.team-radio[value="b"]:checked) .goal-stepper,
+.match-player-row:has(.team-radio[value="a"]:checked) .assist-stepper,
+.match-player-row:has(.team-radio[value="b"]:checked) .assist-stepper {
   display: flex;
 }
 .team-toggle .team-opt {
