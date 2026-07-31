@@ -43,34 +43,87 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 // roster, and recent-matches columns. Logging or editing a match swaps this
 // entire block (id="detail-content-area", set by the caller) for the
 // match-log form, and "Cancel" swaps it back in via GroupHandler.DetailContent.
+// Each section is rendered with fullWidth=false here — its own "Show all"
+// link takes over #detail-content-area on its own (see LeaderboardFull /
+// RosterFull / MatchesFull), which is what fullWidth=true renders.
 templ GroupContent(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string) {
 	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-		<div class="lg:col-span-5">
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
-					@components.IconTrophy("size-6")
-					LEADERBOARD
-				</h3>
-				<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } target="_blank" rel="noopener" class="font-oswald bg-turf text-chalk px-2.5 py-1 rounded text-xs hover:bg-pitch transition-colors flex items-center gap-1">
-					@components.IconShare("size-3.5")
-					Share
-				</a>
-			</div>
-			@leaderboardTable(g.ID, "/groups/"+g.ID, leaderboard, sortBy)
-		</div>
-		@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests)
-		@RecentMatchesColumn(matches)
+		@LeaderboardSection(g.ID, sortBy, leaderboard, false)
+		@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests, false)
+		@RecentMatchesColumn(g.ID, matches, false)
 	</div>
 }
 
-templ RecentMatchesColumn(matches []MatchEntry) {
-	<div class="lg:col-span-4">
+// backLink restores the normal 3-column GroupContent view — the counterpart
+// to a section's "Show all" full-width takeover.
+templ backLink(groupID string) {
+	<button type="button" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-4 text-sm" hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML">
+		&larr; Back
+	</button>
+}
+
+// widthClass picks between a section's normal grid column span and a
+// centered full-width wrapper, used when the section takes over
+// #detail-content-area via its "Show all" link.
+func widthClass(fullWidth bool, colSpanClass, fullClass string) string {
+	if fullWidth {
+		return fullClass
+	}
+	return colSpanClass
+}
+
+templ LeaderboardSection(groupID string, sortBy string, leaderboard []LeaderboardEntry, fullWidth bool) {
+	<div class={ widthClass(fullWidth, "lg:col-span-5", "max-w-4xl mx-auto") }>
+		if fullWidth {
+			@backLink(groupID)
+		}
+		<div class="flex items-center justify-between mb-4">
+			<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
+				@components.IconTrophy("size-6")
+				LEADERBOARD
+			</h3>
+			<a href={ templ.URL("/groups/" + groupID + "/leaderboard") } target="_blank" rel="noopener" class="font-oswald bg-turf text-chalk px-2.5 py-1 rounded text-xs hover:bg-pitch transition-colors flex items-center gap-1">
+				@components.IconShare("size-3.5")
+				Share
+			</a>
+		</div>
+		@leaderboardTable(groupID, "/groups/"+groupID, leaderboard, sortBy, leaderboardLimit(fullWidth, len(leaderboard)), leaderboardShowAllURL(fullWidth, groupID, sortBy))
+	</div>
+}
+
+func leaderboardLimit(fullWidth bool, total int) int {
+	if fullWidth {
+		return total
+	}
+	return defaultVisibleLimit
+}
+
+// leaderboardShowAllURL returns the HTMX full-width-takeover URL for the
+// private group page's "Show all" link, or "" for the public leaderboard
+// page (fullWidth is always false there too, but it has no #detail-content-area
+// to swap into, so leaderboardTable falls back to its in-place JS reveal).
+func leaderboardShowAllURL(fullWidth bool, groupID, sortBy string) string {
+	if fullWidth {
+		return ""
+	}
+	url := "/groups/" + groupID + "/leaderboard-full"
+	if sortBy != "" {
+		url += "?sort=" + sortBy
+	}
+	return url
+}
+
+templ RecentMatchesColumn(groupID string, matches []MatchEntry, fullWidth bool) {
+	<div class={ widthClass(fullWidth, "lg:col-span-4", "max-w-3xl mx-auto") }>
+		if fullWidth {
+			@backLink(groupID)
+		}
 		<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
 		<div class="space-y-4">
 			if len(matches) == 0 {
 				<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
 			} else {
-				for _, m := range matches {
+				for _, m := range visibleMatches(matches, fullWidth) {
 					<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden">
 						<div class="grass-stripe-accent h-1 w-full"></div>
 						<div class="flex w-full">
@@ -93,9 +146,26 @@ templ RecentMatchesColumn(matches []MatchEntry) {
 						</div>
 					</div>
 				}
+				if !fullWidth && len(matches) > defaultVisibleLimit {
+					<div class="text-center">
+						<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL("/groups/" + groupID + "/matches-full") } hx-target="#detail-content-area" hx-swap="innerHTML">
+							Show all ({ len(matches) - defaultVisibleLimit } more)
+						</button>
+					</div>
+				}
 			}
 		</div>
 	</div>
+}
+
+// visibleMatches returns the full slice when fullWidth (the "Show all" view
+// re-fetches and renders everything), or the first defaultVisibleLimit
+// entries otherwise.
+func visibleMatches(matches []MatchEntry, fullWidth bool) []MatchEntry {
+	if fullWidth || len(matches) <= defaultVisibleLimit {
+		return matches
+	}
+	return matches[:defaultVisibleLimit]
 }
 
 templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, sortBy string, successMsg string, errMsg string) {
@@ -113,7 +183,7 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 			@components.IconTrophy("size-6")
 			LEADERBOARD
 		</h3>
-		@leaderboardTable(g.ID, "/groups/"+g.ID+"/leaderboard", leaderboard, sortBy)
+		@leaderboardTable(g.ID, "/groups/"+g.ID+"/leaderboard", leaderboard, sortBy, defaultVisibleLimit, "")
 		<div class="mt-6">
 			switch joinStatus {
 				case "anonymous":
@@ -132,7 +202,29 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 	</div>
 }
 
-templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []LeaderboardEntry, activeSort string) {
+// defaultVisibleLimit caps how many rows the Leaderboard, Roster, and Recent
+// Matches sections render visibly by default — large imported rosters (e.g.
+// a CSV import) can easily run into the dozens, and showing all of them at
+// once turns the group page into an endless scroll.
+const defaultVisibleLimit = 20
+
+// extraRowClass hides rows beyond defaultVisibleLimit and tags them with a
+// marker class so the "Show all" button's click handler (static/js/main.js)
+// can find exactly the rows it should reveal.
+func extraRowClass(index, limit int, marker string) string {
+	if index >= limit {
+		return "hidden " + marker
+	}
+	return ""
+}
+
+// leaderboardTable renders up to `limit` rows. If showAllURL is set (the
+// private group page), "Show all" is an HTMX link that takes over
+// #detail-content-area with the complete list (GroupHandler.LeaderboardFull).
+// If showAllURL is empty (the public leaderboard page, which has no
+// #detail-content-area to swap into), all rows are rendered up front and
+// "Show all" just reveals the hidden ones client-side (static/js/main.js).
+templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []LeaderboardEntry, activeSort string, limit int, showAllURL string) {
 	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
 		<div class="flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-oswald text-ink/50">
 			<span>Sort:</span>
@@ -158,8 +250,8 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 				if len(leaderboard) == 0 {
 					<tr><td colspan="8" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
 				} else {
-					for i, p := range leaderboard {
-						<tr class="hover:bg-chalk/50 transition-colors">
+					for i, p := range visibleLeaderboardRows(leaderboard, limit, showAllURL) {
+						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) }>
 							<td class="p-3 font-mono font-bold text-pitch">
 								if i == 0 {
 									<span class="inline-flex items-center gap-1 text-gold">
@@ -181,10 +273,42 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
 						</tr>
 					}
+					if len(leaderboard) > limit {
+						<tr class="show-more-row">
+							<td colspan="8" class="p-2 text-center">
+								if showAllURL != "" {
+									<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL(showAllURL) } hx-target="#detail-content-area" hx-swap="innerHTML">
+										Show all ({ len(leaderboard) - limit } more)
+									</button>
+								} else {
+									<button type="button" class="show-more-btn text-xs font-oswald text-turf hover:text-pitch underline" data-target=".leaderboard-extra">
+										Show all ({ len(leaderboard) - limit } more)
+									</button>
+								}
+							</td>
+						</tr>
+					}
 				}
 			</tbody>
 		</table>
 	</div>
+}
+
+// visibleLeaderboardRows returns every row in JS-fallback mode (showAllURL
+// == "", so hidden extras must still be in the DOM to reveal), or the first
+// `limit` rows when an HTMX showAllURL will re-fetch the rest on demand.
+func visibleLeaderboardRows(leaderboard []LeaderboardEntry, limit int, showAllURL string) []LeaderboardEntry {
+	if showAllURL == "" || limit >= len(leaderboard) {
+		return leaderboard
+	}
+	return leaderboard[:limit]
+}
+
+func leaderboardRowClass(i, limit int, showAllURL string) string {
+	if showAllURL == "" {
+		return extraRowClass(i, limit, "leaderboard-extra")
+	}
+	return ""
 }
 
 templ sortLink(baseURL, sortKey, label, activeSort string) {
@@ -207,8 +331,11 @@ func sortLinkClass(sortKey, activeSort string) string {
 	return "hover:text-turf"
 }
 
-templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry) {
-	<div id="roster-column" class="lg:col-span-3">
+templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, fullWidth bool) {
+	<div id="roster-column" class={ widthClass(fullWidth, "lg:col-span-3", "max-w-3xl mx-auto") }>
+		if fullWidth {
+			@backLink(g.ID)
+		}
 		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconJersey("size-6") ROSTER</h3>
 		if isAdmin && len(joinRequests) > 0 {
 			<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4 mb-4">
@@ -221,11 +348,11 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 								<span class="text-xs text-ink/50">{ r.Email }</span>
 							</div>
 							<div class="flex items-center gap-2 shrink-0">
-								<button class="font-oswald text-xs bg-turf text-chalk hover:bg-pitch px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/approve") } hx-target="#roster-column" hx-swap="outerHTML">
+								<button class="font-oswald text-xs bg-turf text-chalk hover:bg-pitch px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/approve" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML">
 									@components.IconCheck("size-3.5")
 									Approve
 								</button>
-								<button class="font-oswald text-xs bg-nutmeg text-chalk hover:bg-red-700 px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/reject") } hx-target="#roster-column" hx-swap="outerHTML">
+								<button class="font-oswald text-xs bg-nutmeg text-chalk hover:bg-red-700 px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/join-requests/" + r.ID + "/reject" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML">
 									@components.IconClose("size-3.5")
 									Reject
 								</button>
@@ -237,7 +364,7 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 		}
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4">
 			if isAdmin {
-				<form hx-post={ templ.URL("/groups/" + g.ID + "/members") } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col gap-2 mb-3">
+				<form hx-post={ templ.URL("/groups/" + g.ID + "/members" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" class="flex flex-col gap-2 mb-3">
 					<input type="text" name="name" placeholder="Name(s) — comma separated" class="border-2 border-pitch rounded px-2 py-1.5 text-sm" required />
 					<input type="tel" name="phone" placeholder="Phone (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
 					<input type="email" name="email" placeholder="Email (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
@@ -246,14 +373,14 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 						Add
 					</button>
 				</form>
-				<form hx-post={ templ.URL("/groups/" + g.ID + "/members/import") } hx-target="#roster-column" hx-swap="outerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" class="flex items-center gap-2 mt-2 pt-2 border-t border-base-200">
+				<form hx-post={ templ.URL("/groups/" + g.ID + "/members/import" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" class="flex items-center gap-2 mt-2 pt-2 border-t border-base-200">
 					<input type="file" name="csv" accept=".csv" required class="text-xs flex-1 min-w-0" />
 					<button type="submit" class="bg-turf text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-pitch transition-colors whitespace-nowrap">Import CSV</button>
 				</form>
 				<p class="text-xs text-ink/40 mt-1">CSV needs a header row: name (required), phone, email (optional)</p>
 			}
 			<ul class="space-y-1">
-				for _, m := range members {
+				for _, m := range visibleMembers(members, fullWidth) {
 					<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0">
 						<div class="flex flex-col truncate">
 							<span class="font-body truncate">{ m.Name }</span>
@@ -270,28 +397,55 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 							}
 							if isOwner && !isRosterOwner(m, ownerEmail) {
 								if isPromotedAdmin(m, ownerEmail) {
-									<button class="font-oswald text-xs bg-gold/20 text-pitch hover:bg-gold px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Demote " + m.Name + " to member?" }>
+									<button class="font-oswald text-xs bg-gold/20 text-pitch hover:bg-gold px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Demote " + m.Name + " to member?" }>
 										@components.IconArrowDown("size-3.5")
 										Demote
 									</button>
 								} else {
-									<button class="font-oswald text-xs bg-turf/10 text-turf hover:bg-turf hover:text-chalk px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote") } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Promote " + m.Name + " to admin?" }>
+									<button class="font-oswald text-xs bg-turf/10 text-turf hover:bg-turf hover:text-chalk px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Promote " + m.Name + " to admin?" }>
 										@components.IconArrowUp("size-3.5")
 										Promote
 									</button>
 								}
 							}
 							if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
-								<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
+								<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
 									@components.IconClose("size-3.5")
 								</button>
 							}
 						</div>
 					</li>
 				}
+				if !fullWidth && len(members) > defaultVisibleLimit {
+					<li class="text-center py-1.5">
+						<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL("/groups/" + g.ID + "/roster-full") } hx-target="#detail-content-area" hx-swap="innerHTML">
+							Show all ({ len(members) - defaultVisibleLimit } more)
+						</button>
+					</li>
+				}
 			</ul>
 		</div>
 	</div>
+}
+
+// viewParam appends ?view=full to a roster-mutation URL when the roster is
+// currently showing its full-width "Show all" view, so the mutation's
+// response (GroupHandler.rosterWithToast) re-renders in the same mode
+// instead of snapping back to the narrow, truncated grid column.
+func viewParam(fullWidth bool) string {
+	if fullWidth {
+		return "?view=full"
+	}
+	return ""
+}
+
+// visibleMembers returns every member for the full-width "Show all" view,
+// or the first defaultVisibleLimit otherwise.
+func visibleMembers(members []repository.MemberInfo, fullWidth bool) []repository.MemberInfo {
+	if fullWidth || len(members) <= defaultVisibleLimit {
+		return members
+	}
+	return members[:defaultVisibleLimit]
 }
 
 // isRosterOwner reports whether m is the group Owner's own roster row.

@@ -129,9 +129,27 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
-	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
-	for i, e := range leaderboard {
-		lbEntries[i] = groups.LeaderboardEntry{
+
+	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
+	}
+
+	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
+
+	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
+	errMsg := h.auth.GetErrorMessage(c.Request().Context())
+
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), sortBy, successMsg, errMsg))
+}
+
+// mapLeaderboardEntries converts repository leaderboard rows into the
+// groups view struct — shared by every handler that renders a leaderboard
+// (Detail, DetailContent, PublicLeaderboard, LeaderboardFull).
+func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.LeaderboardEntry {
+	out := make([]groups.LeaderboardEntry, len(entries))
+	for i, e := range entries {
+		out[i] = groups.LeaderboardEntry{
 			ID:      e.MemberID,
 			Name:    e.Name,
 			Matches: e.Matches,
@@ -142,14 +160,16 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 			Assists: e.Assists,
 		}
 	}
+	return out
+}
 
-	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
-	if matchErr != nil {
-		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
-	}
-	matchEntries := make([]groups.MatchEntry, len(matches))
+// mapMatchEntries converts repository matches into the groups view struct —
+// shared by every handler that renders the Recent Matches list (Detail,
+// DetailContent, MatchesFull).
+func mapMatchEntries(matches []repository.MatchWithTeams) []groups.MatchEntry {
+	out := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
-		matchEntries[i] = groups.MatchEntry{
+		out[i] = groups.MatchEntry{
 			ID:      m.ID,
 			GroupID: m.GroupID,
 			TeamA:   m.TeamAName,
@@ -159,13 +179,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 			Date:    m.PlayedAt.Format("Jan 2"),
 		}
 	}
-
-	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
-
-	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
-	errMsg := h.auth.GetErrorMessage(c.Request().Context())
-
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, sortBy, successMsg, errMsg))
+	return out
 }
 
 // PublicLeaderboard renders a group's leaderboard for anyone, logged in or
@@ -183,19 +197,7 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
-	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
-	for i, e := range leaderboard {
-		lbEntries[i] = groups.LeaderboardEntry{
-			ID:      e.MemberID,
-			Name:    e.Name,
-			Matches: e.Matches,
-			Wins:    e.Wins,
-			Draws:   e.Draws,
-			Losses:  e.Losses,
-			Goals:   e.Goals,
-			Assists: e.Assists,
-		}
-	}
+	lbEntries := mapLeaderboardEntries(leaderboard)
 
 	ctx := c.Request().Context()
 	isLoggedIn := false
@@ -429,43 +431,48 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 	if lbErr != nil {
 		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
 	}
-	lbEntries := make([]groups.LeaderboardEntry, len(leaderboard))
-	for i, e := range leaderboard {
-		lbEntries[i] = groups.LeaderboardEntry{
-			ID:      e.MemberID,
-			Name:    e.Name,
-			Matches: e.Matches,
-			Wins:    e.Wins,
-			Draws:   e.Draws,
-			Losses:  e.Losses,
-			Goals:   e.Goals,
-			Assists: e.Assists,
-		}
-	}
 
 	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
 	if matchErr != nil {
 		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
 	}
-	matchEntries := make([]groups.MatchEntry, len(matches))
-	for i, m := range matches {
-		matchEntries[i] = groups.MatchEntry{
-			ID:      m.ID,
-			GroupID: m.GroupID,
-			TeamA:   m.TeamAName,
-			TeamB:   m.TeamBName,
-			ScoreA:  m.ScoreA,
-			ScoreB:  m.ScoreB,
-			Date:    m.PlayedAt.Format("Jan 2"),
-		}
-	}
 
 	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
 
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, lbEntries, matchEntries, sortBy))
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), sortBy))
 }
 
-func (h *GroupHandler) RosterContent(c *echo.Context) error {
+// LeaderboardFull renders the complete (untruncated) leaderboard, taking
+// over #detail-content-area — the "Show all" counterpart to GroupContent's
+// truncated leaderboard. The rendered "← Back" link restores the normal
+// view via DetailContent.
+func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+	if !h.service.CanEdit(c.Request().Context(), g, userID) {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	sortBy := c.QueryParam("sort")
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
+	if lbErr != nil {
+		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+	}
+
+	return render.Component(c, groups.LeaderboardSection(id, sortBy, mapLeaderboardEntries(leaderboard), true))
+}
+
+// RosterFull renders the complete (untruncated) roster, taking over
+// #detail-content-area.
+func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
 		return c.Redirect(http.StatusFound, "/login")
@@ -488,7 +495,32 @@ func (h *GroupHandler) RosterContent(c *echo.Context) error {
 
 	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
 
-	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests))
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests, true))
+}
+
+// MatchesFull renders the complete (untruncated) recent-matches list, taking
+// over #detail-content-area.
+func (h *GroupHandler) MatchesFull(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	g, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+	if !h.service.CanEdit(c.Request().Context(), g, userID) {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
+	}
+
+	return render.Component(c, groups.RecentMatchesColumn(id, mapMatchEntries(matches), true))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -742,6 +774,12 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
+// rosterWithToast re-renders #roster-column with a toast after a roster
+// mutation. It preserves whichever view the mutation was triggered from —
+// the normal truncated column, or the full-width "Show all" view (signaled
+// by ?view=full, appended to every roster-mutation URL when RosterColumn is
+// rendered with fullWidth=true) — so acting on a member deep in a large
+// roster doesn't snap the admin back to a truncated view mid-task.
 func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastType string) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -757,9 +795,10 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 	}
 	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
 	joinRequests := h.joinRequestEntries(c.Request().Context(), groupID, canEdit)
+	fullWidth := c.QueryParam("view") == "full"
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests))
+	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests, fullWidth))
 }
 
 // joinRequestEntries returns the group's pending join requests as view

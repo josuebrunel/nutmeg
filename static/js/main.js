@@ -29,6 +29,17 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 })
 
+// "Show all (N more)" controls on long lists (Leaderboard, Roster, Recent
+// Matches) — delegated on document so it keeps working after htmx swaps.
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.show-more-btn')
+  if (!btn) return
+  document.querySelectorAll(btn.dataset.target).forEach(function (el) {
+    el.classList.remove('hidden')
+  })
+  btn.parentElement.remove()
+})
+
 function showToast(message, type) {
   var container = document.getElementById('toast-container')
   if (!container) return
