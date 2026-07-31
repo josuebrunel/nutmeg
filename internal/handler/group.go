@@ -2,7 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/csv"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -560,6 +563,114 @@ func splitNames(raw string) []string {
 		}
 	}
 	return names
+}
+
+const maxImportFileSize = 1 << 20 // 1MB
+
+func (h *GroupHandler) ImportMembers(c *echo.Context) error {
+	userID, err := h.auth.GetUserID(c.Request().Context())
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	ctx := c.Request().Context()
+
+	failWith := func(msg string) error {
+		if isHTMX(c) {
+			return h.rosterWithToast(c, id, msg, "error")
+		}
+		h.auth.Handler.SetFlash(ctx, "error", msg)
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	fileHeader, err := c.FormFile("csv")
+	if err != nil {
+		return failWith("Choose a CSV file to import")
+	}
+	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".csv") {
+		return failWith("File must be a .csv")
+	}
+	if fileHeader.Size > maxImportFileSize {
+		return failWith("CSV file is too large (max 1MB)")
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	rows, err := parseMemberImportCSV(file)
+	if err != nil {
+		return failWith(err.Error())
+	}
+
+	imported, updated, skipped, err := h.service.ImportMembers(ctx, id, rows, userID)
+	if err != nil {
+		return failWith(err.Error())
+	}
+
+	msg := fmt.Sprintf("Imported %d, updated %d", imported, updated)
+	if skipped > 0 {
+		msg += fmt.Sprintf(", skipped %d", skipped)
+	}
+	if isHTMX(c) {
+		return h.rosterWithToast(c, id, msg, "success")
+	}
+	h.auth.Handler.SetFlash(ctx, "success", msg)
+	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+// parseMemberImportCSV reads a roster CSV with a header row (case-insensitive
+// column names, any order) into service.ImportRow values. Only a "name"
+// column is required; "phone" and "email" are optional.
+func parseMemberImportCSV(r io.Reader) ([]service.ImportRow, error) {
+	reader := csv.NewReader(r)
+	reader.FieldsPerRecord = -1 // tolerate rows missing trailing optional columns
+
+	header, err := reader.Read()
+	if err != nil {
+		return nil, errors.New("could not read CSV header row")
+	}
+
+	col := make(map[string]int, len(header))
+	for i, name := range header {
+		col[strings.ToLower(strings.TrimSpace(name))] = i
+	}
+	nameIdx, ok := col["name"]
+	if !ok {
+		return nil, errors.New(`CSV must have a "name" column`)
+	}
+	phoneIdx, hasPhone := col["phone"]
+	emailIdx, hasEmail := col["email"]
+
+	field := func(record []string, idx int, has bool) string {
+		if !has || idx >= len(record) {
+			return ""
+		}
+		return record[idx]
+	}
+
+	var rows []service.ImportRow
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("invalid CSV row: %w", err)
+		}
+		if nameIdx >= len(record) {
+			continue
+		}
+		rows = append(rows, service.ImportRow{
+			Name:  record[nameIdx],
+			Phone: field(record, phoneIdx, hasPhone),
+			Email: field(record, emailIdx, hasEmail),
+		})
+	}
+	return rows, nil
 }
 
 func (h *GroupHandler) RemoveMember(c *echo.Context) error {

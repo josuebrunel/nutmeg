@@ -36,6 +36,23 @@ func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone,
 	return err
 }
 
+// ImportMember upserts a CSV-imported roster row: unlike AddMember (which
+// only touches role on conflict, relied on by call sites that intentionally
+// pass nil phone/email), this updates phone/email when the new value is
+// non-null while preserving the existing value on a blank CSV cell, and
+// never touches role — so re-importing a CSV can't demote an existing admin.
+func (r *Repository) ImportMember(ctx context.Context, groupID, name string, phone, email *string) error {
+	query := psql.RawQuery(`
+		INSERT INTO group_players (group_id, name, phone, email, role)
+		VALUES (?, ?, ?, ?, 'member')
+		ON CONFLICT (group_id, name) DO UPDATE SET
+			phone = COALESCE(EXCLUDED.phone, group_players.phone),
+			email = COALESCE(EXCLUDED.email, group_players.email)
+	`, groupID, name, phone, email)
+	_, err := bob.Exec(ctx, r.db, query)
+	return err
+}
+
 func (r *Repository) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
 	query := psql.Update(
 		um.Table("group_players"),

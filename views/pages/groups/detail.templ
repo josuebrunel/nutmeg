@@ -246,6 +246,11 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 						Add
 					</button>
 				</form>
+				<form hx-post={ templ.URL("/groups/" + g.ID + "/members/import") } hx-target="#roster-column" hx-swap="outerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" class="flex items-center gap-2 mt-2 pt-2 border-t border-base-200">
+					<input type="file" name="csv" accept=".csv" required class="text-xs flex-1 min-w-0" />
+					<button type="submit" class="bg-turf text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-pitch transition-colors whitespace-nowrap">Import CSV</button>
+				</form>
+				<p class="text-xs text-ink/40 mt-1">CSV needs a header row: name (required), phone, email (optional)</p>
 			}
 			<ul class="space-y-1">
 				for _, m := range members {

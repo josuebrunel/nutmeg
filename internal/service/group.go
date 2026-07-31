@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
 
@@ -17,6 +19,7 @@ type GroupRepository interface {
 	UpdateGroup(ctx context.Context, g *model.Group) error
 	DeleteGroup(ctx context.Context, id string) error
 	AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	ImportMember(ctx context.Context, groupID, name string, phone, email *string) error
 	RemoveMember(ctx context.Context, groupID, memberID string) error
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
@@ -180,6 +183,71 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 		added = append(added, name)
 	}
 	return added, nil
+}
+
+// ImportRow is one parsed CSV row for ImportMembers.
+type ImportRow struct {
+	Name  string
+	Phone string
+	Email string
+}
+
+const maxImportRows = 500
+
+// ImportMembers bulk-adds or updates roster members from a parsed CSV.
+// Rows with a blank name are skipped and counted separately; rows whose name
+// already exists on the roster have their phone/email updated (see
+// GroupRepository.ImportMember) rather than being re-added.
+func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows []ImportRow, actorID string) (imported, updated, skipped int, err error) {
+	if len(rows) == 0 {
+		return 0, 0, 0, model.ErrInvalidInput
+	}
+	if len(rows) > maxImportRows {
+		return 0, 0, 0, fmt.Errorf("CSV has too many rows (max %d)", maxImportRows)
+	}
+
+	g, err := s.repo.GetGroup(ctx, groupID)
+	if err != nil {
+		return 0, 0, 0, model.ErrNotFound
+	}
+	if !s.CanEdit(ctx, g, actorID) {
+		return 0, 0, 0, model.ErrNotAuthorized
+	}
+
+	existing, err := s.repo.ListMembers(ctx, groupID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	existingNames := make(map[string]bool, len(existing))
+	for _, m := range existing {
+		existingNames[m.Name] = true
+	}
+
+	for _, row := range rows {
+		name := strings.TrimSpace(row.Name)
+		if name == "" {
+			skipped++
+			continue
+		}
+
+		var phone, email *string
+		if p := strings.TrimSpace(row.Phone); p != "" {
+			phone = &p
+		}
+		if e := strings.TrimSpace(row.Email); e != "" {
+			email = &e
+		}
+
+		if err := s.repo.ImportMember(ctx, groupID, name, phone, email); err != nil {
+			return imported, updated, skipped, err
+		}
+		if existingNames[name] {
+			updated++
+		} else {
+			imported++
+		}
+	}
+	return imported, updated, skipped, nil
 }
 
 func (s *GroupService) RemoveMember(ctx context.Context, groupID, memberID, actorID string) error {

@@ -20,6 +20,7 @@ type mockGroupRepo struct {
 	updateGroupFn      func(ctx context.Context, g *model.Group) error
 	deleteGroupFn      func(ctx context.Context, id string) error
 	addMemberFn        func(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	importMemberFn     func(ctx context.Context, groupID, name string, phone, email *string) error
 	removeMemberFn     func(ctx context.Context, groupID, memberID string) error
 	listMembersFn      func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	getMemberFn        func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
@@ -54,6 +55,9 @@ func (m *mockGroupRepo) DeleteGroup(ctx context.Context, id string) error {
 }
 func (m *mockGroupRepo) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error {
 	return m.addMemberFn(ctx, groupID, name, phone, email, role)
+}
+func (m *mockGroupRepo) ImportMember(ctx context.Context, groupID, name string, phone, email *string) error {
+	return m.importMemberFn(ctx, groupID, name, phone, email)
 }
 func (m *mockGroupRepo) RemoveMember(ctx context.Context, groupID, memberID string) error {
 	return m.removeMemberFn(ctx, groupID, memberID)
