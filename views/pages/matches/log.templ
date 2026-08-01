@@ -80,11 +80,11 @@ func teamName(editData *MatchEditData, team string) string {
 	return editData.TeamBName
 }
 
-// playedAtValue returns the date-input value: today for a new match, or the
-// match's stored date when editing.
-func playedAtValue(editData *MatchEditData) string {
+// playedAtValue returns the date-input value: today (in the user's
+// timezone) for a new match, or the match's stored date when editing.
+func playedAtValue(editData *MatchEditData, today string) string {
 	if editData == nil {
-		return time.Now().Format("2006-01-02")
+		return today
 	}
 	return editData.PlayedAt.Format("2006-01-02")
 }
@@ -99,7 +99,7 @@ func scoreIsManual(editData *MatchEditData) string {
 	return "false"
 }
 
-templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData) {
+templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData, today string) {
 	<div>
 		<button hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
 			&larr; Cancel
@@ -115,7 +115,7 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 				</h3>
 				<div class="flex items-center gap-2">
 					<label for="played_at" class="font-oswald text-xs text-turf">Date Played</label>
-					<input type="date" id="played_at" name="played_at" form="match-form" value={ playedAtValue(editData) } class="border border-pitch/30 rounded px-2 py-1 text-sm font-mono"/>
+					<input type="date" id="played_at" name="played_at" form="match-form" value={ playedAtValue(editData, today) } class="border border-pitch/30 rounded px-2 py-1 text-sm font-mono"/>
 				</div>
 			</div>
 			<form id="match-form" method="POST" action={ templ.URL(formAction(groupID, editData)) } hx-target="body" class="space-y-6">

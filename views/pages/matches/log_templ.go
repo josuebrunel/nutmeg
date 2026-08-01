@@ -88,11 +88,11 @@ func teamName(editData *MatchEditData, team string) string {
 	return editData.TeamBName
 }
 
-// playedAtValue returns the date-input value: today for a new match, or the
-// match's stored date when editing.
-func playedAtValue(editData *MatchEditData) string {
+// playedAtValue returns the date-input value: today (in the user's
+// timezone) for a new match, or the match's stored date when editing.
+func playedAtValue(editData *MatchEditData, today string) string {
 	if editData == nil {
-		return time.Now().Format("2006-01-02")
+		return today
 	}
 	return editData.PlayedAt.Format("2006-01-02")
 }
@@ -107,7 +107,7 @@ func scoreIsManual(editData *MatchEditData) string {
 	return "false"
 }
 
-func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData) templ.Component {
+func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData, today string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -161,9 +161,9 @@ func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEdi
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(playedAtValue(editData))
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(playedAtValue(editData, today))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 118, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/matches/log.templ`, Line: 118, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {

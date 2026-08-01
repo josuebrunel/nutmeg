@@ -8,6 +8,16 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 		<head>
 			<meta charset="UTF-8" />
 			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<script>
+				(function() {
+					var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+					var m = document.cookie.match(/(?:^|; )tz=([^;]*)/);
+					var current = m ? decodeURIComponent(m[1]) : null;
+					if (current !== tz) {
+						document.cookie = "tz=" + encodeURIComponent(tz) + "; path=/; max-age=31536000; samesite=lax";
+					}
+				})();
+			</script>
 			<title>{ title } - Nutmeg</title>
 			<meta name="description" content="Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists." />
 			<link rel="preconnect" href="https://fonts.googleapis.com" />

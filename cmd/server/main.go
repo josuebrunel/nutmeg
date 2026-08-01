@@ -19,6 +19,7 @@ import (
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
 	"nutmeg/internal/handler"
+	appmw "nutmeg/internal/middleware"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/router"
 	"nutmeg/migrations"
@@ -95,6 +96,7 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(echo.WrapMiddleware(auth.SessionMiddleware))
+	e.Use(appmw.Location)
 
 	// no-cache (not "no store") so browsers always revalidate with the server
 	// before reusing a cached CSS/JS file — otherwise a deploy that changes

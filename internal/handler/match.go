@@ -11,6 +11,7 @@ import (
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
 
+	appmw "nutmeg/internal/middleware"
 	"nutmeg/internal/render"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
@@ -50,7 +51,8 @@ func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
 		return err
 	}
 	sortMembersByName(members)
-	return render.Component(c, matches.LogForm(groupID, members, nil))
+	today := time.Now().In(appmw.LocationFromContext(c)).Format("2006-01-02")
+	return render.Component(c, matches.LogForm(groupID, members, nil, today))
 }
 
 // sortMembersByName sorts members alphabetically by name (case-insensitive)
@@ -126,10 +128,10 @@ func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 }
 
 // parsePlayedAt reads the optional "played_at" date field (YYYY-MM-DD) and
-// combines it with the current time-of-day, so same-day matches keep natural
-// ordering and an unset/invalid value simply falls back to now.
-func parsePlayedAt(c *echo.Context) time.Time {
-	now := time.Now()
+// combines it with the current time-of-day in loc, so same-day matches keep
+// natural ordering and an unset/invalid value simply falls back to now.
+func parsePlayedAt(c *echo.Context, loc *time.Location) time.Time {
+	now := time.Now().In(loc)
 	val := c.FormValue("played_at")
 	if val == "" {
 		return now
@@ -138,7 +140,7 @@ func parsePlayedAt(c *echo.Context) time.Time {
 	if err != nil {
 		return now
 	}
-	return time.Date(d.Year(), d.Month(), d.Day(), now.Hour(), now.Minute(), now.Second(), 0, now.Location())
+	return time.Date(d.Year(), d.Month(), d.Day(), now.Hour(), now.Minute(), now.Second(), 0, loc)
 }
 
 func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
@@ -183,7 +185,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
 		AssistsInput: assistsInput,
-		PlayedAt:     parsePlayedAt(c),
+		PlayedAt:     parsePlayedAt(c, appmw.LocationFromContext(c)),
 	}
 
 	if err := h.service.Create(c.Request().Context(), input); err != nil {
@@ -253,6 +255,7 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 		teams[pid] = "b"
 	}
 
+	loc := appmw.LocationFromContext(c)
 	editData := &matches.MatchEditData{
 		MatchID:   matchID,
 		TeamAName: editable.TeamAName,
@@ -262,10 +265,11 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 		Teams:     teams,
 		Goals:     editable.Goals,
 		Assists:   editable.Assists,
-		PlayedAt:  editable.PlayedAt,
+		PlayedAt:  editable.PlayedAt.In(loc),
 	}
 
-	return render.Component(c, matches.LogForm(groupID, members, editData))
+	today := time.Now().In(loc).Format("2006-01-02")
+	return render.Component(c, matches.LogForm(groupID, members, editData, today))
 }
 
 func (h *MatchHandler) Update(c *echo.Context) error {
@@ -303,7 +307,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
 		AssistsInput: assistsInput,
-		PlayedAt:     parsePlayedAt(c),
+		PlayedAt:     parsePlayedAt(c, appmw.LocationFromContext(c)),
 	}
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {

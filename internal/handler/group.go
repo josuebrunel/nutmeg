@@ -9,10 +9,12 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
 
+	appmw "nutmeg/internal/middleware"
 	"nutmeg/internal/model"
 	"nutmeg/internal/render"
 	"nutmeg/internal/repository"
@@ -140,7 +142,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), sortBy, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), sortBy, successMsg, errMsg))
 }
 
 // mapLeaderboardEntries converts repository leaderboard rows into the
@@ -166,7 +168,7 @@ func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.Leade
 // mapMatchEntries converts repository matches into the groups view struct —
 // shared by every handler that renders the Recent Matches list (Detail,
 // DetailContent, MatchesFull).
-func mapMatchEntries(matches []repository.MatchWithTeams) []groups.MatchEntry {
+func mapMatchEntries(matches []repository.MatchWithTeams, loc *time.Location) []groups.MatchEntry {
 	out := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
 		out[i] = groups.MatchEntry{
@@ -176,7 +178,7 @@ func mapMatchEntries(matches []repository.MatchWithTeams) []groups.MatchEntry {
 			TeamB:   m.TeamBName,
 			ScoreA:  m.ScoreA,
 			ScoreB:  m.ScoreB,
-			Date:    m.PlayedAt.Format("Jan 2"),
+			Date:    m.PlayedAt.In(loc).Format("Jan 2"),
 		}
 	}
 	return out
@@ -439,7 +441,7 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 
 	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
 
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), sortBy))
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), sortBy))
 }
 
 // LeaderboardFull renders the complete (untruncated) leaderboard, taking
@@ -520,7 +522,7 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
 	}
 
-	return render.Component(c, groups.RecentMatchesColumn(id, mapMatchEntries(matches), true))
+	return render.Component(c, groups.RecentMatchesColumn(id, mapMatchEntries(matches, appmw.LocationFromContext(c)), true))
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -866,7 +868,7 @@ func (h *GroupHandler) detailContentWithToast(c *echo.Context, groupID, message,
 	joinRequests := h.joinRequestEntries(ctx, groupID, canEdit)
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), ""))
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), ""))
 }
 
 // rosterWithToast re-renders #roster-column with a toast after a roster
