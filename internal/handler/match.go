@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -15,6 +17,7 @@ import (
 	"nutmeg/internal/render"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
+	"nutmeg/internal/worker"
 	"nutmeg/views/pages/matches"
 )
 
@@ -29,10 +32,27 @@ type MatchHandler struct {
 	auth    *ezauth.EzAuth
 	service *service.MatchService
 	repo    *repository.Repository
+	jobs    JobEnqueuer
 }
 
-func NewMatchHandler(auth *ezauth.EzAuth, svc *service.MatchService, repo *repository.Repository) *MatchHandler {
-	return &MatchHandler{auth: auth, service: svc, repo: repo}
+func NewMatchHandler(auth *ezauth.EzAuth, svc *service.MatchService, repo *repository.Repository, jobs JobEnqueuer) *MatchHandler {
+	return &MatchHandler{auth: auth, service: svc, repo: repo, jobs: jobs}
+}
+
+// enqueueCommentary fires off async roast-commentary generation for every
+// player in a just-logged match. Enqueueing is cheap and best-effort — a
+// failure here is logged, not surfaced to the user, since it must never
+// block or fail the match save that already succeeded.
+func (h *MatchHandler) enqueueCommentary(ctx context.Context, matchID string, playerIDs []string) {
+	for _, playerID := range playerIDs {
+		_, err := h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{
+			GroupPlayerID: playerID,
+			MatchID:       &matchID,
+		}, nil)
+		if err != nil {
+			slog.Error("enqueue commentary generation failed", "group_player_id", playerID, "match_id", matchID, "error", err)
+		}
+	}
 }
 
 func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
@@ -188,7 +208,8 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		PlayedAt:     parsePlayedAt(c, appmw.LocationFromContext(c)),
 	}
 
-	if err := h.service.Create(c.Request().Context(), input); err != nil {
+	matchID, err := h.service.Create(c.Request().Context(), input)
+	if err != nil {
 		if isHTMX(c) {
 			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
@@ -196,6 +217,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
+	h.enqueueCommentary(c.Request().Context(), matchID, append(teamAPlayers, teamBPlayers...))
 
 	if isHTMX(c) {
 		return h.htmxRedirect(c, groupID)

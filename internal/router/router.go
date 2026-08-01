@@ -6,10 +6,11 @@ import (
 
 	"nutmeg/internal/handler"
 	"nutmeg/internal/repository"
+	"nutmeg/internal/service"
 )
 
-func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository) {
-	h := handler.New(auth, repo)
+func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, jobs handler.JobEnqueuer) {
+	h := handler.New(auth, repo, commentarySvc, jobs)
 
 	app.GET("/dashboard", h.Home.Dashboard)
 	app.GET("/stats", h.Home.Stats)
@@ -37,6 +38,7 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository)
 	app.GET("/groups/:id/leaderboard-full", h.Group.LeaderboardFull)
 	app.GET("/groups/:id/roster-full", h.Group.RosterFull)
 	app.GET("/groups/:id/matches-full", h.Group.MatchesFull)
+	app.POST("/groups/:id/players/:memberId/regenerate-commentary", h.Group.RegenerateCommentary)
 	app.GET("/groups/:id/match-modal", h.Match.LogMatchModal)
 	app.POST("/groups/:id/matches", h.Match.Create)
 	app.GET("/groups/:id/matches/:mid/edit", h.Match.EditModal)

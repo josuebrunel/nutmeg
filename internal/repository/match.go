@@ -43,20 +43,38 @@ type PlayerStats struct {
 	Assists       int `db:"assists"`
 }
 
-func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error {
+// PlayerMatchResult is one match from a player's history, most-recent
+// first — the raw material for streak derivation (see service layer),
+// which compares TeamID against HomeTeamID/AwayTeamID and the score
+// columns directly rather than recomputing a result from match_events.
+type PlayerMatchResult struct {
+	MatchID     string    `db:"match_id"`
+	PlayedAt    time.Time `db:"played_at"`
+	TeamID      string    `db:"team_id"`
+	HomeTeamID  string    `db:"home_team_id"`
+	AwayTeamID  string    `db:"away_team_id"`
+	HomeScore   int       `db:"home_score"`
+	AwayScore   int       `db:"away_score"`
+	GoalsScored int       `db:"goals_scored"`
+}
+
+// CreateMatch returns the new match's id, primarily so callers can enqueue
+// per-player follow-up work (e.g. async commentary generation) tied to the
+// match that triggered it.
+func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) (string, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback(ctx)
 
 	teamA, err := insertTeam(ctx, tx, groupID, teamAName)
 	if err != nil {
-		return err
+		return "", err
 	}
 	teamB, err := insertTeam(ctx, tx, groupID, teamBName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	matchID, err := bob.One[string](ctx, tx, psql.Insert(
@@ -65,7 +83,7 @@ func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBN
 		im.Returning("id"),
 	), scan.SingleColumnMapper[string])
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, pid := range teamAPlayers {
@@ -74,7 +92,7 @@ func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBN
 			im.Values(psql.Arg(matchID, teamA, pid)),
 		))
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 	for _, pid := range teamBPlayers {
@@ -83,15 +101,18 @@ func (r *Repository) CreateMatch(ctx context.Context, groupID, teamAName, teamBN
 			im.Values(psql.Arg(matchID, teamB, pid)),
 		))
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if err := insertGoalEvents(ctx, tx, matchID, teamA, teamB, teamBPlayers, goals, assists); err != nil {
-		return err
+		return "", err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+	return matchID, nil
 }
 
 // insertGoalEvents writes one match_events row per goal, distributing the
@@ -460,4 +481,29 @@ func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*Play
 		WHERE mp.player_id = ?
 	`, memberID, memberID, memberID)
 	return bob.One[*PlayerStats](ctx, r.db, query, scan.StructMapper[*PlayerStats]())
+}
+
+// GetPlayerMatchHistory returns a player's most recent matches, newest
+// first, capped at limit — used to derive streaks (scoreless/losing) that
+// GetPlayerStats' aggregate counts can't express.
+func (r *Repository) GetPlayerMatchHistory(ctx context.Context, memberID string, limit int) ([]PlayerMatchResult, error) {
+	query := psql.RawQuery(`
+		SELECT
+			m.id AS match_id,
+			m.played_at AS played_at,
+			mp.team_id AS team_id,
+			m.home_team_id AS home_team_id,
+			m.away_team_id AS away_team_id,
+			m.home_score AS home_score,
+			m.away_score AS away_score,
+			COUNT(me.id) FILTER (WHERE me.scorer_id = ?) AS goals_scored
+		FROM match_players mp
+		JOIN matches m ON m.id = mp.match_id
+		LEFT JOIN match_events me ON me.match_id = mp.match_id
+		WHERE mp.player_id = ?
+		GROUP BY m.id, mp.team_id
+		ORDER BY m.played_at DESC
+		LIMIT ?
+	`, memberID, memberID, limit)
+	return bob.All[PlayerMatchResult](ctx, r.db, query, scan.StructMapper[PlayerMatchResult]())
 }

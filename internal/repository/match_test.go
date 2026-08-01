@@ -178,7 +178,7 @@ func TestCreateMatchThenList(t *testing.T) {
 	cleanup := seedGroupAndMembers(t, repo, testGroupID, testAliceID, testBobID, testCarolID)
 	t.Cleanup(cleanup)
 
-	err := repo.CreateMatch(ctx, testGroupID, "Reds", "Blues", 3, 1, testCreator,
+	_, err := repo.CreateMatch(ctx, testGroupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{testAliceID, testCarolID}, []string{testBobID},
 		map[string]int{testAliceID: 2}, map[string]int{}, time.Now())
 	if err != nil {
@@ -237,7 +237,7 @@ func seedForLeaderboard(t *testing.T, repo *Repository, groupID, aliceID, bobID,
 
 	innerCleanup := seedGroupAndMembers(t, repo, groupID, aliceID, bobID, carolID)
 
-	err := repo.CreateMatch(ctx, groupID, "Reds", "Blues", 3, 1, testCreator,
+	_, err := repo.CreateMatch(ctx, groupID, "Reds", "Blues", 3, 1, testCreator,
 		[]string{aliceID, carolID}, []string{bobID},
 		map[string]int{aliceID: 2}, map[string]int{carolID: 1}, time.Now())
 	if err != nil {

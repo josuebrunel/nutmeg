@@ -19,20 +19,23 @@ import (
 	"nutmeg/internal/render"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
+	"nutmeg/internal/worker"
 	"nutmeg/views/pages/groups"
 	"nutmeg/views/pages/home"
 	"nutmeg/views/pages/players"
 )
 
 type GroupHandler struct {
-	auth     *ezauth.EzAuth
-	service  *service.GroupService
-	matchSvc *service.MatchService
-	repo     *repository.Repository
+	auth          *ezauth.EzAuth
+	service       *service.GroupService
+	matchSvc      *service.MatchService
+	repo          *repository.Repository
+	commentarySvc *service.CommentaryService
+	jobs          JobEnqueuer
 }
 
-func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository) *GroupHandler {
-	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo}
+func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository, commentarySvc *service.CommentaryService, jobs JobEnqueuer) *GroupHandler {
+	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo, commentarySvc: commentarySvc, jobs: jobs}
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
@@ -241,14 +244,70 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 		return err
 	}
 
+	var commentary *string
+	if pc, err := h.repo.GetActivePlayerCommentary(ctx, memberID); err != nil {
+		slog.Error("failed to get player commentary", "member_id", memberID, "error", err)
+	} else if pc != nil {
+		commentary = &pc.Content
+	}
+
 	isLoggedIn := false
 	userName := ""
+	canEdit := false
 	if user, err := ezauth.GetUser(ctx); err == nil {
 		isLoggedIn = true
 		userName = user.DisplayName()
+		if userID, err := h.auth.GetUserID(ctx); err == nil {
+			canEdit = h.service.CanEdit(ctx, g, userID)
+		}
 	}
 
-	return page(c, player.Name+" — "+g.Name, isLoggedIn, "", userName, players.Profile(g, player, stats))
+	successMsg := h.auth.GetSuccessMessage(ctx)
+	errMsg := h.auth.GetErrorMessage(ctx)
+
+	return page(c, player.Name+" — "+g.Name, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, canEdit, successMsg, errMsg))
+}
+
+// RegenerateCommentary lets a group admin manually re-run roast generation
+// for a single player — the same generation+validation flow as automatic
+// post-match generation (GenerateCommentaryArgs with no MatchID), gated by
+// CanEdit and a per-player cooldown so a repeatedly-clicked button can't
+// hammer the LLM on a memory-constrained box.
+func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+	profileURL := "/groups/" + id + "/players/" + memberID
+
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !h.service.CanEdit(ctx, g, userID) {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	ok, wait, err := h.commentarySvc.CanRegenerate(ctx, memberID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		h.auth.Handler.SetFlash(ctx, "error", fmt.Sprintf("Too soon — try again in %d minute(s).", int(wait.Minutes())+1))
+		return c.Redirect(http.StatusFound, profileURL)
+	}
+
+	if _, err := h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{GroupPlayerID: memberID}, nil); err != nil {
+		h.auth.Handler.SetFlash(ctx, "error", "Could not start regeneration: "+err.Error())
+		return c.Redirect(http.StatusFound, profileURL)
+	}
+
+	h.auth.Handler.SetFlash(ctx, "success", "Regenerating commentary — refresh in a few seconds.")
+	return c.Redirect(http.StatusFound, profileURL)
 }
 
 func (h *GroupHandler) RequestJoin(c *echo.Context) error {

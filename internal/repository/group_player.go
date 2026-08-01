@@ -108,6 +108,19 @@ func (r *Repository) GetMember(ctx context.Context, groupID, memberID string) (*
 	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
 }
 
+// GetMemberByID looks up a group_players row by id alone — safe because
+// the id is a globally unique UUID, not scoped to a group. Used where only
+// the player id is on hand (e.g. a background job's arguments) and looking
+// up the owning group first would just be extra round trips.
+func (r *Repository) GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error) {
+	query := psql.Select(
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.From("group_players"),
+		sm.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
+	)
+	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
+}
+
 func (r *Repository) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
 	query := psql.Select(
 		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),

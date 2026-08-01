@@ -11,7 +11,7 @@ import (
 )
 
 type MatchRepository interface {
-	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) error
+	CreateMatch(ctx context.Context, groupID, teamAName, teamBName string, scoreA, scoreB int, createdBy string, teamAPlayers, teamBPlayers []string, goals, assists map[string]int, playedAt time.Time) (string, error)
 	ListMatchesByGroup(ctx context.Context, groupID string) ([]repository.MatchWithTeams, error)
 	DeleteMatch(ctx context.Context, matchID string) error
 	GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]repository.LeaderboardEntry, error)
@@ -47,21 +47,22 @@ type CreateMatchInput struct {
 	PlayedAt     time.Time
 }
 
-func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) error {
+// Create returns the new match's id (see Repository.CreateMatch).
+func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) (string, error) {
 	if input.TeamAName == "" || input.TeamBName == "" {
-		return errors.New("team names are required")
+		return "", errors.New("team names are required")
 	}
 	if len(input.TeamAPlayers) == 0 || len(input.TeamBPlayers) == 0 {
-		return errors.New("each team must have at least one player")
+		return "", errors.New("each team must have at least one player")
 	}
 	if input.ScoreA < 0 || input.ScoreB < 0 {
-		return errors.New("scores cannot be negative")
+		return "", errors.New("scores cannot be negative")
 	}
 
 	goals := parseTally(input.GoalsInput)
 	assists := parseTally(input.AssistsInput)
 	if err := validateAssists(goals, assists, input.TeamBPlayers); err != nil {
-		return err
+		return "", err
 	}
 	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
 }

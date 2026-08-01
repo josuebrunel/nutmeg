@@ -8,20 +8,27 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/josuebrunel/ezauth"
 	ezcfg "github.com/josuebrunel/ezauth/pkg/config"
 	"github.com/josuebrunel/gopkg/xenv"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverdatabasesql"
+	"github.com/riverqueue/river/rivermigrate"
 	"github.com/stephenafamo/bob"
 
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
 	"nutmeg/internal/handler"
+	"nutmeg/internal/llm"
 	appmw "nutmeg/internal/middleware"
 	"nutmeg/internal/repository"
 	"nutmeg/internal/router"
+	"nutmeg/internal/service"
+	"nutmeg/internal/worker"
 	"nutmeg/migrations"
 )
 
@@ -71,6 +78,39 @@ func main() {
 	bdb := bob.NewDB(db)
 	repo := repository.New(bdb)
 
+	// River is Nutmeg's first background-job dependency, introduced for
+	// async LLM commentary generation — riverdatabasesql (not riverpgxv5)
+	// because the app opens its DB as a *sql.DB, not a pgx pool. River
+	// manages its own job-queue schema via rivermigrate, separate from
+	// and in addition to the app's own goose-based migrations above.
+	riverDriver := riverdatabasesql.New(db)
+	migrator, err := rivermigrate.New(riverDriver, nil)
+	if err != nil {
+		slog.Error("failed to create river migrator", "error", err)
+		os.Exit(1)
+	}
+	if _, err := migrator.Migrate(context.Background(), rivermigrate.DirectionUp, nil); err != nil {
+		slog.Error("failed to run river migrations", "error", err)
+		os.Exit(1)
+	}
+
+	llmClient := llm.NewClient(cfg.Ollama.BaseURL, cfg.Ollama.Model, 2*time.Minute)
+	commentarySvc := service.NewCommentaryService(repo, llmClient)
+
+	workers := river.NewWorkers()
+	river.AddWorker(workers, &worker.GenerateCommentaryWorker{Service: commentarySvc})
+
+	riverClient, err := river.NewClient(riverDriver, &river.Config{
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {MaxWorkers: 2},
+		},
+		Workers: workers,
+	})
+	if err != nil {
+		slog.Error("failed to create river client", "error", err)
+		os.Exit(1)
+	}
+
 	os.Setenv("EZAUTH_API_KEY", "no-need")
 	authCfg, err := ezcfg.LoadConfig()
 	if err != nil {
@@ -111,7 +151,7 @@ func main() {
 
 	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
 
-	h := handler.New(auth, repo)
+	h := handler.New(auth, repo, commentarySvc, riverClient)
 
 	// Public routes
 	e.GET("/", h.Home.Landing)
@@ -129,11 +169,21 @@ func main() {
 	// Authenticated routes
 	app := e.Group("")
 	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
-	router.Register(app, auth, repo)
+	router.Register(app, auth, repo, commentarySvc, riverClient)
 
 	sc := echo.StartConfig{Address: cfg.Addr}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if err := riverClient.Start(ctx); err != nil {
+		slog.Error("failed to start river client", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := riverClient.Stop(context.Background()); err != nil {
+			slog.Error("failed to stop river client", "error", err)
+		}
+	}()
 
 	slog.Info("starting server", "addr", cfg.Addr)
 	if err := sc.Start(ctx, e); err != nil {
