@@ -774,6 +774,101 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
+func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !h.service.CanEdit(ctx, g, userID) {
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	member, err := h.repo.GetMember(ctx, id, memberID)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	return render.Component(c, groups.MemberEditForm(id, member, ""))
+}
+
+func (h *GroupHandler) UpdateMember(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+	name := c.FormValue("name")
+
+	var phonePtr, emailPtr *string
+	if phone := c.FormValue("phone"); phone != "" {
+		phonePtr = &phone
+	}
+	if email := c.FormValue("email"); email != "" {
+		emailPtr = &email
+	}
+
+	if err := h.service.UpdateMember(ctx, id, memberID, name, phonePtr, emailPtr, userID); err != nil {
+		if isHTMX(c) {
+			member := &model.GroupPlayer{ID: memberID, GroupID: id, Name: name, Phone: phonePtr, Email: emailPtr}
+			return render.Component(c, groups.MemberEditForm(id, member, err.Error()))
+		}
+		h.auth.Handler.SetFlash(ctx, "error", err.Error())
+		return c.Redirect(http.StatusFound, "/groups/"+id)
+	}
+
+	if isHTMX(c) {
+		return h.detailContentWithToast(c, id, "Member updated", "success")
+	}
+	h.auth.Handler.SetFlash(ctx, "success", "Member updated")
+	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+// detailContentWithToast re-renders #detail-content-area with a toast,
+// restoring the normal Leaderboard/Roster/Matches view after a mutation
+// (like editing a player) that took over the whole area rather than just
+// #roster-column — so saving a player edit drops the admin back into the
+// roster listing instead of a full page reload.
+func (h *GroupHandler) detailContentWithToast(c *echo.Context, groupID, message, toastType string) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return err
+	}
+	g, err := h.service.Get(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	canEdit, isOwner, ownerEmail := h.rosterViewData(ctx, g, userID)
+	members, err := h.service.Members(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(ctx, groupID, "")
+	if lbErr != nil {
+		slog.Error("failed to get leaderboard", "group_id", groupID, "error", lbErr)
+	}
+	matches, matchErr := h.matchSvc.ListByGroup(ctx, groupID)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", groupID, "error", matchErr)
+	}
+	joinRequests := h.joinRequestEntries(ctx, groupID, canEdit)
+
+	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches), ""))
+}
+
 // rosterWithToast re-renders #roster-column with a toast after a roster
 // mutation. It preserves whichever view the mutation was triggered from —
 // the normal truncated column, or the full-width "Show all" view (signaled

@@ -413,6 +413,11 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 									</button>
 								}
 							}
+							if isAdmin {
+								<button class="text-turf hover:text-pitch p-1.5 rounded transition-colors" aria-label={ "Edit " + m.Name } hx-get={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">
+									@components.IconEdit("size-3.5")
+								</button>
+							}
 							if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
 								<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
 									@components.IconClose("size-3.5")

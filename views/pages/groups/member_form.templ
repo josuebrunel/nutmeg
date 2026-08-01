@@ -1,0 +1,43 @@
+package groups
+
+import (
+	"nutmeg/internal/model"
+)
+
+templ MemberEditForm(groupID string, m *model.GroupPlayer, errMsg string) {
+	<div>
+		<button hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-6">
+			&larr; Cancel
+		</button>
+		<div class="bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch max-w-lg mx-auto">
+			<h3 class="font-oswald text-2xl text-pitch font-bold mb-6">EDIT PLAYER</h3>
+			if errMsg != "" {
+				<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
+			}
+			<form hx-post={ templ.URL("/groups/" + groupID + "/members/" + m.ID) } hx-target="#detail-content-area" hx-swap="innerHTML" class="space-y-4">
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Name</label>
+					<input type="text" name="name" value={ m.Name } class="w-full border-2 border-pitch rounded px-4 py-2" required />
+				</div>
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Phone (optional)</label>
+					<input type="tel" name="phone" value={ stringPtrValue(m.Phone) } class="w-full border-2 border-pitch/50 rounded px-4 py-2" />
+				</div>
+				<div>
+					<label class="font-oswald text-ink mb-1 block">Email (optional)</label>
+					<input type="email" name="email" value={ stringPtrValue(m.Email) } class="w-full border-2 border-pitch/50 rounded px-4 py-2" />
+				</div>
+				<button type="submit" class="w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2">
+					SAVE CHANGES
+				</button>
+			</form>
+		</div>
+	</div>
+}
+
+func stringPtrValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

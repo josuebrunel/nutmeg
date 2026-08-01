@@ -25,6 +25,7 @@ type mockGroupRepo struct {
 	listMembersFn      func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	getMemberFn        func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	memberCountFn      func(ctx context.Context, groupID string) (int, error)
+	updateMemberFn     func(ctx context.Context, groupID, memberID, name string, phone, email *string) error
 	updateMemberRoleFn func(ctx context.Context, groupID, memberID, role string) error
 	getMemberByEmailFn func(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
 
@@ -70,6 +71,9 @@ func (m *mockGroupRepo) GetMember(ctx context.Context, groupID, memberID string)
 }
 func (m *mockGroupRepo) MemberCount(ctx context.Context, groupID string) (int, error) {
 	return m.memberCountFn(ctx, groupID)
+}
+func (m *mockGroupRepo) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error {
+	return m.updateMemberFn(ctx, groupID, memberID, name, phone, email)
 }
 func (m *mockGroupRepo) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
 	return m.updateMemberRoleFn(ctx, groupID, memberID, role)
@@ -159,6 +163,9 @@ func defaultMock() *mockGroupRepo {
 		},
 		getGroupsByIDsFn: func(_ context.Context, ids []string) ([]*model.Group, error) {
 			return nil, nil
+		},
+		updateMemberFn: func(_ context.Context, groupID, memberID, name string, phone, email *string) error {
+			return nil
 		},
 		updateMemberRoleFn: func(_ context.Context, groupID, memberID, role string) error {
 			return nil
@@ -329,6 +336,49 @@ func TestAddMember(t *testing.T) {
 		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
+	})
+}
+
+func TestUpdateMember(t *testing.T) {
+	t.Run("creatorCanUpdate", func(t *testing.T) {
+		m := defaultMock()
+		svc := NewGroupService(m, defaultAuthMock())
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, "user-1")
+		assert.NoErr(t, err)
+	})
+
+	t.Run("emptyName", func(t *testing.T) {
+		m := defaultMock()
+		svc := NewGroupService(m, defaultAuthMock())
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "", nil, nil, "user-1")
+		assert.ErrIs(t, err, model.ErrInvalidInput)
+	})
+
+	t.Run("nonCreatorCannotUpdate", func(t *testing.T) {
+		m := defaultMock()
+		svc := NewGroupService(m, defaultAuthMock())
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, "other-user")
+		assert.ErrIs(t, err, model.ErrNotAuthorized)
+	})
+
+	t.Run("nameTakenByAnotherMember", func(t *testing.T) {
+		m := defaultMock()
+		m.listMembersFn = func(_ context.Context, groupID string) ([]repository.MemberInfo, error) {
+			return []repository.MemberInfo{{ID: "member-2", Name: "Taken Name"}}, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Taken Name", nil, nil, "user-1")
+		assert.ErrIs(t, err, model.ErrMemberNameTaken)
+	})
+
+	t.Run("ownNameUnchanged", func(t *testing.T) {
+		m := defaultMock()
+		m.listMembersFn = func(_ context.Context, groupID string) ([]repository.MemberInfo, error) {
+			return []repository.MemberInfo{{ID: "member-1", Name: "Same Name"}}, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Same Name", nil, nil, "user-1")
+		assert.NoErr(t, err)
 	})
 }
 

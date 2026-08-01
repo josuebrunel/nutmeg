@@ -53,6 +53,19 @@ func (r *Repository) ImportMember(ctx context.Context, groupID, name string, pho
 	return err
 }
 
+func (r *Repository) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error {
+	query := psql.Update(
+		um.Table("group_players"),
+		um.SetCol("name").ToArg(name),
+		um.SetCol("phone").ToArg(phone),
+		um.SetCol("email").ToArg(email),
+		um.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
+		um.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
+	)
+	_, err := bob.Exec(ctx, r.db, query)
+	return err
+}
+
 func (r *Repository) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
 	query := psql.Update(
 		um.Table("group_players"),

@@ -24,6 +24,7 @@ type GroupRepository interface {
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	MemberCount(ctx context.Context, groupID string) (int, error)
+	UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error
 	UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error
 	GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
 
@@ -248,6 +249,35 @@ func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows [
 		}
 	}
 	return imported, updated, skipped, nil
+}
+
+// UpdateMember edits an existing roster member's name/phone/email. name is
+// checked against the group's other members to avoid violating the
+// group_players (group_id, name) uniqueness constraint.
+func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string, actorID string) error {
+	if name == "" {
+		return model.ErrInvalidInput
+	}
+
+	g, err := s.repo.GetGroup(ctx, groupID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+	if !s.CanEdit(ctx, g, actorID) {
+		return model.ErrNotAuthorized
+	}
+
+	existing, err := s.repo.ListMembers(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	for _, m := range existing {
+		if m.ID != memberID && m.Name == name {
+			return model.ErrMemberNameTaken
+		}
+	}
+
+	return s.repo.UpdateMember(ctx, groupID, memberID, name, phone, email)
 }
 
 func (s *GroupService) RemoveMember(ctx context.Context, groupID, memberID, actorID string) error {
