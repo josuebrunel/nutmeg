@@ -20,13 +20,17 @@ A web application for tracking soccer matches, teams, players, and statistics wi
 ## Features
 
 - User authentication (register, login, logout) with session management
+- Self-service account settings (edit name/username/email, change password)
 - Group CRUD (create, read, update, delete)
-- Member management (add/remove members, role assignment)
-- Team and match management (scores, events)
+- Member management: add/remove members, comma-separated multi-add, CSV roster import, role promotion/demotion, admin inline editing of a player's name/phone/email
+- Public request-to-join flow with admin approve/reject, alongside a public group leaderboard viewable without logging in
+- Match logging with a tap-to-assign team toggle, live score auto-calculation, per-player goals/assists, and an editable match date shown in each visitor's local timezone
+- Sortable, searchable leaderboard and player profile pages (matches played, wins/draws, goals, assists) with truncated/expandable Leaderboard, Roster, and Recent Matches lists
+- AI-generated player "roast" commentary: a local Ollama LLM produces a one-off blurb per player after each match via a RiverQueue background job, with an admin-gated, cooldown-limited manual regeneration option
+- Global stats dashboard (`/stats`)
 - Responsive sidebar layout with contextual navigation
 - Flash messages for success and error feedback
 - HTMX-powered interactions for a SPA-like experience
-- CDN-loaded Chart.js for future stats visualisation
 - Docker Compose for local development with PostgreSQL
 - Hot-reload development workflow with Air + Templ
 
@@ -41,6 +45,8 @@ A web application for tracking soccer matches, teams, players, and statistics wi
 | **Database**       | PostgreSQL 17 (via [pgx](https://github.com/jackc/pgx/v5))                                                                                       |
 | **Query Builder**  | [Bob](https://github.com/stephenafamo/bob) + [scan.StructMapper](https://github.com/stephenafamo/scan)                                           |
 | **Migrations**     | [Goose v3](https://github.com/pressly/goose/v3) (embedded, no global registry)                                                                   |
+| **Background Jobs**| [RiverQueue](https://github.com/riverqueue/river) (Postgres-backed job queue, e.g. async AI commentary generation)                               |
+| **AI / LLM**       | [Ollama](https://ollama.com) (local LLM inference for player commentary, via a hand-rolled client in `internal/llm/`)                            |
 | **Authentication** | [Ezauth](https://github.com/josuebrunel/ezauth)                                                                                                  |
 | **Configuration**  | [Xenv](https://github.com/josuebrunel/gopkg/xenv)                                                                                                |
 | **Hot Reload**     | [Air](https://github.com/air-verse/air)                                                                                                          |
@@ -96,15 +102,18 @@ Every entity follows the same convention: one file each for model, repository op
 
 ## Database Schema
 
-The database contains five core tables:
+The database contains eight core tables:
 
-| Table           | Description                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------- |
-| `groups`        | Soccer groups; each group has a name, optional description, and creator                  |
-| `group_players` | Many-to-many relationship between users and groups; includes role (`admin` or `member`)  |
-| `teams`         | Teams within a group; each team has a name and optional colour                           |
-| `matches`       | Matches between two teams; stores home/away scores, notes, and when the match was played |
-| `match_events`  | Individual events within a match (goals, assists); links to the scoring team and players |
+| Table                  | Description                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `groups`               | Soccer groups; each group has a name, optional description, and creator                                |
+| `group_players`        | Named players belonging to a group (not tied to a user account); includes role (`admin` or `member`), optional phone/email |
+| `teams`                | Teams within a group; each team has a name and optional colour                                         |
+| `matches`              | Matches between two teams; stores home/away scores, notes, and when the match was played               |
+| `match_events`         | Individual events within a match (goals, assists); links to the scoring team and players                |
+| `match_players`        | Roster of which players participated on which team for a given match                                   |
+| `group_join_requests`  | Pending/approved/rejected requests from a user to join a group via the public join flow                 |
+| `player_commentary`    | AI-generated "roast" commentary per player, one active row at a time (older rows marked `superseded`)   |
 
 Indexes cover the foreign-key columns for efficient lookups.
 
@@ -112,8 +121,9 @@ Indexes cover the foreign-key columns for efficient lookups.
 
 ### Prerequisites
 
-- Go 1.25+
+- Go 1.25+ (CI and the Docker image build with Go 1.26)
 - PostgreSQL 17 (or Docker)
+- [Ollama](https://ollama.com) running locally (or reachable via `OLLAMA_BASE_URL`) for AI player commentary
 - [Templ CLI](https://github.com/a-h/templ) — `go install github.com/a-h/templ/cmd/templ@latest`
 - (Optional) [Air](https://github.com/air-verse/air) for hot reload — `go install github.com/air-verse/air@latest`
 
@@ -172,6 +182,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 | `make docker-down`  | Stop all Docker services                                |
 | `make migrate`      | Run pending Goose migrations                            |
 | `make migrate-down` | Roll back the last migration                            |
+| `nutmeg -migrate up` / `nutmeg -migrate down` | Run/roll back migrations from the built binary (used by the production Docker image) |
 | `make templ-gen`    | Regenerate Templ template code                          |
 | `make test`         | Run all tests (sequential, single-run)                  |
 | `make clean`        | Remove build artifacts and generated files              |
@@ -192,45 +203,83 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │   ├── assert/                  # Test assertion helpers
 │   ├── config/                  # Environment-based configuration
 │   ├── database/                # Database connection + migrations
-│   ├── handler/                 # HTTP handlers (auth, group, home)
-│   ├── middleware/              # Auth middleware (wrapper)
+│   ├── handler/                 # HTTP handlers (auth, account, group, home, match)
+│   ├── llm/                     # Ollama client for AI player commentary
+│   ├── middleware/               # Auth + timezone middleware
 │   ├── model/                   # Domain structs with db tags
 │   ├── render/                  # Templ rendering helpers
 │   ├── repository/              # Data access layer (Bob psql queries)
 │   ├── router/                  # Route registration
-│   └── service/                 # Business logic layer
+│   ├── service/                 # Business logic layer
+│   └── worker/                  # RiverQueue background jobs (commentary generation)
 ├── migrations/                  # SQL migration files (embedded)
 ├── static/css/                  # Static assets (CSS)
 ├── views/
 │   ├── components/              # Reusable Templ components (icons)
 │   ├── layout/                  # Base layout with sidebar
 │   └── pages/                   # Page-specific templates
+│       ├── account/             # Account settings
 │       ├── auth/                # Login, Register
-│       ├── groups/              # List, Form, Detail
-│       ├── home/                # Dashboard
-│       └── matches, players, stats, teams/  # Placeholder stubs
+│       ├── groups/               # List, Form, Detail, Leaderboard
+│       ├── home/                # Dashboard, Stats
+│       ├── matches/              # Match logging/edit modal
+│       ├── players/              # Player profile + AI commentary
+│       └── stats, teams/         # Currently empty (no dedicated views yet)
 ```
 
 ## API Routes
 
-All authenticated routes are registered in `internal/router/router.go`:
+Authenticated routes are registered in `internal/router/router.go`; public routes are wired directly in `cmd/server/main.go`.
 
-| Method   | Path                       | Handler            | Description             |
-| -------- | -------------------------- | ------------------ | ----------------------- |
-| `GET`    | `/login`                   | Auth.Login         | Login page              |
-| `GET`    | `/register`                | Auth.Register      | Registration page       |
-| `GET`    | `/`                        | Home.Index         | Dashboard               |
-| `GET`    | `/groups`                  | Group.Index        | List user's groups      |
-| `GET`    | `/groups/new`              | Group.New          | New group form          |
-| `POST`   | `/groups`                  | Group.Create       | Create a group          |
-| `GET`    | `/groups/:id`              | Group.Detail       | Group details + members |
-| `GET`    | `/groups/:id/edit`         | Group.Edit         | Edit group form         |
-| `POST`   | `/groups/:id`              | Group.Update       | Update a group          |
-| `DELETE` | `/groups/:id`              | Group.Delete       | Delete a group          |
-| `POST`   | `/groups/:id/members`      | Group.AddMember    | Add member by email     |
-| `DELETE` | `/groups/:id/members/:uid` | Group.RemoveMember | Remove a member         |
+### Public (no login required)
+
+| Method | Path                             | Handler                 | Description                          |
+| ------ | -------------------------------- | ------------------------ | ------------------------------------- |
+| `GET`  | `/`                               | Home.Landing             | Landing page                          |
+| `GET`  | `/login`                         | Auth.Login               | Login page                            |
+| `GET`  | `/register`                      | Auth.Register            | Registration page                     |
+| `GET`  | `/health`                        | —                        | Health check                          |
+| `GET`  | `/groups/:id/leaderboard`        | Group.PublicLeaderboard  | Public, read-only group leaderboard   |
+| `GET`  | `/groups/:id/players/:memberId`  | Group.PlayerProfile      | Public player profile + AI commentary |
 
 Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, register, logout, and callback endpoints.
+
+### Authenticated
+
+| Method   | Path                                                   | Handler                    | Description                                          |
+| -------- | ------------------------------------------------------- | ---------------------------- | ------------------------------------------------------ |
+| `GET`    | `/dashboard`                                             | Home.Dashboard              | Post-login dashboard                                 |
+| `GET`    | `/stats`                                                 | Home.Stats                  | Global stats dashboard                               |
+| `GET`    | `/account`                                               | Account.Edit                | Account settings form                                |
+| `POST`   | `/account`                                               | Account.Update              | Update name/username/email                           |
+| `POST`   | `/account/password`                                      | Account.UpdatePassword      | Change password                                      |
+| `GET`    | `/groups`                                                | Group.Index                 | List user's groups                                   |
+| `GET`    | `/groups/new`                                            | Group.New                   | New group form                                       |
+| `POST`   | `/groups`                                                | Group.Create                | Create a group                                       |
+| `GET`    | `/groups/:id`                                            | Group.Detail                | Group details + members                              |
+| `GET`    | `/groups/:id/edit`                                       | Group.Edit                  | Edit group form                                      |
+| `POST`   | `/groups/:id`                                            | Group.Update                | Update a group                                       |
+| `DELETE` | `/groups/:id`                                            | Group.Delete                | Delete a group                                       |
+| `GET`    | `/groups/:id/detail-content`                             | Group.DetailContent         | HTMX partial refresh of group detail                 |
+| `GET`    | `/groups/:id/leaderboard-full`                           | Group.LeaderboardFull       | Full (non-truncated) leaderboard                     |
+| `GET`    | `/groups/:id/roster-full`                                | Group.RosterFull            | Full (non-truncated) roster                          |
+| `GET`    | `/groups/:id/matches-full`                               | Group.MatchesFull           | Full (non-truncated) match history                   |
+| `POST`   | `/groups/:id/members`                                    | Group.AddMember             | Add member(s), comma-separated                       |
+| `POST`   | `/groups/:id/members/import`                             | Group.ImportMembers         | Bulk CSV roster import                               |
+| `DELETE` | `/groups/:id/members/:memberId`                          | Group.RemoveMember          | Remove a member                                      |
+| `GET`    | `/groups/:id/members/:memberId/edit`                     | Group.EditMemberForm        | Inline edit form (name/phone/email)                  |
+| `POST`   | `/groups/:id/members/:memberId`                          | Group.UpdateMember          | Update a member's name/phone/email                   |
+| `POST`   | `/groups/:id/members/:memberId/promote`                  | Group.PromoteMember         | Promote member to admin                              |
+| `POST`   | `/groups/:id/members/:memberId/demote`                   | Group.DemoteMember          | Demote admin to member                               |
+| `POST`   | `/groups/:id/join-requests`                              | Group.RequestJoin           | Submit a request to join the group                   |
+| `POST`   | `/groups/:id/join-requests/:reqId/approve`               | Group.ApproveJoinRequest    | Approve a join request                               |
+| `POST`   | `/groups/:id/join-requests/:reqId/reject`                | Group.RejectJoinRequest     | Reject a join request                                |
+| `POST`   | `/groups/:id/players/:memberId/regenerate-commentary`    | Group.RegenerateCommentary  | Manually regenerate AI commentary (cooldown-limited) |
+| `GET`    | `/groups/:id/match-modal`                                | Match.LogMatchModal         | Match logging modal                                  |
+| `POST`   | `/groups/:id/matches`                                    | Match.Create                | Log a new match                                      |
+| `GET`    | `/groups/:id/matches/:mid/edit`                          | Match.EditModal             | Match edit modal                                     |
+| `POST`   | `/groups/:id/matches/:mid/update`                        | Match.Update                | Update a logged match                                |
+| `DELETE` | `/groups/:id/matches/:mid`                               | Match.Delete                | Delete a match                                       |
 
 ## Testing
 
@@ -248,8 +297,11 @@ go test -v ./internal/service/...
 ```
 
 The test suite includes:
-- **Service layer tests** (`internal/service/group_test.go`) — full coverage of group CRUD, member management, and authorisation logic using mock repositories.
+- **Service layer tests** (`internal/service/group_test.go`, `internal/service/commentary_test.go`) — group CRUD, member management, and authorisation logic, plus AI commentary generation/cooldown logic, using mock repositories.
+- **Repository tests** (`internal/repository/match_test.go`) — match/goal/assist persistence against Bob queries.
 - **Model tests** (`internal/model/errors_test.go`) — sentinel error comparisons.
+
+CI also spins up a Postgres service container to run these against a real database.
 
 ## Docker
 
@@ -286,11 +338,15 @@ All configuration is loaded from the environment (or `.env` file) using Xenv.
 | `BASE_URL`                     | `http://localhost:8080` | Base URL for redirects          |
 | `DEBUG`                        | `false`                 | Enable debug mode               |
 | `DB_DSN`                       | *(required)*            | PostgreSQL connection string    |
+| `OLLAMA_BASE_URL`              | `http://localhost:11434`| Ollama server URL for AI player commentary |
+| `OLLAMA_MODEL`                 | `llama3.1:8b`           | Ollama model used to generate commentary |
 | `EZAUTH_JWT_SECRET`            | *(required)*            | JWT signing secret              |
 | `EZAUTH_DB_DIALECT`            | `postgres`              | Auth database dialect           |
 | `EZAUTH_DB_DSN`                | *(required)*            | Auth database connection string |
+| `EZAUTH_ADDR`                  | `:8080`                 | Ezauth's own listen address     |
+| `EZAUTH_BASE_URL`              | `http://localhost:8080` | Ezauth's own base URL           |
 | `EZAUTH_DEBUG`                 | `true`                  | Auth debug mode                 |
-| `EZAUTH_REDIRECT_AFTER_LOGIN`  | `/groups`               | Post-login redirect             |
+| `EZAUTH_REDIRECT_AFTER_LOGIN`  | `/groups`               | Post-login redirect (overridden to `/dashboard` at startup regardless of env value) |
 | `EZAUTH_REDIRECT_AFTER_LOGOUT` | `/login`                | Post-logout redirect            |
 
 ## Non-Negotiable Rules
