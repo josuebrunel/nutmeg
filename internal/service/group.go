@@ -385,34 +385,44 @@ func (s *GroupService) JoinRequests(ctx context.Context, groupID string) ([]repo
 }
 
 // ApproveJoinRequest is CanEdit-gated like AddMember, since approving a
-// request is equivalent to an admin manually adding that member.
-func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) error {
+// request is equivalent to an admin manually adding that member. Returns
+// the approved request so the caller can notify the requester by email
+// without a second lookup.
+func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) (*model.JoinRequest, error) {
 	if !s.CanEdit(ctx, g, actorID) {
-		return model.ErrNotAuthorized
+		return nil, model.ErrNotAuthorized
 	}
 
 	req, err := s.repo.GetJoinRequest(ctx, g.ID, requestID)
 	if err != nil {
-		return model.ErrNotFound
+		return nil, model.ErrNotFound
 	}
 
 	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
-		return err
+		return nil, err
 	}
-	return s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved")
+	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved"); err != nil {
+		return nil, err
+	}
+	return req, nil
 }
 
 // RejectJoinRequest is CanEdit-gated, same level as ApproveJoinRequest.
-func (s *GroupService) RejectJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) error {
+// Returns the rejected request so the caller can notify the requester.
+func (s *GroupService) RejectJoinRequest(ctx context.Context, g *model.Group, requestID, actorID string) (*model.JoinRequest, error) {
 	if !s.CanEdit(ctx, g, actorID) {
-		return model.ErrNotAuthorized
+		return nil, model.ErrNotAuthorized
 	}
 
-	if _, err := s.repo.GetJoinRequest(ctx, g.ID, requestID); err != nil {
-		return model.ErrNotFound
+	req, err := s.repo.GetJoinRequest(ctx, g.ID, requestID)
+	if err != nil {
+		return nil, model.ErrNotFound
 	}
 
-	return s.repo.UpdateJoinRequestStatus(ctx, requestID, "rejected")
+	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "rejected"); err != nil {
+		return nil, err
+	}
+	return req, nil
 }
 
 // DemoteMember reverses PromoteMember. Owner-only.

@@ -80,3 +80,16 @@ func recordActivity(ctx context.Context, repo *repository.Repository, jobs JobEn
 		slog.Error("enqueue group news generation failed", "activity_id", activityID, "error", err)
 	}
 }
+
+// enqueueEmail enqueues a background job to send an email to one or more
+// recipients — a no-op (with no error) if to is empty, e.g. a group with
+// no admin email on file. Same log-and-continue discipline as
+// recordActivity: never blocks or fails the request that triggered it.
+func enqueueEmail(ctx context.Context, jobs JobEnqueuer, to []string, subject, body string) {
+	if len(to) == 0 {
+		return
+	}
+	if _, err := jobs.Insert(ctx, worker.SendEmailArgs{To: to, Subject: subject, Body: body}, nil); err != nil {
+		slog.Error("enqueue email failed", "to", to, "subject", subject, "error", err)
+	}
+}

@@ -389,6 +389,8 @@ func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 	}
+	enqueueEmail(ctx, h.jobs, h.adminEmails(ctx, id), "New join request for "+g.Name,
+		"Someone requested to join "+g.Name+". Review the request from the group's roster page.")
 
 	h.auth.Handler.SetFlash(ctx, "success", "Request sent! The group admin will review it.")
 	return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
@@ -408,12 +410,15 @@ func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 		return err
 	}
 
-	if err := h.service.ApproveJoinRequest(ctx, g, reqID, userID); err != nil {
+	req, err := h.service.ApproveJoinRequest(ctx, g, reqID, userID)
+	if err != nil {
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, err.Error(), "error")
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
+	enqueueEmail(ctx, h.jobs, []string{req.Email}, "You're in! Welcome to "+g.Name,
+		"Your request to join "+g.Name+" was approved. Head to the group page to see the roster and leaderboard.")
 
 	if isHTMX(c) {
 		return h.rosterWithToast(c, id, "Member approved", "success")
@@ -435,17 +440,38 @@ func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
 		return err
 	}
 
-	if err := h.service.RejectJoinRequest(ctx, g, reqID, userID); err != nil {
+	req, err := h.service.RejectJoinRequest(ctx, g, reqID, userID)
+	if err != nil {
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, err.Error(), "error")
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
+	enqueueEmail(ctx, h.jobs, []string{req.Email}, "Update on your request to join "+g.Name,
+		"Your request to join "+g.Name+" was not approved this time.")
 
 	if isHTMX(c) {
 		return h.rosterWithToast(c, id, "Request rejected", "success")
 	}
 	return c.Redirect(http.StatusFound, "/groups/"+id)
+}
+
+// adminEmails returns the email addresses of a group's admin members
+// (includes the creator, who is added as an "admin"-role member at group
+// creation — see GroupService.Create).
+func (h *GroupHandler) adminEmails(ctx context.Context, groupID string) []string {
+	members, err := h.repo.ListMembers(ctx, groupID)
+	if err != nil {
+		slog.Error("failed to list members for admin email lookup", "group_id", groupID, "error", err)
+		return nil
+	}
+	var emails []string
+	for _, m := range members {
+		if m.Role == "admin" && m.Email != nil && *m.Email != "" {
+			emails = append(emails, *m.Email)
+		}
+	}
+	return emails
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {

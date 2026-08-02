@@ -22,6 +22,7 @@ import (
 
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
+	"nutmeg/internal/email"
 	"nutmeg/internal/handler"
 	"nutmeg/internal/llm"
 	appmw "nutmeg/internal/middleware"
@@ -97,10 +98,12 @@ func main() {
 	llmClient := llm.NewClient(cfg.Ollama.BaseURL, cfg.Ollama.Model, 2*time.Minute)
 	commentarySvc := service.NewCommentaryService(repo, llmClient)
 	activitySvc := service.NewActivityService(repo, llmClient)
+	emailClient := email.NewClient(cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.Username, cfg.Email.Password, cfg.Email.From)
 
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &worker.GenerateCommentaryWorker{Service: commentarySvc})
 	river.AddWorker(workers, &worker.GenerateGroupNewsWorker{Service: activitySvc})
+	river.AddWorker(workers, &worker.SendEmailWorker{Client: emailClient})
 
 	riverClient, err := river.NewClient(riverDriver, &river.Config{
 		Queues: map[string]river.QueueConfig{
