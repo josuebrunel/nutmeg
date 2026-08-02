@@ -148,7 +148,7 @@ func Base(title string, isLoggedIn bool, currentGroupID string, userName string)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</main><div class=\"perforation-divider\" aria-hidden=\"true\"></div><footer class=\"bg-chalk py-8 border-t-4 border-pitch\"><div class=\"max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4\"><div class=\"flex items-center gap-2\"><span class=\"text-xl font-oswald text-pitch font-bold\">NUTMEG</span></div><p class=\"text-sm text-ink/70 font-body\">Open source under the MIT License.</p></div></footer><div class=\"toast-container\" id=\"toast-container\" aria-live=\"polite\"></div><script src=\"/static/js/main.js\"></script><script src=\"/static/js/match-form.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</main><div class=\"perforation-divider\" aria-hidden=\"true\"></div><footer class=\"bg-chalk py-8 border-t-4 border-pitch\"><div class=\"max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4\"><div class=\"flex items-center gap-2\"><span class=\"text-xl font-oswald text-pitch font-bold\">NUTMEG</span></div><p class=\"text-sm text-ink/70 font-body\">Open source under the MIT License.</p></div></footer><div class=\"toast-container\" id=\"toast-container\" aria-live=\"polite\"></div><script src=\"/static/js/main.js\"></script><script src=\"/static/js/match-form.js\"></script><script src=\"/static/js/share.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

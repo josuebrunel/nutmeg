@@ -8,9 +8,12 @@ import (
 
 templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, canEdit bool, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8">
-			<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
-			<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2">{ player.Name }</h2>
+		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex items-start justify-between gap-4">
+			<div>
+				<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
+				<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2">{ player.Name }</h2>
+			</div>
+			@components.ShareWidget(player.Name + " on " + g.Name + " — Nutmeg")
 		</div>
 		if errMsg != "" {
 			<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ errMsg }</div>
