@@ -261,14 +261,6 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) } data-player-name={ strings.ToLower(p.Name) }>
 							<td class="p-3 font-mono font-bold text-pitch">
 								<span class="inline-flex items-center gap-1">
-									if i == 0 {
-										<span class="inline-flex items-center gap-1 text-gold">
-											@components.IconTrophy("size-4")
-											1
-										</span>
-									} else {
-										{ i + 1 }
-									}
 									if p.ID == topScorerID(leaderboard) {
 										<span class="text-gold" title="Top scorer">
 											@components.IconGoal("size-4")
@@ -278,6 +270,14 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 										<span class="text-gold" title="Top passer">
 											@components.IconBoot("size-4")
 										</span>
+									}
+									if i == 0 {
+										<span class="inline-flex items-center gap-1 text-gold">
+											@components.IconTrophy("size-4")
+											1
+										</span>
+									} else {
+										{ i + 1 }
 									}
 								</span>
 							</td>
