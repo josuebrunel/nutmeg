@@ -89,14 +89,37 @@ func playedAtValue(editData *MatchEditData, today string) string {
 	return editData.PlayedAt.Format("2006-01-02")
 }
 
-// scoreIsManual marks the score fields as pre-filled/manual when editing an
-// existing match, so the live goal-tally calculation (which is only useful
-// while first logging a match) never silently overwrites a saved score.
-func scoreIsManual(editData *MatchEditData) string {
-	if editData != nil {
+// scoreIsManual reports whether team's score field should start "locked"
+// against the live goal-tally recompute (static/js/match-form.js's
+// recomputeScore) — true only when the saved score doesn't match the sum
+// of the pre-filled per-player goal tally for that team (e.g. an own goal
+// counted in the score but not attributed to any player), so a genuinely
+// divergent saved score is never silently overwritten. A new match, or an
+// edit where the score already agrees with the tally, stays unlocked so
+// adjusting a stepper during editing live-updates the score exactly like
+// it does when first logging a match.
+func scoreIsManual(editData *MatchEditData, team string) string {
+	if editData == nil {
+		return "false"
+	}
+	want := editData.ScoreA
+	if team == "b" {
+		want = editData.ScoreB
+	}
+	if tallyGoals(editData, team) != want {
 		return "true"
 	}
 	return "false"
+}
+
+func tallyGoals(editData *MatchEditData, team string) int {
+	sum := 0
+	for pid, t := range editData.Teams {
+		if t == team {
+			sum += editData.Goals[pid]
+		}
+	}
+	return sum
 }
 
 templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEditData, today string) {
@@ -184,12 +207,12 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 					<div class="flex items-center justify-center gap-4 sm:gap-8 bg-pitch p-6 rounded text-chalk">
 						<div class="text-center">
 							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "a")) }</label>
-							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } data-team="a" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
+							<input type="number" name="score_a" min="0" value={ scoreValue(editData, "a") } data-team="a" data-manual={ scoreIsManual(editData, "a") } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
 						</div>
 						<div class="font-oswald text-3xl text-gold">-</div>
 						<div class="text-center">
 							<label class="font-oswald text-lg mb-2 block">{ strings.ToUpper(teamName(editData, "b")) }</label>
-							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } data-team="b" data-manual={ scoreIsManual(editData) } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
+							<input type="number" name="score_b" min="0" value={ scoreValue(editData, "b") } data-team="b" data-manual={ scoreIsManual(editData, "b") } required class="score-input w-20 sm:w-24 text-center text-3xl sm:text-4xl font-mono text-chalk py-2 rounded border-0"/>
 						</div>
 					</div>
 				</div>
