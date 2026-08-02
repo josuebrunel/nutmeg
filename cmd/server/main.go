@@ -162,6 +162,7 @@ func main() {
 
 	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
 
+	handler.SetBaseURL(cfg.BaseURL)
 	h := handler.New(auth, repo, commentarySvc, riverClient)
 
 	// Public routes

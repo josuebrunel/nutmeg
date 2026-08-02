@@ -53,6 +53,18 @@ func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *servic
 // group/player being shared rather than this generic site blurb).
 const defaultDescription = "Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists."
 
+// siteBaseURL is set once at startup via SetBaseURL — every page shares the
+// same og:image, so this avoids threading a base-URL parameter through
+// every page(...) call site in the package.
+var siteBaseURL string
+
+// SetBaseURL configures the absolute base URL used to build the og:image
+// meta tag. Must be called once during startup, before the server accepts
+// requests.
+func SetBaseURL(url string) {
+	siteBaseURL = url
+}
+
 func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {
 	return pageWithMeta(c, title, defaultDescription, isLoggedIn, currentGroupID, userName, cmp)
 }
@@ -60,7 +72,8 @@ func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string,
 func pageWithMeta(c *echo.Context, title, description string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	ctx := templ.WithChildren(c.Request().Context(), cmp)
-	return layout.Base(title, description, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
+	ogImage := siteBaseURL + "/static/img/logo.png"
+	return layout.Base(title, description, ogImage, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
 }
 
 // recordActivity inserts a new group_activity row with fallback content

@@ -2,7 +2,7 @@ package layout
 
 import components "nutmeg/views/components"
 
-templ Base(title string, description string, isLoggedIn bool, currentGroupID string, userName string) {
+templ Base(title string, description string, ogImage string, isLoggedIn bool, currentGroupID string, userName string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -23,6 +23,9 @@ templ Base(title string, description string, isLoggedIn bool, currentGroupID str
 			<meta property="og:type" content="website" />
 			<meta property="og:title" content={ title + " - Nutmeg" } />
 			<meta property="og:description" content={ description } />
+			<meta property="og:image" content={ ogImage } />
+			<link rel="icon" type="image/png" href="/static/img/logo-icon.png" />
+			<link rel="apple-touch-icon" href="/static/img/logo-icon.png" />
 			<link rel="preconnect" href="https://fonts.googleapis.com" />
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Oswald:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -52,7 +55,7 @@ templ Base(title string, description string, isLoggedIn bool, currentGroupID str
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex justify-between h-16 items-center">
 						<div class="flex items-center gap-2">
-							@components.IconBall("size-8 text-turf")
+							<img src="/static/img/logo-icon.png" alt="Nutmeg" class="size-8" />
 							if isLoggedIn {
 								<a href="/dashboard" class="text-2xl sm:text-3xl font-oswald text-pitch font-black tracking-tighter">NUTMEG</a>
 							} else {
@@ -115,6 +118,7 @@ templ Base(title string, description string, isLoggedIn bool, currentGroupID str
 			<footer class="bg-chalk py-8 border-t-4 border-pitch">
 				<div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
 					<div class="flex items-center gap-2">
+						<img src="/static/img/logo-icon.png" alt="Nutmeg" class="size-6" />
 						<span class="text-xl font-oswald text-pitch font-bold">NUTMEG</span>
 					</div>
 					<p class="text-sm text-ink/70 font-body">
