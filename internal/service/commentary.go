@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"nutmeg/internal/model"
@@ -23,6 +24,7 @@ type CommentaryRepository interface {
 	GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error)
 	GetPlayerStats(ctx context.Context, memberID string) (*repository.PlayerStats, error)
 	GetPlayerMatchHistory(ctx context.Context, memberID string, limit int) ([]repository.PlayerMatchResult, error)
+	GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]repository.LeaderboardEntry, error)
 	GetActivePlayerCommentary(ctx context.Context, groupPlayerID string) (*repository.PlayerCommentary, error)
 	ReplacePlayerCommentary(ctx context.Context, groupPlayerID string, matchID *string, content, model string) error
 }
@@ -65,7 +67,14 @@ func (s *CommentaryService) Generate(ctx context.Context, groupPlayerID string, 
 		return fmt.Errorf("commentary: fetch history: %w", err)
 	}
 
-	prompt := s.BuildPrompt(member.Name, *stats, history)
+	leaderboard, err := s.repo.GetGroupLeaderboard(ctx, member.GroupID, "")
+	if err != nil {
+		return fmt.Errorf("commentary: fetch leaderboard: %w", err)
+	}
+	isTopScorer := repository.TopScorerID(leaderboard) == groupPlayerID
+	isTopPasser := repository.TopPasserID(leaderboard) == groupPlayerID
+
+	prompt := s.BuildPrompt(member.Name, *stats, history, isTopScorer, isTopPasser)
 
 	raw, err := s.llm.Generate(ctx, prompt)
 	if err != nil {
@@ -121,9 +130,10 @@ func (s *CommentaryService) CanRegenerate(ctx context.Context, groupPlayerID str
 	return false, CommentaryRegenerationCooldown - elapsed, nil
 }
 
-// BuildPrompt constructs the roast prompt strictly from derived stats and
-// streak data — nothing about a player is ever invented.
-func (s *CommentaryService) BuildPrompt(playerName string, stats repository.PlayerStats, history []repository.PlayerMatchResult) string {
+// BuildPrompt constructs the roast prompt strictly from derived stats,
+// streak data, and group-standing facts — nothing about a player is ever
+// invented.
+func (s *CommentaryService) BuildPrompt(playerName string, stats repository.PlayerStats, history []repository.PlayerMatchResult, isTopScorer, isTopPasser bool) string {
 	scoreless := scorelessStreak(history)
 	losing := losingStreak(history)
 
@@ -135,6 +145,15 @@ func (s *CommentaryService) BuildPrompt(playerName string, stats repository.Play
 		streakLine = fmt.Sprintf("They're on a %d-match losing streak.", losing)
 	}
 
+	var titles []string
+	if isTopScorer {
+		titles = append(titles, "They are currently the group's top scorer.")
+	}
+	if isTopPasser {
+		titles = append(titles, "They are currently the group's top assist provider.")
+	}
+	titleLine := strings.Join(titles, " ")
+
 	return fmt.Sprintf(`You are a savage but good-natured trash-talking commentator for a casual pickup soccer group chat.
 
 Write a short, funny roast (1-3 sentences, no more) about this player, based ONLY on the real stats below. Do not invent any stat, event, or piece of history that isn't listed here. Never mention minutes played or time on the pitch - that data doesn't exist for this app. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
@@ -145,9 +164,10 @@ Record: %d wins, %d draws, %d losses
 Goals: %d
 Assists: %d
 %s
+%s
 
 Write only the roast itself, nothing else - no preamble, no quotation marks.`,
-		playerName, stats.MatchesPlayed, stats.Wins, stats.Draws, stats.Losses, stats.Goals, stats.Assists, streakLine)
+		playerName, stats.MatchesPlayed, stats.Wins, stats.Draws, stats.Losses, stats.Goals, stats.Assists, streakLine, titleLine)
 }
 
 // scorelessStreak counts consecutive most-recent matches (history is

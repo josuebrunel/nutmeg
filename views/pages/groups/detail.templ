@@ -260,26 +260,13 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 					for i, p := range visibleLeaderboardRows(leaderboard, limit, showAllURL) {
 						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) } data-player-name={ strings.ToLower(p.Name) }>
 							<td class="p-3 font-mono font-bold text-pitch">
-								<span class="inline-flex items-center gap-1">
-									if p.ID == topScorerID(leaderboard) {
-										<span class="text-gold" title="Top scorer">
-											@components.IconGoal("size-4")
-										</span>
-									}
-									if p.ID == topPasserID(leaderboard) {
-										<span class="text-gold" title="Top passer">
-											@components.IconBoot("size-4")
-										</span>
-									}
-									if i == 0 {
-										<span class="inline-flex items-center gap-1 text-gold">
-											@components.IconTrophy("size-4")
-											1
-										</span>
-									} else {
-										{ i + 1 }
-									}
-								</span>
+								if i == 0 {
+									<span class="text-gold" title="Rank 1">
+										@rankOneIcon(activeSort)
+									</span>
+								} else {
+									{ i + 1 }
+								}
 							</td>
 							<td class="p-3 font-medium">
 								<a href={ templ.URL("/groups/" + groupID + "/players/" + p.ID) } class="hover:text-turf hover:underline">{ p.Name }</a>
@@ -313,30 +300,21 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 	</div>
 }
 
-// topScorerID returns the id of whichever entry has the strictly-highest
-// Goals in the full (untruncated) leaderboard, or "" if the leaderboard is
-// empty or nobody has scored yet — so no badge is awarded before any goals
-// exist. Always computed from the full slice, independent of the table's
-// current sort column or row truncation.
-func topScorerID(leaderboard []LeaderboardEntry) string {
-	id, max := "", 0
-	for _, p := range leaderboard {
-		if p.Goals > max {
-			id, max = p.ID, p.Goals
-		}
+// rankOneIcon reflects what rank #1 actually means under the table's
+// current sort — a ball when ranked by Goals, a cleat when ranked by
+// Assists, and the trophy otherwise (Wins/Matches/default). Sized in em so
+// it always matches the surrounding row text instead of a fixed rem size —
+// components.IconGoal/IconBoot/IconTrophy hardcode "size-5" as their
+// default, which wins the cascade over any caller-supplied size class.
+templ rankOneIcon(activeSort string) {
+	switch activeSort {
+		case "goals":
+			<iconify-icon icon="mdi:soccer" class="w-[1em] h-[1em] align-middle"></iconify-icon>
+		case "assists":
+			<iconify-icon icon="mdi:shoe-cleat" class="w-[1em] h-[1em] align-middle"></iconify-icon>
+		default:
+			<iconify-icon icon="mdi:trophy" class="w-[1em] h-[1em] align-middle"></iconify-icon>
 	}
-	return id
-}
-
-// topPasserID is topScorerID's counterpart for Assists.
-func topPasserID(leaderboard []LeaderboardEntry) string {
-	id, max := "", 0
-	for _, p := range leaderboard {
-		if p.Assists > max {
-			id, max = p.ID, p.Assists
-		}
-	}
-	return id
 }
 
 // visibleLeaderboardRows returns every row in JS-fallback mode (showAllURL

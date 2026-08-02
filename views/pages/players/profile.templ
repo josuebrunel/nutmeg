@@ -6,12 +6,23 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, chartData ChartData, canEdit bool, successMsg string, errMsg string) {
+templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, chartData ChartData, isTopScorer bool, isTopPasser bool, canEdit bool, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex items-start justify-between gap-4">
 			<div>
 				<a href={ templ.URL("/groups/" + g.PublicPath() + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
-				<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2">{ player.Name }</h2>
+				<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2 flex items-center gap-2">
+					// Icons are sized in em, not a fixed rem class, so they always
+					// match this heading's own font-size (text-3xl / sm:text-4xl)
+					// instead of looking like a small fixed icon next to big text.
+					if isTopScorer {
+						<iconify-icon icon="mdi:soccer" class="text-gold w-[1em] h-[1em]" title="Top scorer"></iconify-icon>
+					}
+					if isTopPasser {
+						<iconify-icon icon="mdi:shoe-cleat" class="text-gold w-[1em] h-[1em]" title="Top passer"></iconify-icon>
+					}
+					{ player.Name }
+				</h2>
 			</div>
 			@components.ShareWidget(player.Name + " on " + g.Name + " — Nutmeg")
 		</div>

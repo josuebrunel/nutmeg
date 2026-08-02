@@ -278,6 +278,15 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	}
 	chartData := buildChartData(stats, history, appmw.LocationFromContext(c))
 
+	isTopScorer := false
+	isTopPasser := false
+	if entries, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, ""); lbErr != nil {
+		slog.Error("failed to get leaderboard for profile badges", "group_id", g.ID, "error", lbErr)
+	} else {
+		isTopScorer = repository.TopScorerID(entries) == player.ID
+		isTopPasser = repository.TopPasserID(entries) == player.ID
+	}
+
 	isLoggedIn := false
 	userName := ""
 	canEdit := false
@@ -298,7 +307,7 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	}
 	description = truncateMeta(description, 200)
 
-	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, chartData, canEdit, successMsg, errMsg))
+	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, chartData, isTopScorer, isTopPasser, canEdit, successMsg, errMsg))
 }
 
 // buildChartData maps a player's aggregate stats and recent match history

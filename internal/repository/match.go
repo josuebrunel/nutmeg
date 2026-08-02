@@ -34,6 +34,30 @@ type LeaderboardEntry struct {
 	Assists  int    `db:"assists"`
 }
 
+// TopScorerID returns the member id with the strictly-highest Goals in
+// entries, or "" if entries is empty or nobody has scored yet — so no
+// caller awards a "top scorer" badge before any goals exist.
+func TopScorerID(entries []LeaderboardEntry) string {
+	id, max := "", 0
+	for _, e := range entries {
+		if e.Goals > max {
+			id, max = e.MemberID, e.Goals
+		}
+	}
+	return id
+}
+
+// TopPasserID is TopScorerID's counterpart for Assists.
+func TopPasserID(entries []LeaderboardEntry) string {
+	id, max := "", 0
+	for _, e := range entries {
+		if e.Assists > max {
+			id, max = e.MemberID, e.Assists
+		}
+	}
+	return id
+}
+
 type PlayerStats struct {
 	MatchesPlayed int `db:"matches_played"`
 	Wins          int `db:"wins"`

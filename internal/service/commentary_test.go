@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"nutmeg/internal/assert"
@@ -93,7 +94,7 @@ func TestMatchResult(t *testing.T) {
 func TestBuildPrompt_NoInventedStats(t *testing.T) {
 	s := &CommentaryService{}
 	stats := repository.PlayerStats{MatchesPlayed: 5, Wins: 2, Draws: 1, Losses: 2, Goals: 3, Assists: 1}
-	prompt := s.BuildPrompt("Chris", stats, nil)
+	prompt := s.BuildPrompt("Chris", stats, nil, false, false)
 
 	assert.StrContains(t, prompt, "Chris")
 	assert.StrContains(t, prompt, "2 wins, 1 draws, 2 losses")
@@ -101,4 +102,27 @@ func TestBuildPrompt_NoInventedStats(t *testing.T) {
 	assert.StrContains(t, prompt, "Assists: 1")
 	assert.StrContains(t, prompt, "Do not invent")
 	assert.StrContains(t, prompt, "minutes played")
+	assert.False(t, strings.Contains(prompt, "top scorer"))
+	assert.False(t, strings.Contains(prompt, "top assist provider"))
+}
+
+func TestBuildPrompt_TitleFacts(t *testing.T) {
+	s := &CommentaryService{}
+	stats := repository.PlayerStats{MatchesPlayed: 5, Wins: 2, Draws: 1, Losses: 2, Goals: 3, Assists: 1}
+
+	t.Run("top scorer", func(t *testing.T) {
+		prompt := s.BuildPrompt("Chris", stats, nil, true, false)
+		assert.StrContains(t, prompt, "currently the group's top scorer")
+	})
+
+	t.Run("top passer", func(t *testing.T) {
+		prompt := s.BuildPrompt("Chris", stats, nil, false, true)
+		assert.StrContains(t, prompt, "currently the group's top assist provider")
+	})
+
+	t.Run("both", func(t *testing.T) {
+		prompt := s.BuildPrompt("Chris", stats, nil, true, true)
+		assert.StrContains(t, prompt, "top scorer")
+		assert.StrContains(t, prompt, "top assist provider")
+	})
 }

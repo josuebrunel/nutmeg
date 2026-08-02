@@ -27,7 +27,7 @@ func main() {
 		{GoalsScored: 0},
 		{GoalsScored: 0},
 	}
-	prompt := (&service.CommentaryService{}).BuildPrompt("Chris", stats, history)
+	prompt := (&service.CommentaryService{}).BuildPrompt("Chris", stats, history, true, false)
 
 	fmt.Println("--- prompt ---")
 	fmt.Println(prompt)
