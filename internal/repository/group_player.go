@@ -31,9 +31,13 @@ func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone,
 		im.OnConflict("group_id", "name").DoUpdate(
 			im.SetCol("role").ToArg(role),
 		),
+		im.Returning("id"),
 	)
-	_, err := bob.Exec(ctx, r.db, query)
-	return err
+	id, err := bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
+	if err != nil {
+		return err
+	}
+	return setSlugIfEmpty(ctx, r.db, "group_players", id, name)
 }
 
 // ImportMember upserts a CSV-imported roster row: unlike AddMember (which
@@ -48,9 +52,13 @@ func (r *Repository) ImportMember(ctx context.Context, groupID, name string, pho
 		ON CONFLICT (group_id, name) DO UPDATE SET
 			phone = COALESCE(EXCLUDED.phone, group_players.phone),
 			email = COALESCE(EXCLUDED.email, group_players.email)
+		RETURNING id
 	`, groupID, name, phone, email)
-	_, err := bob.Exec(ctx, r.db, query)
-	return err
+	id, err := bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
+	if err != nil {
+		return err
+	}
+	return setSlugIfEmpty(ctx, r.db, "group_players", id, name)
 }
 
 func (r *Repository) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error {
@@ -98,12 +106,16 @@ func (r *Repository) ListMembers(ctx context.Context, groupID string) ([]MemberI
 	return bob.All[MemberInfo](ctx, r.db, query, scan.StructMapper[MemberInfo]())
 }
 
-func (r *Repository) GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error) {
+// GetMember looks up a player by id or, once slugged (see internal/slug),
+// by its slug — groupID is always the group's real id here (callers must
+// resolve a group slug via GetGroup first; slugs are only scoped within a
+// group, not globally unique, so it can't be branched on independently).
+func (r *Repository) GetMember(ctx context.Context, groupID, memberIDOrSlug string) (*model.GroupPlayer, error) {
 	query := psql.Select(
-		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "slug", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
-		sm.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
+		sm.Where(resolveByIDOrSlug(memberIDOrSlug)),
 	)
 	return bob.One(ctx, r.db, query, scan.StructMapper[*model.GroupPlayer]())
 }

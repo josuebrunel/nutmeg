@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
@@ -12,6 +13,7 @@ import (
 	"github.com/stephenafamo/scan"
 
 	"nutmeg/internal/model"
+	"nutmeg/internal/slug"
 )
 
 func (r *Repository) CreateGroup(ctx context.Context, g *model.Group) error {
@@ -20,19 +22,35 @@ func (r *Repository) CreateGroup(ctx context.Context, g *model.Group) error {
 		im.Values(psql.Arg(g.Name, g.Description, g.CreatedBy)),
 		im.Returning("id", "created_at", "updated_at"),
 	)
-	result, err := bob.One(ctx, r.db, query, scan.StructMapper[*model.Group]())
+	// Scanned into a narrow struct matching exactly the RETURNING columns,
+	// not the full model.Group — a `*g = *result` against a Group-shaped
+	// result would silently zero out g.Name/g.Description/g.CreatedBy,
+	// since those columns aren't in this RETURNING clause.
+	type created struct {
+		ID        string    `db:"id"`
+		CreatedAt time.Time `db:"created_at"`
+		UpdatedAt time.Time `db:"updated_at"`
+	}
+	result, err := bob.One(ctx, r.db, query, scan.StructMapper[created]())
 	if err != nil {
 		return err
 	}
-	*g = *result
+	g.ID, g.CreatedAt, g.UpdatedAt = result.ID, result.CreatedAt, result.UpdatedAt
+	if err := setSlugIfEmpty(ctx, r.db, "groups", g.ID, g.Name); err != nil {
+		return err
+	}
+	s := slug.New(g.Name, g.ID)
+	g.Slug = &s
 	return nil
 }
 
-func (r *Repository) GetGroup(ctx context.Context, id string) (*model.Group, error) {
+// GetGroup looks up a group by id or, once slugged (see internal/slug),
+// by its slug — both current UUID links and newer slug links resolve.
+func (r *Repository) GetGroup(ctx context.Context, idOrSlug string) (*model.Group, error) {
 	query := psql.Select(
-		sm.Columns("id", "name", "description", "created_by", "created_at", "updated_at"),
+		sm.Columns("id", "name", "description", "created_by", "slug", "created_at", "updated_at"),
 		sm.From("groups"),
-		sm.Where(psql.Quote("id").EQ(psql.Arg(id))),
+		sm.Where(resolveByIDOrSlug(idOrSlug)),
 	)
 	return bob.One(ctx, r.db, query, scan.StructMapper[*model.Group]())
 }

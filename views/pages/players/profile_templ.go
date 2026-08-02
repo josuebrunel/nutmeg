@@ -40,9 +40,9 @@ func Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Player
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 templ.SafeURL
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + g.ID + "/leaderboard"))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + g.PublicPath() + "/leaderboard"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/players/profile.templ`, Line: 13, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/players/profile.templ`, Line: 13, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -55,7 +55,7 @@ func Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Player
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/players/profile.templ`, Line: 13, Col: 131}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/players/profile.templ`, Line: 13, Col: 141}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {

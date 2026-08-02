@@ -198,9 +198,9 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	}
 
 	sortBy := c.QueryParam("sort")
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
+	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), g.ID, sortBy)
 	if lbErr != nil {
-		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+		slog.Error("failed to get leaderboard", "group_id", g.ID, "error", lbErr)
 	}
 	lbEntries := mapLeaderboardEntries(leaderboard)
 
@@ -236,25 +236,25 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	player, err := h.repo.GetMember(ctx, id, memberID)
+	player, err := h.repo.GetMember(ctx, g.ID, memberID)
 	if err != nil {
 		return err
 	}
-	stats, err := h.matchSvc.GetPlayerStats(ctx, memberID)
+	stats, err := h.matchSvc.GetPlayerStats(ctx, player.ID)
 	if err != nil {
 		return err
 	}
 
 	var commentary *string
-	if pc, err := h.repo.GetActivePlayerCommentary(ctx, memberID); err != nil {
-		slog.Error("failed to get player commentary", "member_id", memberID, "error", err)
+	if pc, err := h.repo.GetActivePlayerCommentary(ctx, player.ID); err != nil {
+		slog.Error("failed to get player commentary", "member_id", player.ID, "error", err)
 	} else if pc != nil {
 		commentary = &pc.Content
 	}
 
-	history, histErr := h.repo.GetPlayerMatchHistory(ctx, memberID, 10)
+	history, histErr := h.repo.GetPlayerMatchHistory(ctx, player.ID, 10)
 	if histErr != nil {
-		slog.Error("failed to get player match history", "member_id", memberID, "error", histErr)
+		slog.Error("failed to get player match history", "member_id", player.ID, "error", histErr)
 	}
 	chartData := buildChartData(stats, history, appmw.LocationFromContext(c))
 
