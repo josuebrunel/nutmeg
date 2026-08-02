@@ -281,7 +281,7 @@ func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEdi
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.IconGoal("size-4").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.IconGoal("size-4 text-turf").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -354,7 +354,7 @@ func LogForm(groupID string, members []repository.MemberInfo, editData *MatchEdi
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.IconBoot("size-4").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.IconBoot("size-4 text-turf").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

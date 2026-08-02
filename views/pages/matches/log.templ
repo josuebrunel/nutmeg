@@ -146,14 +146,14 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 									</div>
 									<div class="flex items-center gap-3">
 									<div class="goal-stepper items-center gap-1 shrink-0">
-										@components.IconGoal("size-4")
+										@components.IconGoal("size-4 text-turf")
 										<button type="button" class="goal-dec w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Decrease goals for " + m.Name }>&minus;</button>
 										<span class="goal-count w-4 text-center text-sm font-mono">{ intVal(editData, m.ID) }</span>
 										<button type="button" class="goal-inc w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Increase goals for " + m.Name }>+</button>
 										<input type="hidden" name={ "goals_" + m.ID } class="goal-input" value={ intVal(editData, m.ID) }/>
 									</div>
 									<div class="assist-stepper items-center gap-1 shrink-0">
-										@components.IconBoot("size-4")
+										@components.IconBoot("size-4 text-turf")
 										<button type="button" class="assist-dec w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Decrease assists for " + m.Name }>&minus;</button>
 										<span class="assist-count w-4 text-center text-sm font-mono">{ assistVal(editData, m.ID) }</span>
 										<button type="button" class="assist-inc w-6 h-6 rounded-full border border-pitch/30 font-mono text-sm leading-none hover:bg-base-200" aria-label={ "Increase assists for " + m.Name }>+</button>
