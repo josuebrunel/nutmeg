@@ -2,7 +2,7 @@ package layout
 
 import components "nutmeg/views/components"
 
-templ Base(title string, isLoggedIn bool, currentGroupID string, userName string) {
+templ Base(title string, description string, isLoggedIn bool, currentGroupID string, userName string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -19,7 +19,10 @@ templ Base(title string, isLoggedIn bool, currentGroupID string, userName string
 				})();
 			</script>
 			<title>{ title } - Nutmeg</title>
-			<meta name="description" content="Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists." />
+			<meta name="description" content={ description } />
+			<meta property="og:type" content="website" />
+			<meta property="og:title" content={ title + " - Nutmeg" } />
+			<meta property="og:description" content={ description } />
 			<link rel="preconnect" href="https://fonts.googleapis.com" />
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Oswald:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />

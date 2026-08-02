@@ -220,7 +220,8 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(ctx)
 	errMsg := h.auth.GetErrorMessage(ctx)
 
-	return page(c, g.Name+" Leaderboard", isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, sortBy, successMsg, errMsg))
+	description := fmt.Sprintf("%s's leaderboard on Nutmeg — %d players tracked, updated after every match.", g.Name, len(lbEntries))
+	return pageWithMeta(c, g.Name+" Leaderboard", description, isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, sortBy, successMsg, errMsg))
 }
 
 // PlayerProfile renders a single player's stats. Like PublicLeaderboard,
@@ -265,7 +266,29 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	successMsg := h.auth.GetSuccessMessage(ctx)
 	errMsg := h.auth.GetErrorMessage(ctx)
 
-	return page(c, player.Name+" — "+g.Name, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, canEdit, successMsg, errMsg))
+	description := fmt.Sprintf("%s — %d matches, %d wins, %d goals for %s on Nutmeg.", player.Name, stats.MatchesPlayed, stats.Wins, stats.Goals, g.Name)
+	if commentary != nil && *commentary != "" {
+		description = *commentary
+	}
+	description = truncateMeta(description, 200)
+
+	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, canEdit, successMsg, errMsg))
+}
+
+// truncateMeta hard-caps a link-preview description to max characters,
+// breaking on a word boundary when possible. Distinct from the service
+// package's sentence-boundary roast trimming (truncateAtSentence) — this
+// solves a different problem (a crawler-snippet length cap, not display
+// readability), so it isn't shared with that logic.
+func truncateMeta(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	cut := s[:max]
+	if i := strings.LastIndex(cut, " "); i > 0 {
+		cut = cut[:i]
+	}
+	return strings.TrimSpace(cut) + "…"
 }
 
 // RegenerateCommentary lets a group admin manually re-run roast generation

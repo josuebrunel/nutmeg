@@ -45,8 +45,18 @@ func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *servic
 	}
 }
 
+// defaultDescription is used by every page except those that opt into a
+// more specific one via pageWithMeta (currently the public leaderboard and
+// player profile pages, whose link-preview description should reflect the
+// group/player being shared rather than this generic site blurb).
+const defaultDescription = "Nutmeg is a free, self-hosted stats tracker for pickup soccer groups — split into teams, log matches, and keep a standing leaderboard of wins, goals, and assists."
+
 func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {
+	return pageWithMeta(c, title, defaultDescription, isLoggedIn, currentGroupID, userName, cmp)
+}
+
+func pageWithMeta(c *echo.Context, title, description string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	ctx := templ.WithChildren(c.Request().Context(), cmp)
-	return layout.Base(title, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
+	return layout.Base(title, description, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
 }
