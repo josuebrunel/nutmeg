@@ -26,7 +26,7 @@ A web application for tracking soccer matches, teams, players, and statistics wi
 - Public request-to-join flow with admin approve/reject, alongside a public group leaderboard viewable without logging in
 - Match logging with a tap-to-assign team toggle, live score auto-calculation, per-player goals/assists, and an editable match date shown in each visitor's local timezone
 - Sortable, searchable leaderboard and player profile pages (matches played, wins/draws, goals, assists) with truncated/expandable Leaderboard, Roster, and Recent Matches lists
-- AI-generated player "roast" commentary: a local Ollama LLM produces a one-off blurb per player after each match via a RiverQueue background job, with an admin-gated, cooldown-limited manual regeneration option
+- AI-generated player "roast" commentary and group activity news: an LLM (local Ollama by default, or Google's Generative Language API — pluggable via `LLM_PROVIDER`) produces a one-off blurb per player after each match via a RiverQueue background job, with an admin-gated, cooldown-limited manual regeneration option
 - Global stats dashboard (`/stats`)
 - Responsive sidebar layout with contextual navigation
 - Flash messages for success and error feedback
@@ -46,7 +46,7 @@ A web application for tracking soccer matches, teams, players, and statistics wi
 | **Query Builder**  | [Bob](https://github.com/stephenafamo/bob) + [scan.StructMapper](https://github.com/stephenafamo/scan)                                           |
 | **Migrations**     | [Goose v3](https://github.com/pressly/goose/v3) (embedded, no global registry)                                                                   |
 | **Background Jobs**| [RiverQueue](https://github.com/riverqueue/river) (Postgres-backed job queue, e.g. async AI commentary generation)                               |
-| **AI / LLM**       | [Ollama](https://ollama.com) (local LLM inference for player commentary, via a hand-rolled client in `internal/llm/`)                            |
+| **AI / LLM**       | Pluggable via `LLM_PROVIDER` — [Ollama](https://ollama.com) (local inference, default) or [Google's Generative Language API](https://ai.google.dev/gemini-api/docs/models) (e.g. Gemma), both hand-rolled clients in `internal/llm/`, no SDK |
 | **Authentication** | [Ezauth](https://github.com/josuebrunel/ezauth)                                                                                                  |
 | **Configuration**  | [Xenv](https://github.com/josuebrunel/gopkg/xenv)                                                                                                |
 | **Hot Reload**     | [Air](https://github.com/air-verse/air)                                                                                                          |
@@ -123,7 +123,7 @@ Indexes cover the foreign-key columns for efficient lookups.
 
 - Go 1.25+ (CI and the Docker image build with Go 1.26)
 - PostgreSQL 17 (or Docker)
-- [Ollama](https://ollama.com) running locally (or reachable via `OLLAMA_BASE_URL`) for AI player commentary
+- For AI player commentary: either [Ollama](https://ollama.com) running locally/reachable (default, via `LLM_BASE_URL`), or a Google Generative Language API key (set `LLM_PROVIDER=google` and `LLM_API_KEY`) — see [Configuration](#configuration)
 - [Templ CLI](https://github.com/a-h/templ) — `go install github.com/a-h/templ/cmd/templ@latest`
 - (Optional) [Air](https://github.com/air-verse/air) for hot reload — `go install github.com/air-verse/air@latest`
 
@@ -204,7 +204,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │   ├── config/                  # Environment-based configuration
 │   ├── database/                # Database connection + migrations
 │   ├── handler/                 # HTTP handlers (auth, account, group, home, match)
-│   ├── llm/                     # Ollama client for AI player commentary
+│   ├── llm/                     # Ollama + Google LLM clients (pluggable via LLM_PROVIDER)
 │   ├── middleware/               # Auth + timezone middleware
 │   ├── model/                   # Domain structs with db tags
 │   ├── render/                  # Templ rendering helpers
@@ -338,8 +338,15 @@ All configuration is loaded from the environment (or `.env` file) using Xenv.
 | `BASE_URL`                     | `http://localhost:8080` | Base URL for redirects          |
 | `DEBUG`                        | `false`                 | Enable debug mode               |
 | `DB_DSN`                       | *(required)*            | PostgreSQL connection string    |
-| `OLLAMA_BASE_URL`              | `http://localhost:11434`| Ollama server URL for AI player commentary |
-| `OLLAMA_MODEL`                 | `llama3.1:8b`           | Ollama model used to generate commentary |
+| `LLM_PROVIDER`                 | `ollama`                | LLM backend: `ollama` or `google` — same LLM_BASE_URL/LLM_API_KEY/LLM_MODEL names apply to whichever is selected |
+| `LLM_BASE_URL`                 | `http://localhost:11434`| Ollama server URL (unused when `LLM_PROVIDER=google`) |
+| `LLM_API_KEY`                  | *(empty)*               | Google Generative Language API key (unused when `LLM_PROVIDER=ollama`) |
+| `LLM_MODEL`                    | `llama3.1:8b`           | Ollama tag or Google model id, depending on `LLM_PROVIDER` |
+| `SMTP_HOST`                    | *(empty)*               | SMTP server host — leave blank to disable email sending (no-op, logged) |
+| `SMTP_PORT`                    | `587`                   | SMTP server port                |
+| `SMTP_USERNAME`                | *(empty)*               | SMTP auth username               |
+| `SMTP_PASSWORD`                | *(empty)*               | SMTP auth password               |
+| `EMAIL_FROM`                   | `noreply@nutmeg.local`  | From address for outgoing email |
 | `EZAUTH_JWT_SECRET`            | *(required)*            | JWT signing secret              |
 | `EZAUTH_DB_DIALECT`            | `postgres`              | Auth database dialect           |
 | `EZAUTH_DB_DSN`                | *(required)*            | Auth database connection string |

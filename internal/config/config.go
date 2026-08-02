@@ -5,7 +5,7 @@ type Config struct {
 	BaseURL string `env:"BASE_URL" default:"http://localhost:8080"`
 	Debug   bool   `env:"DEBUG" default:"false"`
 	Database
-	Ollama
+	LLM
 	Email
 }
 
@@ -13,9 +13,23 @@ type Database struct {
 	DSN string `env:"DB_DSN" required:"true"`
 }
 
-type Ollama struct {
-	BaseURL string `env:"OLLAMA_BASE_URL" default:"http://localhost:11434"`
-	Model   string `env:"OLLAMA_MODEL" default:"llama3.1:8b"`
+// LLM is one standardized set of settings shared by every LLMGenerator
+// implementation (internal/llm), regardless of provider — only Provider
+// needs to change to switch; BaseURL/APIKey/Model are reinterpreted per
+// provider (e.g. BaseURL is Ollama's server address and unused by Google;
+// APIKey is unused by Ollama, which needs no auth). Model must match
+// whatever the selected provider actually expects (an Ollama tag like
+// "llama3.1:8b", or a Google model id — check
+// https://ai.google.dev/gemini-api/docs/models before relying on the
+// default below).
+type LLM struct {
+	// Provider picks which LLMGenerator implementation cmd/server wires
+	// up — "ollama" (default, local/self-hosted) or "google" (Google's
+	// Generative Language API, e.g. to run Gemma directly).
+	Provider string `env:"LLM_PROVIDER" default:"ollama"`
+	BaseURL  string `env:"LLM_BASE_URL" default:"http://localhost:11434"`
+	APIKey   string `env:"LLM_API_KEY" default:""`
+	Model    string `env:"LLM_MODEL" default:"llama3.1:8b"`
 }
 
 // Email is deliberately generic SMTP, not a specific provider's API — an

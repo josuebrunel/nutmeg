@@ -95,7 +95,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	llmClient := llm.NewClient(cfg.Ollama.BaseURL, cfg.Ollama.Model, 2*time.Minute)
+	var llmClient service.LLMGenerator
+	switch cfg.LLM.Provider {
+	case "google":
+		llmClient = llm.NewGoogleClient(cfg.LLM.APIKey, cfg.LLM.Model, 2*time.Minute)
+	default:
+		llmClient = llm.NewClient(cfg.LLM.BaseURL, cfg.LLM.Model, 2*time.Minute)
+	}
 	commentarySvc := service.NewCommentaryService(repo, llmClient)
 	activitySvc := service.NewActivityService(repo, llmClient)
 	emailClient := email.NewClient(cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.Username, cfg.Email.Password, cfg.Email.From)
