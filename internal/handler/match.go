@@ -164,8 +164,11 @@ func parsePlayedAt(c *echo.Context, loc *time.Location) time.Time {
 	return time.Date(d.Year(), d.Month(), d.Day(), now.Hour(), now.Minute(), now.Second(), 0, loc)
 }
 
+// htmxRedirect sends the browser back to the group page's Recent Matches
+// tab — the natural place to land after logging, editing, or deleting a
+// match, since that's where the change is immediately visible.
 func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
-	c.Response().Header().Set("HX-Redirect", "/groups/"+groupID)
+	c.Response().Header().Set("HX-Redirect", "/groups/"+groupID+"?tab=matches")
 	return c.NoContent(http.StatusOK)
 }
 
@@ -226,7 +229,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		return h.htmxRedirect(c, groupID)
 	}
 	h.auth.Handler.SetFlash(c.Request().Context(), "success", "Match logged!")
-	return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	return c.Redirect(http.StatusFound, "/groups/"+groupID+"?tab=matches")
 }
 
 func (h *MatchHandler) Delete(c *echo.Context) error {
@@ -249,7 +252,7 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 	if isHTMX(c) {
 		return h.htmxRedirect(c, groupID)
 	}
-	return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	return c.Redirect(http.StatusFound, "/groups/"+groupID+"?tab=matches")
 }
 
 func (h *MatchHandler) EditModal(c *echo.Context) error {
@@ -348,5 +351,5 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 		return h.htmxRedirect(c, groupID)
 	}
 	h.auth.Handler.SetFlash(c.Request().Context(), "success", "Match updated!")
-	return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	return c.Redirect(http.StatusFound, "/groups/"+groupID+"?tab=matches")
 }

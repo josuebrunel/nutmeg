@@ -8,7 +8,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, activity []ActivityEntry, sortBy string, successMsg string, errMsg string) {
+templ Detail(g *model.Group, isAdmin bool, isOwner bool, tabContent templ.Component, successMsg string, errMsg string) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex flex-wrap items-center justify-between gap-3">
 			<div class="flex items-center gap-3">
@@ -36,38 +36,79 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
 		<div id="detail-content-area">
-			@GroupContent(g, members, isAdmin, isOwner, ownerEmail, joinRequests, leaderboard, matches, activity, sortBy)
+			@tabContent
 		</div>
 	</div>
 }
 
-// GroupContent is the swappable body of a group's page: the leaderboard,
-// roster, and recent-matches columns. Logging or editing a match swaps this
-// entire block (id="detail-content-area", set by the caller) for the
-// match-log form, and "Cancel" swaps it back in via GroupHandler.DetailContent.
-// Each section is rendered with fullWidth=false here — its own "Show all"
-// link takes over #detail-content-area on its own (see LeaderboardFull /
-// RosterFull / MatchesFull), which is what fullWidth=true renders.
-templ GroupContent(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, activity []ActivityEntry, sortBy string) {
-	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-		@LeaderboardSection(g.ID, sortBy, leaderboard, false)
-		@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests, false)
-		@RecentMatchesColumn(g.ID, matches, false)
-	</div>
-	@ActivityFeed(activity)
+// tabClass picks the active vs. inactive tab-button styling — same
+// plain-Go-helper pattern as leaderboardRowClass below.
+func tabClass(key, active string) string {
+	if key == active {
+		return "border-turf text-turf"
+	}
+	return "border-transparent text-ink/60 hover:text-pitch"
 }
 
-// backLink restores the normal 3-column GroupContent view — the counterpart
-// to a section's "Show all" full-width takeover.
-templ backLink(groupID string) {
-	<button type="button" class="inline-flex items-center text-turf hover:text-pitch font-oswald mb-4 text-sm" hx-get={ templ.URL("/groups/" + groupID + "/detail-content") } hx-target="#detail-content-area" hx-swap="innerHTML">
-		&larr; Back
+templ groupTabButton(groupID, path, key, active string) {
+	<button
+		type="button"
+		hx-get={ templ.URL("/groups/" + groupID + "/" + path) }
+		hx-target="#detail-content-area"
+		hx-swap="innerHTML"
+		class={ "px-4 py-2 font-oswald text-sm flex items-center gap-1.5 border-b-2 -mb-0.5 shrink-0 whitespace-nowrap transition-colors", tabClass(key, active) }
+	>
+		{ children... }
 	</button>
 }
 
-// widthClass picks between a section's normal grid column span and a
-// centered full-width wrapper, used when the section takes over
-// #detail-content-area via its "Show all" link.
+// GroupTabs is the persistent Leaderboard / Roster / Recent Matches menu
+// shown above whichever section is currently active — the replacement for
+// the old always-visible 3-column layout. Each button takes over the whole
+// #detail-content-area (tab bar included), so switching tabs re-renders the
+// active-state styling along with the new section. overflow-x-auto lets the
+// bar scroll horizontally on narrow phone screens instead of wrapping or
+// overflowing the viewport — the three labels together are wider than a
+// typical phone's content width once page padding is accounted for.
+templ GroupTabs(groupID string, active string) {
+	<div class="flex gap-1 mb-6 border-b-2 border-pitch/10 overflow-x-auto">
+		@groupTabButton(groupID, "leaderboard-full", "leaderboard", active) {
+			@components.IconTrophy("size-4")
+			LEADERBOARD
+		}
+		@groupTabButton(groupID, "roster-full", "roster", active) {
+			@components.IconJersey("size-4")
+			ROSTER
+		}
+		@groupTabButton(groupID, "matches-full", "matches", active) {
+			@components.IconMatch("size-4")
+			RECENT MATCHES
+		}
+	</div>
+}
+
+templ LeaderboardTab(groupID string, sortBy string, leaderboard []LeaderboardEntry, activity []ActivityEntry) {
+	@GroupTabs(groupID, "leaderboard")
+	@LeaderboardSection(groupID, sortBy, leaderboard, true)
+	@ActivityFeed(activity)
+}
+
+templ RosterTab(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, activity []ActivityEntry) {
+	@GroupTabs(g.ID, "roster")
+	@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests, true)
+	@ActivityFeed(activity)
+}
+
+templ MatchesTab(groupID string, matches []MatchEntry, activity []ActivityEntry) {
+	@GroupTabs(groupID, "matches")
+	@RecentMatchesColumn(groupID, matches, true)
+	@ActivityFeed(activity)
+}
+
+// widthClass picks between a section's normal grid column span (now unused
+// by the tabbed private group page, which always renders fullWidth=true,
+// but still relevant if a section is ever embedded non-full elsewhere) and
+// a centered full-width wrapper.
 func widthClass(fullWidth bool, colSpanClass, fullClass string) string {
 	if fullWidth {
 		return fullClass
@@ -76,10 +117,7 @@ func widthClass(fullWidth bool, colSpanClass, fullClass string) string {
 }
 
 templ LeaderboardSection(groupID string, sortBy string, leaderboard []LeaderboardEntry, fullWidth bool) {
-	<div class={ widthClass(fullWidth, "lg:col-span-5", "max-w-4xl mx-auto") }>
-		if fullWidth {
-			@backLink(groupID)
-		}
+	<div class={ widthClass(fullWidth, "lg:col-span-5", "w-full") }>
 		<div class="flex items-center justify-between mb-4">
 			<h3 class="font-oswald text-2xl text-pitch flex items-center gap-2">
 				@components.IconTrophy("size-6")
@@ -120,10 +158,7 @@ func leaderboardShowAllURL(fullWidth bool, groupID, sortBy string) string {
 }
 
 templ RecentMatchesColumn(groupID string, matches []MatchEntry, fullWidth bool) {
-	<div class={ widthClass(fullWidth, "lg:col-span-4", "max-w-3xl mx-auto") }>
-		if fullWidth {
-			@backLink(groupID)
-		}
+	<div class={ widthClass(fullWidth, "lg:col-span-4", "w-full") }>
 		<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
 		<div class="space-y-4">
 			if len(matches) == 0 {
@@ -355,10 +390,7 @@ func sortLinkClass(sortKey, activeSort string) string {
 }
 
 templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, fullWidth bool) {
-	<div id="roster-column" class={ widthClass(fullWidth, "lg:col-span-3", "max-w-3xl mx-auto") }>
-		if fullWidth {
-			@backLink(g.ID)
-		}
+	<div id="roster-column" class={ widthClass(fullWidth, "lg:col-span-3", "w-full") }>
 		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">@components.IconJersey("size-6") ROSTER</h3>
 		if isAdmin && len(joinRequests) > 0 {
 			<div class="bg-white rounded-lg shadow border border-pitch/20 p-3 sm:p-4 mb-4">

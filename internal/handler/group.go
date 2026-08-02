@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/josuebrunel/ezauth"
 	"github.com/labstack/echo/v5"
 
@@ -119,43 +120,69 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 		return err
 	}
 
-	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	canEdit, isOwner, _ := h.rosterViewData(c.Request().Context(), g, userID)
 	if !canEdit {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
-	members, err := h.service.Members(c.Request().Context(), id)
+	tabContent, err := h.groupTabComponent(c, g, userID, c.QueryParam("tab"))
 	if err != nil {
 		return err
-	}
-
-	sortBy := c.QueryParam("sort")
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
-	if lbErr != nil {
-		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
-	}
-
-	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
-	if matchErr != nil {
-		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
-	}
-
-	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
-
-	activity, actErr := h.repo.ListGroupActivity(c.Request().Context(), id, 20)
-	if actErr != nil {
-		slog.Error("failed to list group activity", "group_id", id, "error", actErr)
 	}
 
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), sortBy, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, canEdit, isOwner, tabContent, successMsg, errMsg))
+}
+
+// groupTabComponent builds whichever tab's content the caller asked for
+// ("roster", "matches", or the default "leaderboard") — shared by Detail
+// (the default group-page load, which honors ?tab= so redirects like
+// "match logged" can land on the right tab) and the LeaderboardFull /
+// RosterFull / MatchesFull handlers (a tab-bar click).
+func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID string, tab string) (templ.Component, error) {
+	ctx := c.Request().Context()
+	switch tab {
+	case "roster":
+		canEdit, isOwner, ownerEmail := h.rosterViewData(ctx, g, userID)
+		members, err := h.service.Members(ctx, g.ID)
+		if err != nil {
+			return nil, err
+		}
+		joinRequests := h.joinRequestEntries(ctx, g.ID, canEdit)
+		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
+		if actErr != nil {
+			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		}
+		return groups.RosterTab(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+	case "matches":
+		matches, matchErr := h.matchSvc.ListByGroup(ctx, g.ID)
+		if matchErr != nil {
+			slog.Error("failed to list matches", "group_id", g.ID, "error", matchErr)
+		}
+		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
+		if actErr != nil {
+			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		}
+		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+	default:
+		sortBy := c.QueryParam("sort")
+		leaderboard, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, sortBy)
+		if lbErr != nil {
+			slog.Error("failed to get leaderboard", "group_id", g.ID, "error", lbErr)
+		}
+		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
+		if actErr != nil {
+			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		}
+		return groups.LeaderboardTab(g.ID, sortBy, mapLeaderboardEntries(leaderboard), mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+	}
 }
 
 // mapLeaderboardEntries converts repository leaderboard rows into the
 // groups view struct — shared by every handler that renders a leaderboard
-// (Detail, DetailContent, PublicLeaderboard, LeaderboardFull).
+// (Detail, PublicLeaderboard, LeaderboardFull).
 func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.LeaderboardEntry {
 	out := make([]groups.LeaderboardEntry, len(entries))
 	for i, e := range entries {
@@ -175,7 +202,7 @@ func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.Leade
 
 // mapMatchEntries converts repository matches into the groups view struct —
 // shared by every handler that renders the Recent Matches list (Detail,
-// DetailContent, MatchesFull).
+// MatchesFull).
 func mapMatchEntries(matches []repository.MatchWithTeams, loc *time.Location) []groups.MatchEntry {
 	out := make([]groups.MatchEntry, len(matches))
 	for i, m := range matches {
@@ -194,7 +221,7 @@ func mapMatchEntries(matches []repository.MatchWithTeams, loc *time.Location) []
 
 // mapActivityEntries converts repository group_activity rows into the
 // groups view struct — shared by every handler that renders the activity
-// feed (Detail, DetailContent, detailContentWithToast).
+// feed (Detail, LeaderboardFull, RosterFull, MatchesFull, rosterTabWithToast).
 func mapActivityEntries(entries []model.GroupActivity, loc *time.Location) []groups.ActivityEntry {
 	out := make([]groups.ActivityEntry, len(entries))
 	for i, e := range entries {
@@ -208,8 +235,8 @@ func mapActivityEntries(entries []model.GroupActivity, loc *time.Location) []gro
 }
 
 // PublicLeaderboard renders a group's leaderboard for anyone, logged in or
-// not — unlike Detail/DetailContent it doesn't require a session or CanEdit,
-// since the leaderboard data itself isn't scoped to the viewer.
+// not — unlike Detail it doesn't require a session or CanEdit, since the
+// leaderboard data itself isn't scoped to the viewer.
 func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
@@ -558,57 +585,9 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, "/dashboard")
 }
 
-// DetailContent re-renders the full swappable group body (leaderboard,
-// roster, recent matches) — used to restore it after the match-log form's
-// "Cancel" link, since logging/editing a match now swaps the whole area,
-// not just the leaderboard.
-func (h *GroupHandler) DetailContent(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
-	}
-
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
-	if !canEdit {
-		return c.Redirect(http.StatusFound, "/dashboard")
-	}
-
-	members, err := h.service.Members(c.Request().Context(), id)
-	if err != nil {
-		return err
-	}
-
-	sortBy := c.QueryParam("sort")
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
-	if lbErr != nil {
-		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
-	}
-
-	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
-	if matchErr != nil {
-		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
-	}
-
-	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
-
-	activity, actErr := h.repo.ListGroupActivity(c.Request().Context(), id, 20)
-	if actErr != nil {
-		slog.Error("failed to list group activity", "group_id", id, "error", actErr)
-	}
-
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), sortBy))
-}
-
-// LeaderboardFull renders the complete (untruncated) leaderboard, taking
-// over #detail-content-area — the "Show all" counterpart to GroupContent's
-// truncated leaderboard. The rendered "← Back" link restores the normal
-// view via DetailContent.
+// LeaderboardFull renders the Leaderboard tab (tab bar + complete
+// leaderboard + activity feed) — hit when the Leaderboard tab button is
+// clicked.
 func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -624,17 +603,15 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
-	sortBy := c.QueryParam("sort")
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(c.Request().Context(), id, sortBy)
-	if lbErr != nil {
-		slog.Error("failed to get leaderboard", "group_id", id, "error", lbErr)
+	tabContent, err := h.groupTabComponent(c, g, userID, "leaderboard")
+	if err != nil {
+		return err
 	}
-
-	return render.Component(c, groups.LeaderboardSection(id, sortBy, mapLeaderboardEntries(leaderboard), true))
+	return render.Component(c, tabContent)
 }
 
-// RosterFull renders the complete (untruncated) roster, taking over
-// #detail-content-area.
+// RosterFull renders the Roster tab (tab bar + complete roster + activity
+// feed) — hit when the Roster tab button is clicked.
 func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -646,23 +623,20 @@ func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	if err != nil {
 		return err
 	}
-	canEdit, isOwner, ownerEmail := h.rosterViewData(c.Request().Context(), g, userID)
+	canEdit, _, _ := h.rosterViewData(c.Request().Context(), g, userID)
 	if !canEdit {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
-	members, err := h.service.Members(c.Request().Context(), id)
+	tabContent, err := h.groupTabComponent(c, g, userID, "roster")
 	if err != nil {
 		return err
 	}
-
-	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
-
-	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests, true))
+	return render.Component(c, tabContent)
 }
 
-// MatchesFull renders the complete (untruncated) recent-matches list, taking
-// over #detail-content-area.
+// MatchesFull renders the Recent Matches tab (tab bar + complete match list
+// + activity feed) — hit when the Recent Matches tab button is clicked.
 func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -678,12 +652,11 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
-	matches, matchErr := h.matchSvc.ListByGroup(c.Request().Context(), id)
-	if matchErr != nil {
-		slog.Error("failed to list matches", "group_id", id, "error", matchErr)
+	tabContent, err := h.groupTabComponent(c, g, userID, "matches")
+	if err != nil {
+		return err
 	}
-
-	return render.Component(c, groups.RecentMatchesColumn(id, mapMatchEntries(matches, appmw.LocationFromContext(c)), true))
+	return render.Component(c, tabContent)
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
@@ -994,18 +967,18 @@ func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 	}
 
 	if isHTMX(c) {
-		return h.detailContentWithToast(c, id, "Member updated", "success")
+		return h.rosterTabWithToast(c, id, "Member updated", "success")
 	}
 	h.auth.Handler.SetFlash(ctx, "success", "Member updated")
 	return c.Redirect(http.StatusFound, "/groups/"+id)
 }
 
-// detailContentWithToast re-renders #detail-content-area with a toast,
-// restoring the normal Leaderboard/Roster/Matches view after a mutation
-// (like editing a player) that took over the whole area rather than just
-// #roster-column — so saving a player edit drops the admin back into the
-// roster listing instead of a full page reload.
-func (h *GroupHandler) detailContentWithToast(c *echo.Context, groupID, message, toastType string) error {
+// rosterTabWithToast re-renders #detail-content-area with the Roster tab and
+// a toast, restoring it after a mutation (like editing a player's details)
+// that took over the whole area rather than just #roster-column — so saving
+// a player edit drops the admin back into the roster listing instead of a
+// full page reload.
+func (h *GroupHandler) rosterTabWithToast(c *echo.Context, groupID, message, toastType string) error {
 	ctx := c.Request().Context()
 	userID, err := h.auth.GetUserID(ctx)
 	if err != nil {
@@ -1015,27 +988,14 @@ func (h *GroupHandler) detailContentWithToast(c *echo.Context, groupID, message,
 	if err != nil {
 		return err
 	}
-	canEdit, isOwner, ownerEmail := h.rosterViewData(ctx, g, userID)
-	members, err := h.service.Members(ctx, groupID)
+
+	tabContent, err := h.groupTabComponent(c, g, userID, "roster")
 	if err != nil {
 		return err
 	}
-	leaderboard, lbErr := h.matchSvc.GetLeaderboard(ctx, groupID, "")
-	if lbErr != nil {
-		slog.Error("failed to get leaderboard", "group_id", groupID, "error", lbErr)
-	}
-	matches, matchErr := h.matchSvc.ListByGroup(ctx, groupID)
-	if matchErr != nil {
-		slog.Error("failed to list matches", "group_id", groupID, "error", matchErr)
-	}
-	joinRequests := h.joinRequestEntries(ctx, groupID, canEdit)
-	activity, actErr := h.repo.ListGroupActivity(ctx, groupID, 20)
-	if actErr != nil {
-		slog.Error("failed to list group activity", "group_id", groupID, "error", actErr)
-	}
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), ""))
+	return render.Component(c, tabContent)
 }
 
 // rosterWithToast re-renders #roster-column with a toast after a roster
