@@ -14,7 +14,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-func Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, canEdit bool, successMsg string, errMsg string) templ.Component {
+func Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, chartData ChartData, canEdit bool, successMsg string, errMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -318,7 +318,21 @@ func Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Player
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if stats.MatchesPlayed > 0 {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mt-6\"><div class=\"bg-white p-4 rounded shadow border border-pitch/10\"><h3 class=\"font-oswald text-sm text-ink/70 mb-2\">Record</h3><canvas id=\"player-chart-record\"></canvas></div><div class=\"bg-white p-4 rounded shadow border border-pitch/10\"><h3 class=\"font-oswald text-sm text-ink/70 mb-2\">Goals per match</h3><canvas id=\"player-chart-goals\"></canvas></div></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templ.JSONScript("player-chart-data", chartData).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

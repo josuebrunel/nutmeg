@@ -58,6 +58,26 @@ type PlayerMatchResult struct {
 	GoalsScored int       `db:"goals_scored"`
 }
 
+// Result classifies the match from this player's team's perspective —
+// "win", "loss", or "draw" — by comparing TeamID against HomeTeamID/
+// AwayTeamID and the stored score columns directly, never recomputed from
+// match_events.
+func (m PlayerMatchResult) Result() string {
+	if m.HomeScore == m.AwayScore {
+		return "draw"
+	}
+	if m.TeamID == m.HomeTeamID {
+		if m.HomeScore > m.AwayScore {
+			return "win"
+		}
+		return "loss"
+	}
+	if m.AwayScore > m.HomeScore {
+		return "win"
+	}
+	return "loss"
+}
+
 // CreateMatch returns the new match's id, primarily so callers can enqueue
 // per-player follow-up work (e.g. async commentary generation) tied to the
 // match that triggered it.

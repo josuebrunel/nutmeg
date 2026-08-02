@@ -161,26 +161,6 @@ Write only the roast itself, nothing else - no preamble, no quotation marks.`,
 		playerName, stats.MatchesPlayed, stats.Wins, stats.Draws, stats.Losses, stats.Goals, stats.Assists, streakLine)
 }
 
-// matchResult derives win/draw/loss for one match the same way the
-// aggregate leaderboard/stats queries do: compare the player's team
-// against home/away team ids, then compare the stored score columns
-// directly - never recomputed from match_events.
-func matchResult(m repository.PlayerMatchResult) string {
-	if m.HomeScore == m.AwayScore {
-		return "draw"
-	}
-	if m.TeamID == m.HomeTeamID {
-		if m.HomeScore > m.AwayScore {
-			return "win"
-		}
-		return "loss"
-	}
-	if m.AwayScore > m.HomeScore {
-		return "win"
-	}
-	return "loss"
-}
-
 // scorelessStreak counts consecutive most-recent matches (history is
 // newest-first) with zero goals for this player, stopping at the first
 // match they scored in.
@@ -200,7 +180,7 @@ func scorelessStreak(history []repository.PlayerMatchResult) int {
 func losingStreak(history []repository.PlayerMatchResult) int {
 	n := 0
 	for _, m := range history {
-		if matchResult(m) != "loss" {
+		if m.Result() != "loss" {
 			break
 		}
 		n++

@@ -6,7 +6,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, canEdit bool, successMsg string, errMsg string) {
+templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, chartData ChartData, canEdit bool, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex items-start justify-between gap-4">
 			<div>
@@ -74,5 +74,18 @@ templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Playe
 				<div class="text-3xl font-bold text-turf font-mono">{ stats.Assists }</div>
 			</div>
 		</div>
+		if stats.MatchesPlayed > 0 {
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+				<div class="bg-white p-4 rounded shadow border border-pitch/10">
+					<h3 class="font-oswald text-sm text-ink/70 mb-2">Record</h3>
+					<canvas id="player-chart-record"></canvas>
+				</div>
+				<div class="bg-white p-4 rounded shadow border border-pitch/10">
+					<h3 class="font-oswald text-sm text-ink/70 mb-2">Goals per match</h3>
+					<canvas id="player-chart-goals"></canvas>
+				</div>
+			</div>
+			@templ.JSONScript("player-chart-data", chartData)
+		}
 	</div>
 }

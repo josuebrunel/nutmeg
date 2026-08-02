@@ -252,6 +252,12 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 		commentary = &pc.Content
 	}
 
+	history, histErr := h.repo.GetPlayerMatchHistory(ctx, memberID, 10)
+	if histErr != nil {
+		slog.Error("failed to get player match history", "member_id", memberID, "error", histErr)
+	}
+	chartData := buildChartData(stats, history, appmw.LocationFromContext(c))
+
 	isLoggedIn := false
 	userName := ""
 	canEdit := false
@@ -272,7 +278,20 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	}
 	description = truncateMeta(description, 200)
 
-	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, canEdit, successMsg, errMsg))
+	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, chartData, canEdit, successMsg, errMsg))
+}
+
+// buildChartData maps a player's aggregate stats and recent match history
+// (newest-first) into the profile page's chart payload, oldest-first so
+// the goals-per-match chart reads left-to-right chronologically.
+func buildChartData(stats *repository.PlayerStats, history []repository.PlayerMatchResult, loc *time.Location) players.ChartData {
+	data := players.ChartData{Wins: stats.Wins, Draws: stats.Draws, Losses: stats.Losses}
+	for i := len(history) - 1; i >= 0; i-- {
+		m := history[i]
+		data.Labels = append(data.Labels, m.PlayedAt.In(loc).Format("Jan 2"))
+		data.Goals = append(data.Goals, m.GoalsScored)
+	}
+	return data
 }
 
 // truncateMeta hard-caps a link-preview description to max characters,

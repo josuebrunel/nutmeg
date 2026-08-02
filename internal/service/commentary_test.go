@@ -85,7 +85,7 @@ func TestMatchResult(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Eq(t, matchResult(tc.m), tc.want)
+			assert.Eq(t, tc.m.Result(), tc.want)
 		})
 	}
 }
