@@ -165,6 +165,11 @@ func main() {
 	})
 	e.GET("/groups/:id/leaderboard", h.Group.PublicLeaderboard)
 	e.GET("/groups/:id/players/:memberId", h.Group.PlayerProfile)
+	// Detail does its own auth check (redirecting to the public leaderboard
+	// above when unauthenticated) rather than living behind the blanket
+	// LoginRequiredMiddleware, since that middleware can only redirect to a
+	// fixed static login path, not a dynamic per-group URL.
+	e.GET("/groups/:id", h.Group.Detail)
 
 	// Authenticated routes
 	app := e.Group("")

@@ -108,12 +108,12 @@ func (h *GroupHandler) groupListFragment(c *echo.Context, userID string) error {
 }
 
 func (h *GroupHandler) Detail(c *echo.Context) error {
+	id := c.Param("id")
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 	}
 
-	id := c.Param("id")
 	g, err := h.service.Get(c.Request().Context(), id)
 	if err != nil {
 		return err

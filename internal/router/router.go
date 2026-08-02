@@ -20,7 +20,9 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	app.GET("/groups", h.Group.Index)
 	app.GET("/groups/new", h.Group.New)
 	app.POST("/groups", h.Group.Create)
-	app.GET("/groups/:id", h.Group.Detail)
+	// GET /groups/:id (Detail) is registered as a public route in
+	// cmd/server/main.go instead, since it needs to redirect unauthenticated
+	// visitors to the group's public leaderboard rather than /login.
 	app.GET("/groups/:id/edit", h.Group.Edit)
 	app.POST("/groups/:id", h.Group.Update)
 	app.DELETE("/groups/:id", h.Group.Delete)
