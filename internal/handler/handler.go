@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/a-h/templ"
 	"github.com/josuebrunel/ezauth"
@@ -11,6 +12,7 @@ import (
 
 	"nutmeg/internal/repository"
 	"nutmeg/internal/service"
+	"nutmeg/internal/worker"
 	"nutmeg/views/layout"
 )
 
@@ -59,4 +61,22 @@ func pageWithMeta(c *echo.Context, title, description string, isLoggedIn bool, c
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	ctx := templ.WithChildren(c.Request().Context(), cmp)
 	return layout.Base(title, description, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
+}
+
+// recordActivity inserts a new group_activity row with fallback content
+// already in place, then enqueues a background job to upgrade it with an
+// AI-generated blurb. Shared by GroupHandler (player_added) and
+// MatchHandler (match_logged) — both hold a *repository.Repository and a
+// JobEnqueuer already. Failures are logged and swallowed, same as
+// enqueueCommentary: a group's activity feed is never allowed to block
+// the request that triggered it.
+func recordActivity(ctx context.Context, repo *repository.Repository, jobs JobEnqueuer, groupID, kind, subjectID, fallback string) {
+	activityID, err := repo.CreateGroupActivity(ctx, groupID, kind, subjectID, fallback)
+	if err != nil {
+		slog.Error("record group activity failed", "group_id", groupID, "kind", kind, "error", err)
+		return
+	}
+	if _, err := jobs.Insert(ctx, worker.GenerateGroupNewsArgs{ActivityID: activityID, EventKind: kind, SubjectID: subjectID}, nil); err != nil {
+		slog.Error("enqueue group news generation failed", "activity_id", activityID, "error", err)
+	}
 }

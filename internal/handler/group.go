@@ -142,10 +142,15 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 
 	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
 
+	activity, actErr := h.repo.ListGroupActivity(c.Request().Context(), id, 20)
+	if actErr != nil {
+		slog.Error("failed to list group activity", "group_id", id, "error", actErr)
+	}
+
 	successMsg := h.auth.GetSuccessMessage(c.Request().Context())
 	errMsg := h.auth.GetErrorMessage(c.Request().Context())
 
-	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), sortBy, successMsg, errMsg))
+	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), sortBy, successMsg, errMsg))
 }
 
 // mapLeaderboardEntries converts repository leaderboard rows into the
@@ -182,6 +187,21 @@ func mapMatchEntries(matches []repository.MatchWithTeams, loc *time.Location) []
 			ScoreA:  m.ScoreA,
 			ScoreB:  m.ScoreB,
 			Date:    m.PlayedAt.In(loc).Format("Jan 2"),
+		}
+	}
+	return out
+}
+
+// mapActivityEntries converts repository group_activity rows into the
+// groups view struct — shared by every handler that renders the activity
+// feed (Detail, DetailContent, detailContentWithToast).
+func mapActivityEntries(entries []model.GroupActivity, loc *time.Location) []groups.ActivityEntry {
+	out := make([]groups.ActivityEntry, len(entries))
+	for i, e := range entries {
+		out[i] = groups.ActivityEntry{
+			Kind: e.Kind,
+			Text: e.Content,
+			When: e.CreatedAt.In(loc).Format("Jan 2, 3:04 PM"),
 		}
 	}
 	return out
@@ -542,7 +562,12 @@ func (h *GroupHandler) DetailContent(c *echo.Context) error {
 
 	joinRequests := h.joinRequestEntries(c.Request().Context(), id, canEdit)
 
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), sortBy))
+	activity, actErr := h.repo.ListGroupActivity(c.Request().Context(), id, 20)
+	if actErr != nil {
+		slog.Error("failed to list group activity", "group_id", id, "error", actErr)
+	}
+
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), sortBy))
 }
 
 // LeaderboardFull renders the complete (untruncated) leaderboard, taking
@@ -655,13 +680,15 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 			emailPtr = &email
 		}
 
-		if err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID); err != nil {
+		memberID, err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID)
+		if err != nil {
 			if isHTMX(c) {
 				return h.rosterWithToast(c, id, err.Error(), "error")
 			}
 			h.auth.Handler.SetFlash(ctx, "error", err.Error())
 			return c.Redirect(http.StatusFound, "/groups/"+id)
 		}
+		recordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
 
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, "Added "+name, "success")
@@ -967,9 +994,13 @@ func (h *GroupHandler) detailContentWithToast(c *echo.Context, groupID, message,
 		slog.Error("failed to list matches", "group_id", groupID, "error", matchErr)
 	}
 	joinRequests := h.joinRequestEntries(ctx, groupID, canEdit)
+	activity, actErr := h.repo.ListGroupActivity(ctx, groupID, 20)
+	if actErr != nil {
+		slog.Error("failed to list group activity", "group_id", groupID, "error", actErr)
+	}
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
-	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), ""))
+	return render.Component(c, groups.GroupContent(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapLeaderboardEntries(leaderboard), mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c)), ""))
 }
 
 // rosterWithToast re-renders #roster-column with a toast after a roster

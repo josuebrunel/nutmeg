@@ -19,7 +19,7 @@ type mockGroupRepo struct {
 	getGroupsByIDsFn   func(ctx context.Context, ids []string) ([]*model.Group, error)
 	updateGroupFn      func(ctx context.Context, g *model.Group) error
 	deleteGroupFn      func(ctx context.Context, id string) error
-	addMemberFn        func(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	addMemberFn        func(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error)
 	importMemberFn     func(ctx context.Context, groupID, name string, phone, email *string) error
 	removeMemberFn     func(ctx context.Context, groupID, memberID string) error
 	listMembersFn      func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
@@ -54,7 +54,7 @@ func (m *mockGroupRepo) UpdateGroup(ctx context.Context, g *model.Group) error {
 func (m *mockGroupRepo) DeleteGroup(ctx context.Context, id string) error {
 	return m.deleteGroupFn(ctx, id)
 }
-func (m *mockGroupRepo) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error {
+func (m *mockGroupRepo) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error) {
 	return m.addMemberFn(ctx, groupID, name, phone, email, role)
 }
 func (m *mockGroupRepo) ImportMember(ctx context.Context, groupID, name string, phone, email *string) error {
@@ -146,8 +146,8 @@ func defaultMock() *mockGroupRepo {
 		deleteGroupFn: func(_ context.Context, id string) error {
 			return nil
 		},
-		addMemberFn: func(_ context.Context, groupID, name string, phone, email *string, role string) error {
-			return nil
+		addMemberFn: func(_ context.Context, groupID, name string, phone, email *string, role string) (string, error) {
+			return "member-1", nil
 		},
 		removeMemberFn: func(_ context.Context, groupID, memberID string) error {
 			return nil
@@ -214,8 +214,8 @@ func TestCreate(t *testing.T) {
 
 	t.Run("addMemberError", func(t *testing.T) {
 		m := defaultMock()
-		m.addMemberFn = func(_ context.Context, groupID, name string, phone, email *string, role string) error {
-			return errors.New("db error")
+		m.addMemberFn = func(_ context.Context, groupID, name string, phone, email *string, role string) (string, error) {
+			return "", errors.New("db error")
 		}
 		svc := NewGroupService(m, defaultAuthMock())
 		_, err := svc.Create(context.Background(), "test", nil, "user-1", "Test", "t@t.com")
@@ -320,21 +320,21 @@ func TestAddMember(t *testing.T) {
 	t.Run("creatorCanAdd", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "user-1")
+		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("emptyName", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.AddMember(context.Background(), "g-1", "", nil, nil, "user-1")
+		_, err := svc.AddMember(context.Background(), "g-1", "", nil, nil, "user-1")
 		assert.ErrIs(t, err, model.ErrInvalidInput)
 	})
 
 	t.Run("nonCreatorCannotAdd", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "other-user")
+		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
 }

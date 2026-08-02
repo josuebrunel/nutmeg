@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"nutmeg/internal/model"
@@ -20,15 +18,6 @@ const streakLookback = 10
 // sentences of trash talk, short enough that a rambling local model gets
 // trimmed rather than displayed in full.
 const maxRoastLength = 400
-
-// roastBlocklist is a coarse, illustrative safety net, not a real
-// moderation solution — the player profile page is public and
-// unauthenticated, and a local model has no built-in moderation of its
-// own, so this is a last-resort backstop against the worst outputs rather
-// than a substitute for actually reviewing model behavior.
-var roastBlocklist = []string{
-	"kill yourself", "kys", "slur",
-}
 
 type CommentaryRepository interface {
 	GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error)
@@ -188,44 +177,8 @@ func losingStreak(history []repository.PlayerMatchResult) int {
 	return n
 }
 
-var (
-	errEmptyGeneration   = errors.New("empty generation")
-	errBlockedGeneration = errors.New("generation matched the safety blocklist")
-)
-
-// validateRoast is the gate between a raw model response and anything
-// ever stored or shown: reject empty output, reject anything hitting the
-// (coarse) blocklist, and trim overly long output at a sentence boundary
-// rather than mid-word.
+// validateRoast delegates to the shared generation validator (see
+// llmsafety.go) with the roast-specific length cap.
 func validateRoast(text string) (string, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return "", errEmptyGeneration
-	}
-
-	lower := strings.ToLower(text)
-	for _, word := range roastBlocklist {
-		if strings.Contains(lower, word) {
-			return "", errBlockedGeneration
-		}
-	}
-
-	if len(text) > maxRoastLength {
-		text = truncateAtSentence(text, maxRoastLength)
-	}
-
-	return text, nil
-}
-
-// truncateAtSentence cuts text to at most max bytes, preferring to end on
-// a sentence boundary (., !, ?) so a trimmed roast still reads cleanly.
-func truncateAtSentence(text string, max int) string {
-	if len(text) <= max {
-		return text
-	}
-	cut := text[:max]
-	if i := strings.LastIndexAny(cut, ".!?"); i > 0 {
-		return strings.TrimSpace(cut[:i+1])
-	}
-	return strings.TrimSpace(cut) + "…"
+	return validateGeneratedText(text, maxRoastLength)
 }

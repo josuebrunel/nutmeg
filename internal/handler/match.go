@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sort"
@@ -218,6 +219,8 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
 	}
 	h.enqueueCommentary(c.Request().Context(), matchID, append(teamAPlayers, teamBPlayers...))
+	recordActivity(c.Request().Context(), h.repo, h.jobs, groupID, "match_logged", matchID,
+		fmt.Sprintf("%s %d - %d %s logged", teamAName, scoreA, scoreB, teamBName))
 
 	if isHTMX(c) {
 		return h.htmxRedirect(c, groupID)

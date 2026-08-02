@@ -24,7 +24,10 @@ type MemberInfo struct {
 	JoinedAt time.Time `db:"joined_at"`
 }
 
-func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error {
+// AddMember returns the member's id (the row's own id whether this insert
+// or an ON CONFLICT update, so callers with a single new name can enqueue
+// follow-up work like activity-feed generation without a second query).
+func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error) {
 	query := psql.Insert(
 		im.Into("group_players", "group_id", "name", "phone", "email", "role"),
 		im.Values(psql.Arg(groupID, name, phone, email, role)),
@@ -35,9 +38,12 @@ func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone,
 	)
 	id, err := bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
 	if err != nil {
-		return err
+		return "", err
 	}
-	return setSlugIfEmpty(ctx, r.db, "group_players", id, name)
+	if err := setSlugIfEmpty(ctx, r.db, "group_players", id, name); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 // ImportMember upserts a CSV-imported roster row: unlike AddMember (which

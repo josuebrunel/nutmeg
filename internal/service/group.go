@@ -18,7 +18,7 @@ type GroupRepository interface {
 	GetGroupsByIDs(ctx context.Context, ids []string) ([]*model.Group, error)
 	UpdateGroup(ctx context.Context, g *model.Group) error
 	DeleteGroup(ctx context.Context, id string) error
-	AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) error
+	AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error)
 	ImportMember(ctx context.Context, groupID, name string, phone, email *string) error
 	RemoveMember(ctx context.Context, groupID, memberID string) error
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
@@ -75,7 +75,7 @@ func (s *GroupService) Create(ctx context.Context, name string, description *str
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
 		return nil, err
 	}
-	if err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, "admin"); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, "admin"); err != nil {
 		return nil, err
 	}
 	return g, nil
@@ -145,17 +145,18 @@ func (s *GroupService) Members(ctx context.Context, groupID string) ([]repositor
 	return s.repo.ListMembers(ctx, groupID)
 }
 
-func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phone, email *string, actorID string) error {
+// AddMember returns the new (or existing, on a name conflict) member's id.
+func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phone, email *string, actorID string) (string, error) {
 	if name == "" {
-		return model.ErrInvalidInput
+		return "", model.ErrInvalidInput
 	}
 
 	g, err := s.repo.GetGroup(ctx, groupID)
 	if err != nil {
-		return model.ErrNotFound
+		return "", model.ErrNotFound
 	}
 	if !s.CanEdit(ctx, g, actorID) {
-		return model.ErrNotAuthorized
+		return "", model.ErrNotAuthorized
 	}
 
 	return s.repo.AddMember(ctx, groupID, name, phone, email, "member")
@@ -178,7 +179,7 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 
 	added := make([]string, 0, len(names))
 	for _, name := range names {
-		if err := s.repo.AddMember(ctx, groupID, name, nil, nil, "member"); err != nil {
+		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, "member"); err != nil {
 			return added, err
 		}
 		added = append(added, name)
@@ -395,7 +396,7 @@ func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, r
 		return model.ErrNotFound
 	}
 
-	if err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
 		return err
 	}
 	return s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved")

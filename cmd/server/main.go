@@ -96,9 +96,11 @@ func main() {
 
 	llmClient := llm.NewClient(cfg.Ollama.BaseURL, cfg.Ollama.Model, 2*time.Minute)
 	commentarySvc := service.NewCommentaryService(repo, llmClient)
+	activitySvc := service.NewActivityService(repo, llmClient)
 
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &worker.GenerateCommentaryWorker{Service: commentarySvc})
+	river.AddWorker(workers, &worker.GenerateGroupNewsWorker{Service: activitySvc})
 
 	riverClient, err := river.NewClient(riverDriver, &river.Config{
 		Queues: map[string]river.QueueConfig{

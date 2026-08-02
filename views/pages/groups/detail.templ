@@ -8,7 +8,7 @@ import (
 	components "nutmeg/views/components"
 )
 
-templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string, successMsg string, errMsg string) {
+templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, activity []ActivityEntry, sortBy string, successMsg string, errMsg string) {
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex flex-wrap items-center justify-between gap-3">
 			<div class="flex items-center gap-3">
@@ -36,7 +36,7 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
 		<div id="detail-content-area">
-			@GroupContent(g, members, isAdmin, isOwner, ownerEmail, joinRequests, leaderboard, matches, sortBy)
+			@GroupContent(g, members, isAdmin, isOwner, ownerEmail, joinRequests, leaderboard, matches, activity, sortBy)
 		</div>
 	</div>
 }
@@ -48,12 +48,13 @@ templ Detail(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOw
 // Each section is rendered with fullWidth=false here — its own "Show all"
 // link takes over #detail-content-area on its own (see LeaderboardFull /
 // RosterFull / MatchesFull), which is what fullWidth=true renders.
-templ GroupContent(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, sortBy string) {
+templ GroupContent(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, leaderboard []LeaderboardEntry, matches []MatchEntry, activity []ActivityEntry, sortBy string) {
 	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 		@LeaderboardSection(g.ID, sortBy, leaderboard, false)
 		@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests, false)
 		@RecentMatchesColumn(g.ID, matches, false)
 	</div>
+	@ActivityFeed(activity)
 }
 
 // backLink restores the normal 3-column GroupContent view — the counterpart
