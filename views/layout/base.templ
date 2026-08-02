@@ -71,7 +71,9 @@ templ Base(title string, description string, ogImage string, isLoggedIn bool, cu
 									if userName != "" {
 										<a href="/account" class="text-sm text-ink/70 font-body hover:text-turf transition-colors">{ userName }</a>
 									}
-									<a href="/auth/logout" class="font-oswald text-nutmeg hover:text-pitch transition-colors">SIGN OUT</a>
+									<form method="POST" action="/auth/logout" class="contents">
+										<button type="submit" class="font-oswald text-nutmeg hover:text-pitch transition-colors bg-transparent border-0 p-0 cursor-pointer">SIGN OUT</button>
+									</form>
 								</div>
 							</nav>
 							<div class="md:hidden flex items-center">
@@ -100,7 +102,9 @@ templ Base(title string, description string, ogImage string, isLoggedIn bool, cu
 							<a href="/stats" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
 							<a href="/groups" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
 							<a href="/account" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Account</a>
-							<a href="/auth/logout" class="block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded">SIGN OUT</a>
+							<form method="POST" action="/auth/logout">
+								<button type="submit" class="block w-full text-left px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded bg-transparent border-0 cursor-pointer">SIGN OUT</button>
+							</form>
 						</div>
 					} else {
 						<div class="px-4 pt-2 space-y-1">

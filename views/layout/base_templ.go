@@ -158,12 +158,12 @@ func Base(title string, description string, ogImage string, isLoggedIn bool, cur
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</a> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</a>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<a href=\"/auth/logout\" class=\"font-oswald text-nutmeg hover:text-pitch transition-colors\">SIGN OUT</a></div></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<form method=\"POST\" action=\"/auth/logout\" class=\"contents\"><button type=\"submit\" class=\"font-oswald text-nutmeg hover:text-pitch transition-colors bg-transparent border-0 p-0 cursor-pointer\">SIGN OUT</button></form></div></nav><div class=\"md:hidden flex items-center\"><button id=\"mobile-menu-btn\" class=\"text-pitch hover:text-turf p-2\" aria-label=\"Open menu\"><svg class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -178,7 +178,7 @@ func Base(title string, description string, ogImage string, isLoggedIn bool, cur
 			return templ_7745c5c3_Err
 		}
 		if isLoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/account\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Account</a> <a href=\"/auth/logout\" class=\"block px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded\">SIGN OUT</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"px-4 pt-2 space-y-1\"><a href=\"/dashboard\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Dashboard</a> <a href=\"/stats\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Stats</a> <a href=\"/groups\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">Groups</a> <a href=\"/account\" class=\"block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded\">My Account</a><form method=\"POST\" action=\"/auth/logout\"><button type=\"submit\" class=\"block w-full text-left px-4 py-3 font-oswald text-nutmeg hover:bg-base-200 rounded bg-transparent border-0 cursor-pointer\">SIGN OUT</button></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
