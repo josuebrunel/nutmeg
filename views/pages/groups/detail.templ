@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"fmt"
 	"strings"
 
 	"nutmeg/internal/model"
@@ -306,6 +307,30 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches 
 	<div id="article-panel"></div>
 }
 
+// scoreTooltip explains the default leaderboard ranking — worded to read
+// sensibly whether a single new player is provisional behind a pack of
+// qualified veterans, or the whole group is still provisional together
+// (e.g. a brand-new group), so it never implies fault or a penalty.
+const scoreTooltip = "Ranked by performance score: (3×Wins + Draws + Goals + Assists) ÷ Matches. Players are ranked by wins until they've played 3 matches, then by score like everyone else."
+
+// scoreCellClass mutes an unqualified player's score cell — it's still
+// shown (never hidden, always transparent about the real number), just
+// visually marked as provisional since it isn't what determined their
+// current position (they're ranked by wins until they qualify).
+func scoreCellClass(qualified bool) string {
+	if qualified {
+		return "text-ink/70"
+	}
+	return "text-ink/30"
+}
+
+func scoreCellTitle(qualified bool) string {
+	if qualified {
+		return ""
+	}
+	return "Ranked by wins until 3 matches played"
+}
+
 // defaultVisibleLimit caps how many rows the Leaderboard, Roster, and Recent
 // Matches sections render visibly by default — large imported rosters (e.g.
 // a CSV import) can easily run into the dozens, and showing all of them at
@@ -332,7 +357,8 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
 		<div class="flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-oswald text-ink/50">
 			<span>Sort:</span>
-			@sortLink(sortBaseURL, "", "Wins", activeSort)
+			@sortLink(sortBaseURL, "", "Score", activeSort)
+			<span class="tooltip tooltip-bottom normal-case font-body text-ink/40 cursor-help" data-tip={ scoreTooltip }>&#9432;</span>
 			@sortLink(sortBaseURL, "goals", "Goals", activeSort)
 			@sortLink(sortBaseURL, "assists", "Assists", activeSort)
 			@sortLink(sortBaseURL, "matches", "Matches", activeSort)
@@ -348,11 +374,12 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 					<th class="p-3 text-center">L</th>
 					<th class="p-3 text-center">G</th>
 					<th class="p-3 text-center">A</th>
+					<th class="p-3 text-center">PTS/G</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-pitch/10">
 				if len(leaderboard) == 0 {
-					<tr><td colspan="8" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
+					<tr><td colspan="9" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
 				} else {
 					for i, p := range visibleLeaderboardRows(leaderboard, limit, showAllURL) {
 						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) } data-player-name={ strings.ToLower(p.Name) }>
@@ -374,11 +401,14 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 							<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
+							<td class={ "p-3 text-center font-mono", scoreCellClass(p.Qualified) } title={ scoreCellTitle(p.Qualified) }>
+								{ fmt.Sprintf("%.2f", p.Score) }
+							</td>
 						</tr>
 					}
 					if len(leaderboard) > limit {
 						<tr class="show-more-row">
-							<td colspan="8" class="p-2 text-center">
+							<td colspan="9" class="p-2 text-center">
 								if showAllURL != "" {
 									<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL(showAllURL) } hx-target="#detail-content-area" hx-swap="innerHTML">
 										Show all ({ len(leaderboard) - limit } more)
@@ -589,14 +619,16 @@ type JoinRequestEntry struct {
 }
 
 type LeaderboardEntry struct {
-	ID      string
-	Name    string
-	Matches int
-	Wins    int
-	Draws   int
-	Losses  int
-	Goals   int
-	Assists int
+	ID        string
+	Name      string
+	Matches   int
+	Wins      int
+	Draws     int
+	Losses    int
+	Goals     int
+	Assists   int
+	Score     float64
+	Qualified bool
 }
 
 type MatchEntry struct {

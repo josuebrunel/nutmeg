@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/stephenafamo/bob"
@@ -24,14 +25,16 @@ type MatchWithTeams struct {
 }
 
 type LeaderboardEntry struct {
-	MemberID string `db:"member_id"`
-	Name     string `db:"name"`
-	Matches  int    `db:"matches"`
-	Wins     int    `db:"wins"`
-	Draws    int    `db:"draws"`
-	Losses   int    `db:"losses"`
-	Goals    int    `db:"goals"`
-	Assists  int    `db:"assists"`
+	MemberID  string  `db:"member_id"`
+	Name      string  `db:"name"`
+	Matches   int     `db:"matches"`
+	Wins      int     `db:"wins"`
+	Draws     int     `db:"draws"`
+	Losses    int     `db:"losses"`
+	Goals     int     `db:"goals"`
+	Assists   int     `db:"assists"`
+	Score     float64 `db:"score"`
+	Qualified bool    `db:"qualified"`
 }
 
 // TopScorerID returns the member id with the strictly-highest Goals in
@@ -256,9 +259,21 @@ func (r *Repository) DeleteMatch(ctx context.Context, matchID string) error {
 	return err
 }
 
+// minMatchesForRanking is the number of matches a player must have played
+// before they're ranked by performance score rather than raw wins — a
+// single lucky win otherwise puts a 1-match player at the top of the
+// board. Players below this bar are listed beneath every qualified
+// player, ordered by wins among themselves. When nobody in a group has
+// reached this yet (e.g. a brand-new group), everyone falls into that
+// same tier together and is ranked by wins — nobody is singled out.
+const minMatchesForRanking = 3
+
 // leaderboardOrderClause whitelists the leaderboard sort key so it can be
 // safely spliced into the raw SQL's ORDER BY without risking injection from
-// an arbitrary query param.
+// an arbitrary query param. The default ranks by performance score
+// (qualified players first, then score, with wins as the final tiebreak —
+// which also fully orders the unqualified tier, since none of them are
+// "qualified"); goals/assists/matches remain raw-count sorts.
 func leaderboardOrderClause(sortBy string) string {
 	switch sortBy {
 	case "goals":
@@ -268,34 +283,44 @@ func leaderboardOrderClause(sortBy string) string {
 	case "matches":
 		return "matches DESC, wins DESC"
 	default:
-		return "wins DESC, goals DESC"
+		return "qualified DESC, score DESC, wins DESC"
 	}
 }
 
 func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]LeaderboardEntry, error) {
 	query := psql.RawQuery(`
+		WITH stats AS (
+			SELECT
+				gp.id AS member_id,
+				gp.name AS name,
+				COUNT(DISTINCT mp.match_id) AS matches,
+				COUNT(DISTINCT mp.match_id) FILTER (WHERE
+					(m.home_team_id = mp.team_id AND m.home_score > m.away_score)
+					OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score)
+				) AS wins,
+				COUNT(DISTINCT mp.match_id) FILTER (WHERE m.home_score = m.away_score) AS draws,
+				COUNT(DISTINCT mp.match_id) FILTER (WHERE
+					(m.home_team_id = mp.team_id AND m.home_score < m.away_score)
+					OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score)
+				) AS losses,
+				COUNT(DISTINCT me.id) AS goals,
+				COUNT(DISTINCT mea.id) AS assists
+			FROM group_players gp
+			LEFT JOIN matches m ON m.group_id = gp.group_id
+			LEFT JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = gp.id
+			LEFT JOIN match_events me ON me.match_id = m.id AND me.scorer_id = gp.id
+			LEFT JOIN match_events mea ON mea.match_id = m.id AND mea.assister_id = gp.id
+			WHERE gp.group_id = ?
+			GROUP BY gp.id, gp.name
+		)
 		SELECT
-			gp.id AS member_id,
-			gp.name AS name,
-			COUNT(DISTINCT mp.match_id) AS matches,
-			COUNT(DISTINCT mp.match_id) FILTER (WHERE
-				(m.home_team_id = mp.team_id AND m.home_score > m.away_score)
-				OR (m.away_team_id = mp.team_id AND m.away_score > m.home_score)
-			) AS wins,
-			COUNT(DISTINCT mp.match_id) FILTER (WHERE m.home_score = m.away_score) AS draws,
-			COUNT(DISTINCT mp.match_id) FILTER (WHERE
-				(m.home_team_id = mp.team_id AND m.home_score < m.away_score)
-				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score)
-			) AS losses,
-			COUNT(DISTINCT me.id) AS goals,
-			COUNT(DISTINCT mea.id) AS assists
-		FROM group_players gp
-		LEFT JOIN matches m ON m.group_id = gp.group_id
-		LEFT JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = gp.id
-		LEFT JOIN match_events me ON me.match_id = m.id AND me.scorer_id = gp.id
-		LEFT JOIN match_events mea ON mea.match_id = m.id AND mea.assister_id = gp.id
-		WHERE gp.group_id = ?
-		GROUP BY gp.id, gp.name
+			member_id, name, matches, wins, draws, losses, goals, assists,
+			CASE WHEN matches > 0
+				THEN (3.0 * wins + draws + goals + assists) / matches
+				ELSE 0
+			END AS score,
+			(matches >= `+strconv.Itoa(minMatchesForRanking)+`) AS qualified
+		FROM stats
 		ORDER BY `+leaderboardOrderClause(sortBy)+`
 	`, groupID)
 	return bob.All[LeaderboardEntry](ctx, r.db, query, scan.StructMapper[LeaderboardEntry]())

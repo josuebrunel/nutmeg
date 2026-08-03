@@ -188,14 +188,16 @@ func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.Leade
 	out := make([]groups.LeaderboardEntry, len(entries))
 	for i, e := range entries {
 		out[i] = groups.LeaderboardEntry{
-			ID:      e.MemberID,
-			Name:    e.Name,
-			Matches: e.Matches,
-			Wins:    e.Wins,
-			Draws:   e.Draws,
-			Losses:  e.Losses,
-			Goals:   e.Goals,
-			Assists: e.Assists,
+			ID:        e.MemberID,
+			Name:      e.Name,
+			Matches:   e.Matches,
+			Wins:      e.Wins,
+			Draws:     e.Draws,
+			Losses:    e.Losses,
+			Goals:     e.Goals,
+			Assists:   e.Assists,
+			Score:     e.Score,
+			Qualified: e.Qualified,
 		}
 	}
 	return out

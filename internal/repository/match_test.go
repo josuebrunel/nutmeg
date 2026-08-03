@@ -40,6 +40,7 @@ var (
 	testAliceID = "a0000000-0000-0000-0000-000000000002"
 	testBobID   = "a0000000-0000-0000-0000-000000000003"
 	testCarolID = "a0000000-0000-0000-0000-000000000004"
+	testDaveID  = "a0000000-0000-0000-0000-000000000005"
 	testCreator = "a0000000-0000-0000-0000-0000000000ff"
 )
 
@@ -129,6 +130,113 @@ func TestGetGroupLeaderboard(t *testing.T) {
 			t.Fatalf("Carol assists: want 1, got %d", carol.Assists)
 		}
 	})
+}
+
+// TestGetGroupLeaderboard_RankedByScore verifies the default ranking:
+// players who've played at least minMatchesForRanking matches are ranked
+// by performance score, ahead of everyone who hasn't — and among
+// qualified players, a better per-game score outranks more raw wins from
+// more games, not just raw win count.
+func TestGetGroupLeaderboard_RankedByScore(t *testing.T) {
+	repo := openTestDB(t)
+	ctx := context.Background()
+
+	innerCleanup := seedGroupAndMembers(t, repo, testGroupID, testAliceID, testBobID, testCarolID)
+	db := repo.DB()
+	if _, err := bob.Exec(ctx, db, psql.RawQuery(
+		`INSERT INTO group_players (id, group_id, name, role) VALUES (?, ?, 'Dave', 'member')`, testDaveID, testGroupID,
+	)); err != nil {
+		t.Fatalf("insert Dave: %v", err)
+	}
+	t.Cleanup(func() {
+		bob.Exec(ctx, db, psql.RawQuery(`DELETE FROM group_players WHERE id = ?`, testDaveID))
+		innerCleanup()
+	})
+
+	// Alice: 3 matches, 2W-1D-0L, 4 goals -> score (3*2+1+4)/3 = 11/3 ≈ 3.667
+	mustCreateMatch(t, repo, "Alice", "Bob", 2, 0, []string{testAliceID}, []string{testBobID}, map[string]int{testAliceID: 2})
+	mustCreateMatch(t, repo, "Alice", "Bob", 1, 1, []string{testAliceID}, []string{testBobID}, map[string]int{testAliceID: 1, testBobID: 1})
+	mustCreateMatch(t, repo, "Alice", "Bob", 1, 0, []string{testAliceID}, []string{testBobID}, map[string]int{testAliceID: 1})
+	// Bob: 2 more matches (5 total), ending 2W-1D-2L, 3 goals -> score (3*2+1+3)/5 = 10/5 = 2.0
+	// — more wins and more matches than Alice, but a worse per-game score.
+	mustCreateMatch(t, repo, "Bob", "Carol", 1, 0, []string{testBobID}, []string{testCarolID}, map[string]int{testBobID: 1})
+	mustCreateMatch(t, repo, "Bob", "Dave", 1, 0, []string{testBobID}, []string{testDaveID}, map[string]int{testBobID: 1})
+
+	matchIDs, err := bob.All[string](ctx, db, psql.RawQuery(`SELECT id FROM matches WHERE group_id = ?`, testGroupID), scan.SingleColumnMapper[string])
+	if err != nil {
+		t.Fatalf("failed to get match IDs: %v", err)
+	}
+	t.Cleanup(func() {
+		for _, mid := range matchIDs {
+			bob.Exec(ctx, db, psql.RawQuery(`DELETE FROM match_events WHERE match_id = ?`, mid))
+			bob.Exec(ctx, db, psql.RawQuery(`DELETE FROM match_players WHERE match_id = ?`, mid))
+		}
+		for _, mid := range matchIDs {
+			bob.Exec(ctx, db, psql.RawQuery(`DELETE FROM matches WHERE id = ?`, mid))
+		}
+		bob.Exec(ctx, db, psql.RawQuery(`DELETE FROM teams WHERE group_id = ?`, testGroupID))
+	})
+
+	entries, err := repo.GetGroupLeaderboard(ctx, testGroupID, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	byName := make(map[string]LeaderboardEntry, len(entries))
+	rank := make(map[string]int, len(entries))
+	for i, e := range entries {
+		byName[e.Name] = e
+		rank[e.Name] = i
+	}
+
+	alice, bobEntry, carol, dave := byName["Alice"], byName["Bob"], byName["Carol"], byName["Dave"]
+
+	if !alice.Qualified || !bobEntry.Qualified {
+		t.Fatalf("expected Alice and Bob to be qualified (>=3 matches): alice=%+v bob=%+v", alice, bobEntry)
+	}
+	if carol.Qualified || dave.Qualified {
+		t.Fatalf("expected Carol and Dave to be unqualified (<3 matches): carol=%+v dave=%+v", carol, dave)
+	}
+
+	const epsilon = 0.01
+	if diff := alice.Score - 11.0/3.0; diff > epsilon || diff < -epsilon {
+		t.Fatalf("Alice score: want ~3.667, got %v", alice.Score)
+	}
+	if diff := bobEntry.Score - 2.0; diff > epsilon || diff < -epsilon {
+		t.Fatalf("Bob score: want 2.0, got %v", bobEntry.Score)
+	}
+
+	// Alice has fewer matches (3) and fewer wins (2) than Bob (5 matches,
+	// 2 wins) but a better per-game score — she must still rank above him.
+	if rank["Alice"] >= rank["Bob"] {
+		t.Fatalf("expected Alice (score %v) to rank above Bob (score %v): order was %v", alice.Score, bobEntry.Score, entryNames(entries))
+	}
+
+	// Every qualified player must rank above every unqualified one,
+	// regardless of the unqualified player's own win record (Carol is
+	// undefeated in her one match, but still isn't rank-eligible yet).
+	if rank["Bob"] >= rank["Carol"] || rank["Bob"] >= rank["Dave"] {
+		t.Fatalf("expected qualified Bob to rank above unqualified Carol/Dave: order was %v", entryNames(entries))
+	}
+}
+
+func entryNames(entries []LeaderboardEntry) []string {
+	names := make([]string, len(entries))
+	for i, e := range entries {
+		names[i] = e.Name
+	}
+	return names
+}
+
+// mustCreateMatch logs a match between two single-player teams (a common
+// shape for ranking-focused fixtures) and fails the test on error.
+func mustCreateMatch(t *testing.T, repo *Repository, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, goals map[string]int) {
+	t.Helper()
+	_, err := repo.CreateMatch(context.Background(), testGroupID, teamAName, teamBName, scoreA, scoreB, testCreator,
+		teamAPlayers, teamBPlayers, goals, map[string]int{}, time.Now())
+	if err != nil {
+		t.Fatalf("CreateMatch(%s vs %s) failed: %v", teamAName, teamBName, err)
+	}
 }
 
 func TestGetGlobalStats(t *testing.T) {
