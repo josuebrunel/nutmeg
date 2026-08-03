@@ -40,6 +40,7 @@ type googlePart struct {
 }
 
 type googleContent struct {
+	Role  string       `json:"role,omitempty"`
 	Parts []googlePart `json:"parts"`
 }
 
@@ -60,7 +61,7 @@ type googleResponse struct {
 // generateContent endpoint and returns the model's response text.
 func (c *GoogleClient) Generate(ctx context.Context, prompt string) (string, error) {
 	body, err := json.Marshal(googleRequest{
-		Contents: []googleContent{{Parts: []googlePart{{Text: prompt}}}},
+		Contents: []googleContent{{Role: "user", Parts: []googlePart{{Text: prompt}}}},
 	})
 	if err != nil {
 		return "", fmt.Errorf("llm: marshal request: %w", err)
