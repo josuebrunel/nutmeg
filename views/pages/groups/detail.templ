@@ -288,8 +288,12 @@ templ PublicRecentMatchesColumn(groupID string, matches []MatchEntry) {
 								<div class="ticket-score text-2xl">{ m.ScoreB }</div>
 							</div>
 						</div>
-						<div class="w-full bg-base-200/50 p-2 border-t border-pitch/10">
+						<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
 							<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
+							<span class="text-xs font-oswald text-turf flex items-center gap-1">
+								<iconify-icon icon="mdi:newspaper" class="w-[1em] h-[1em]"></iconify-icon>
+								Read report
+							</span>
 						</div>
 					</div>
 				}
