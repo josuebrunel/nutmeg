@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -33,14 +34,76 @@ import (
 	"nutmeg/migrations"
 )
 
+// buildLLMClient picks the LLMGenerator implementation for provider — the
+// one place that knows how to construct either client, shared by the real
+// server startup and the -llmtest smoke-test path below.
+func buildLLMClient(provider, apiKey, model, baseURL string) service.LLMGenerator {
+	switch provider {
+	case "google":
+		return llm.NewGoogleClient(apiKey, model, 2*time.Minute)
+	default:
+		return llm.NewClient(baseURL, model, 2*time.Minute)
+	}
+}
+
+// runLLMTest sends a sample roast prompt to the configured LLM provider and
+// prints the response — a quick way to try out a model or confirm a
+// provider is reachable before wiring it up for real, without needing a
+// database or the rest of the server. Mirrors the standalone ollama-test
+// command this replaced, but goes through the same provider selection as
+// the real app so it works for Ollama or Google alike.
+func runLLMTest(provider, apiKey, model, baseURL string) {
+	stats := repository.PlayerStats{MatchesPlayed: 5, Wins: 2, Draws: 1, Losses: 2, Goals: 3, Assists: 1}
+	history := []repository.PlayerMatchResult{
+		{GoalsScored: 0},
+		{GoalsScored: 0},
+		{GoalsScored: 0},
+	}
+	prompt := (&service.CommentaryService{}).BuildPrompt("Chris", stats, history, true, false)
+
+	fmt.Println("--- prompt ---")
+	fmt.Println(prompt)
+
+	client := buildLLMClient(provider, apiKey, model, baseURL)
+	fmt.Printf("\n--- response (provider=%s, model=%s) ---\n", provider, client.Model())
+
+	response, err := client.Generate(context.Background(), prompt)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	fmt.Println(response)
+}
+
 func main() {
 	migrateFlag := flag.String("migrate", "", "run migrations (up or down) then exit, without starting the server")
+	llmtestFlag := flag.Bool("llmtest", false, "send a sample roast prompt to the configured LLM provider, then exit")
+	providerFlag := flag.String("provider", "", "override LLM_PROVIDER for -llmtest")
+	modelFlag := flag.String("model", "", "override LLM_MODEL for -llmtest")
+	urlFlag := flag.String("url", "", "override LLM_BASE_URL for -llmtest (ollama only)")
 	flag.Parse()
 
 	var cfg config.Config
 	if err := xenv.Load(&cfg); err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
+	}
+
+	if *llmtestFlag {
+		provider := cfg.LLM.Provider
+		if *providerFlag != "" {
+			provider = *providerFlag
+		}
+		model := cfg.LLM.Model
+		if *modelFlag != "" {
+			model = *modelFlag
+		}
+		baseURL := cfg.LLM.BaseURL
+		if *urlFlag != "" {
+			baseURL = *urlFlag
+		}
+		runLLMTest(provider, cfg.LLM.APIKey, model, baseURL)
+		return
 	}
 
 	db, err := database.Open(cfg.Database.DSN)
@@ -95,13 +158,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var llmClient service.LLMGenerator
-	switch cfg.LLM.Provider {
-	case "google":
-		llmClient = llm.NewGoogleClient(cfg.LLM.APIKey, cfg.LLM.Model, 2*time.Minute)
-	default:
-		llmClient = llm.NewClient(cfg.LLM.BaseURL, cfg.LLM.Model, 2*time.Minute)
-	}
+	llmClient := buildLLMClient(cfg.LLM.Provider, cfg.LLM.APIKey, cfg.LLM.Model, cfg.LLM.BaseURL)
 	commentarySvc := service.NewCommentaryService(repo, llmClient)
 	activitySvc := service.NewActivityService(repo, llmClient)
 	emailClient := email.NewClient(cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.Username, cfg.Email.Password, cfg.Email.From)
