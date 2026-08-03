@@ -38,6 +38,7 @@ templ Detail(g *model.Group, isAdmin bool, isOwner bool, tabContent templ.Compon
 		<div id="detail-content-area">
 			@tabContent
 		</div>
+		<div id="article-panel"></div>
 	</div>
 }
 
@@ -167,7 +168,13 @@ templ RecentMatchesColumn(groupID string, matches []MatchEntry, fullWidth bool) 
 				for _, m := range visibleMatches(matches, fullWidth) {
 					<div class="ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden">
 						<div class="grass-stripe-accent h-1 w-full"></div>
-						<div class="flex w-full">
+						<div
+							class="flex w-full cursor-pointer hover:opacity-90 transition-opacity"
+							hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) }
+							hx-target="#article-panel"
+							hx-swap="innerHTML"
+							hx-push-url="true"
+						>
 							<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
 								<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
 								<div class="ticket-score text-2xl">{ m.ScoreA }</div>
@@ -181,6 +188,9 @@ templ RecentMatchesColumn(groupID string, matches []MatchEntry, fullWidth bool) 
 						<div class="w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10">
 							<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
 							<div class="flex items-center gap-2">
+								<form method="POST" action={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID + "/regenerate-article") }>
+									<button type="submit" class="text-xs font-oswald text-turf hover:text-pitch">Regenerate article</button>
+								</form>
 								<button class="text-xs font-oswald text-turf hover:text-pitch" hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">@components.IconEdit("size-3.5")</button>
 								<button class="text-xs font-oswald text-nutmeg hover:text-pitch" hx-delete={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) } hx-confirm="Delete this match?" hx-target="body">@components.IconTrash("size-3.5") Remove</button>
 							</div>
@@ -209,7 +219,57 @@ func visibleMatches(matches []MatchEntry, fullWidth bool) []MatchEntry {
 	return matches[:defaultVisibleLimit]
 }
 
-templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStatus string, sortBy string, successMsg string, errMsg string) {
+// PublicRecentMatchesColumn is the public leaderboard page's read-only
+// Recent Matches section — same MatchEntry/WinnerClass rendering as
+// RecentMatchesColumn, but with no Edit/Remove buttons (those stay
+// admin-only) and the whole card is clickable to reveal that match's AI
+// news article. Uses the same client-side JS "Show all" reveal as the
+// public leaderboard table (no #detail-content-area to swap into here).
+templ PublicRecentMatchesColumn(groupID string, matches []MatchEntry) {
+	<div class="mt-8">
+		<h3 class="font-oswald text-2xl text-pitch mb-4">RECENT MATCHES</h3>
+		<div class="space-y-4">
+			if len(matches) == 0 {
+				<p class="text-ink/60 text-sm font-body">No matches logged yet.</p>
+			} else {
+				for i, m := range matches {
+					<div
+						class={ "ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow", extraRowClass(i, defaultVisibleLimit, "public-matches-extra") }
+						hx-get={ templ.URL("/groups/" + m.GroupID + "/matches/" + m.ID) }
+						hx-target="#article-panel"
+						hx-swap="innerHTML"
+						hx-push-url="true"
+					>
+						<div class="grass-stripe-accent h-1 w-full"></div>
+						<div class="flex w-full">
+							<div class={ "flex-1 p-3 text-center", m.WinnerClass("a") }>
+								<div class="font-oswald text-xs mb-1">{ m.TeamA }</div>
+								<div class="ticket-score text-2xl">{ m.ScoreA }</div>
+							</div>
+							<div class="ticket-perforation"></div>
+							<div class={ "flex-1 p-3 text-center", m.WinnerClass("b") }>
+								<div class="font-oswald text-xs mb-1">{ m.TeamB }</div>
+								<div class="ticket-score text-2xl">{ m.ScoreB }</div>
+							</div>
+						</div>
+						<div class="w-full bg-base-200/50 p-2 border-t border-pitch/10">
+							<span class="text-xs text-ink/50 font-mono">{ m.Date }</span>
+						</div>
+					</div>
+				}
+				if len(matches) > defaultVisibleLimit {
+					<div class="text-center">
+						<button type="button" class="show-more-btn text-xs font-oswald text-turf hover:text-pitch underline" data-target=".public-matches-extra">
+							Show all ({ len(matches) - defaultVisibleLimit } more)
+						</button>
+					</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches []MatchEntry, joinStatus string, sortBy string, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-6 flex items-start justify-between gap-4">
 			<h2 class="font-oswald text-2xl sm:text-4xl text-chalk font-bold">{ g.Name }</h2>
@@ -241,7 +301,9 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, joinStat
 					</form>
 			}
 		</div>
+		@PublicRecentMatchesColumn(g.ID, matches)
 	</div>
+	<div id="article-panel"></div>
 }
 
 // defaultVisibleLimit caps how many rows the Leaderboard, Roster, and Recent

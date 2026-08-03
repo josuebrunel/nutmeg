@@ -56,6 +56,21 @@ func (h *MatchHandler) enqueueCommentary(ctx context.Context, matchID string, pl
 	}
 }
 
+// enqueueMatchArticle inserts a match_article row with fallback content
+// already in place, then enqueues a background job to upgrade it with an
+// AI-generated news article — same "insert fallback, upgrade async, never
+// block the request" discipline as RecordActivity/enqueueCommentary.
+func (h *MatchHandler) enqueueMatchArticle(ctx context.Context, matchID string) {
+	articleID, err := h.repo.CreateMatchArticle(ctx, matchID, "Full match report coming soon.")
+	if err != nil {
+		slog.Error("create match article failed", "match_id", matchID, "error", err)
+		return
+	}
+	if _, err := h.jobs.Insert(ctx, worker.GenerateMatchArticleArgs{ArticleID: articleID, MatchID: matchID}, nil); err != nil {
+		slog.Error("enqueue match article generation failed", "article_id", articleID, "match_id", matchID, "error", err)
+	}
+}
+
 func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
 	userID, err := h.auth.GetUserID(c.Request().Context())
 	if err != nil {
@@ -224,6 +239,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	h.enqueueCommentary(c.Request().Context(), matchID, append(teamAPlayers, teamBPlayers...))
 	RecordActivity(c.Request().Context(), h.repo, h.jobs, groupID, "match_logged", matchID,
 		fmt.Sprintf("%s %d - %d %s logged", teamAName, scoreA, scoreB, teamBName))
+	h.enqueueMatchArticle(c.Request().Context(), matchID)
 
 	if isHTMX(c) {
 		return h.htmxRedirect(c, groupID)

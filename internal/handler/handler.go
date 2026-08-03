@@ -33,7 +33,7 @@ type Handler struct {
 	Match   *MatchHandler
 }
 
-func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, jobs JobEnqueuer) *Handler {
+func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, articleSvc *service.MatchArticleService, jobs JobEnqueuer) *Handler {
 	groupSvc := service.NewGroupService(repo, auth.Repo)
 	matchSvc := service.NewMatchService(repo, repo)
 	return &Handler{
@@ -42,7 +42,7 @@ func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *servic
 		Home:    &HomeHandler{groupSvc: groupSvc, auth: auth, matchSvc: matchSvc},
 		Auth:    NewAuthHandler(auth),
 		Account: NewAccountHandler(auth),
-		Group:   NewGroupHandler(auth, groupSvc, matchSvc, repo, commentarySvc, jobs),
+		Group:   NewGroupHandler(auth, groupSvc, matchSvc, repo, commentarySvc, articleSvc, jobs),
 		Match:   NewMatchHandler(auth, matchSvc, repo, jobs),
 	}
 }

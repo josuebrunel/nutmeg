@@ -32,11 +32,12 @@ type GroupHandler struct {
 	matchSvc      *service.MatchService
 	repo          *repository.Repository
 	commentarySvc *service.CommentaryService
+	articleSvc    *service.MatchArticleService
 	jobs          JobEnqueuer
 }
 
-func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository, commentarySvc *service.CommentaryService, jobs JobEnqueuer) *GroupHandler {
-	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo, commentarySvc: commentarySvc, jobs: jobs}
+func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository, commentarySvc *service.CommentaryService, articleSvc *service.MatchArticleService, jobs JobEnqueuer) *GroupHandler {
+	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo, commentarySvc: commentarySvc, articleSvc: articleSvc, jobs: jobs}
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
@@ -252,6 +253,12 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	lbEntries := mapLeaderboardEntries(leaderboard)
 
 	ctx := c.Request().Context()
+	matches, matchErr := h.matchSvc.ListByGroup(ctx, g.ID)
+	if matchErr != nil {
+		slog.Error("failed to list matches", "group_id", g.ID, "error", matchErr)
+	}
+	matchEntries := mapMatchEntries(matches, appmw.LocationFromContext(c))
+
 	isLoggedIn := false
 	userName := ""
 	userID := ""
@@ -268,7 +275,99 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	errMsg := h.auth.GetErrorMessage(ctx)
 
 	description := fmt.Sprintf("%s's leaderboard on Nutmeg — %d players tracked, updated after every match.", g.Name, len(lbEntries))
-	return pageWithMeta(c, g.Name+" Leaderboard", description, isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, joinStatus, sortBy, successMsg, errMsg))
+	return pageWithMeta(c, g.Name+" Leaderboard", description, isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, matchEntries, joinStatus, sortBy, successMsg, errMsg))
+}
+
+// PublicMatchArticle renders the AI-generated news article for a single
+// match — public/unauthenticated, like PublicLeaderboard. An HTMX request
+// (a match card click on the public or private page) gets just the
+// overlay fragment; a direct/non-HTMX request (a shared link or a social
+// crawler) gets a full standalone page with proper link-preview meta tags.
+func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
+	ctx := c.Request().Context()
+	groupID := c.Param("id")
+	matchID := c.Param("mid")
+
+	match, err := h.repo.GetMatchDetail(ctx, matchID)
+	if err != nil || match.GroupID != groupID {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	article, err := h.repo.GetMatchArticle(ctx, matchID)
+	if err != nil {
+		slog.Error("failed to get match article", "match_id", matchID, "error", err)
+	}
+
+	if isHTMX(c) {
+		return render.Component(c, groups.MatchArticlePanel(match, article))
+	}
+
+	g, err := h.service.Get(ctx, groupID)
+	if err != nil {
+		return err
+	}
+
+	title := fmt.Sprintf("%s %d - %d %s", match.TeamAName, match.ScoreA, match.ScoreB, match.TeamBName)
+	description := "The match report is being written up — check back in a few seconds."
+	if article != nil {
+		description = truncateMeta(article.Content, 200)
+	}
+
+	isLoggedIn := false
+	userName := ""
+	if user, err := ezauth.GetUser(ctx); err == nil {
+		isLoggedIn = true
+		userName = user.DisplayName()
+	}
+
+	return pageWithMeta(c, title+" — "+g.Name, description, isLoggedIn, "", userName, groups.MatchArticlePage(g, match, article))
+}
+
+// RegenerateMatchArticle lets a group admin manually re-run article
+// generation for a single match — the same generation+validation flow as
+// automatic post-match generation, gated by CanEdit and a per-match
+// cooldown, mirroring RegenerateCommentary above.
+func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	id := c.Param("id")
+	matchID := c.Param("mid")
+	redirectURL := "/groups/" + id + "?tab=matches"
+
+	g, err := h.service.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !h.service.CanEdit(ctx, g, userID) {
+		return c.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	ok, wait, err := h.articleSvc.CanRegenerate(ctx, matchID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		h.auth.Handler.SetFlash(ctx, "error", fmt.Sprintf("Too soon — try again in %d minute(s).", int(wait.Minutes())+1))
+		return c.Redirect(http.StatusFound, redirectURL)
+	}
+
+	article, err := h.repo.GetMatchArticle(ctx, matchID)
+	if err != nil || article == nil {
+		h.auth.Handler.SetFlash(ctx, "error", "No article to regenerate for this match yet.")
+		return c.Redirect(http.StatusFound, redirectURL)
+	}
+
+	if _, err := h.jobs.Insert(ctx, worker.GenerateMatchArticleArgs{ArticleID: article.ID, MatchID: matchID}, nil); err != nil {
+		h.auth.Handler.SetFlash(ctx, "error", "Could not start regeneration: "+err.Error())
+		return c.Redirect(http.StatusFound, redirectURL)
+	}
+
+	h.auth.Handler.SetFlash(ctx, "success", "Regenerating match article — refresh in a few seconds.")
+	return c.Redirect(http.StatusFound, redirectURL)
 }
 
 // PlayerProfile renders a single player's stats. Like PublicLeaderboard,

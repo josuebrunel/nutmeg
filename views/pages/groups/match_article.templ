@@ -1,0 +1,52 @@
+package groups
+
+import (
+	"fmt"
+
+	"nutmeg/internal/model"
+	"nutmeg/internal/repository"
+	components "nutmeg/views/components"
+)
+
+// matchArticleBody is the shared headline/score line + content-or-fallback
+// block, reused by both the in-page overlay (MatchArticlePanel) and the
+// standalone shareable page (MatchArticlePage) so the "no article yet"
+// state isn't duplicated between them.
+templ matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle) {
+	<div class="font-oswald text-xs text-turf mb-1">{ match.TeamAName } { fmt.Sprint(match.ScoreA) } - { fmt.Sprint(match.ScoreB) } { match.TeamBName }</div>
+	if article == nil {
+		<p class="font-body text-ink/60 text-sm py-8 text-center">Still writing this one up — check back in a few seconds.</p>
+	} else {
+		<div class="font-body text-ink whitespace-pre-line">{ article.Content }</div>
+	}
+}
+
+// MatchArticlePanel is the in-page overlay shown when a match card is
+// clicked (HTMX request, swapped into #article-panel on the public
+// leaderboard page and the private group detail page).
+templ MatchArticlePanel(match *repository.MatchDetail, article *model.MatchArticle) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" onclick="if(event.target===this)document.getElementById('article-panel').innerHTML=''">
+		<div class="bg-chalk rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 relative">
+			<button type="button" class="absolute top-3 right-3 text-ink/40 hover:text-ink" onclick="document.getElementById('article-panel').innerHTML=''" aria-label="Close">
+				@components.IconClose("size-5")
+			</button>
+			@matchArticleBody(match, article)
+		</div>
+	</div>
+}
+
+// MatchArticlePage is the standalone shareable page shown for a direct
+// link or a social-media crawler (no #article-panel to swap into) — same
+// content as the overlay, wrapped as a normal page with a Share button.
+templ MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *model.MatchArticle) {
+	<div class="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-6 mb-6 flex items-start justify-between gap-4">
+			<h2 class="font-oswald text-xl sm:text-2xl text-chalk font-bold">{ g.Name }</h2>
+			@components.ShareWidget(match.TeamAName + " " + fmt.Sprint(match.ScoreA) + " - " + fmt.Sprint(match.ScoreB) + " " + match.TeamBName)
+		</div>
+		<div class="bg-white rounded-lg shadow border border-pitch/20 p-6">
+			@matchArticleBody(match, article)
+		</div>
+		<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="inline-block mt-4 text-sm font-oswald text-turf hover:text-pitch underline">← Back to { g.Name }</a>
+	</div>
+}
