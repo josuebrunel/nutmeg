@@ -1,4 +1,5 @@
 bin/
 *.png
 !static/img/*.png
+!.github/images/*.png
 design.html

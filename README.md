@@ -6,33 +6,48 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker)](https://www.docker.com)
 [![Tests](https://github.com/josuebrunel/nutmeg/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/josuebrunel/nutmeg/actions/workflows/build-and-push.yml)
 
-A web application for tracking soccer matches, teams, players, and statistics within groups. Create groups, invite members, record match results, and visualise stats — all in a clean, responsive UI powered by HTMX and DaisyUI.
+A self-hosted stats tracker for pickup soccer groups, with an AI sports desk that writes your group's trash talk for you.
 
-## Overview
+Log a match in under a minute, keep an unarguable leaderboard, and let a local or cloud LLM turn every game into a fake sports headline and every player into a roast target. One `docker compose up` and it's running.
 
-**Soccer Stats** (codenamed Nutmeg) lets you organise informal soccer groups — such as weekly pick-up games or a local league — and track everything from match scores to individual player contributions. It provides:
+---
 
-- **Group-based organisation** — each group operates independently with its own set of teams, matches, and members.
-- **Role-based access** — group admins can manage members, edit settings, and delete the group; regular members can view and participate.
-- **Match tracking** — record home/away teams, scores, and individual events such as goals and assists.
-- **Authentication** — built-in registration, login, and session management via Ezauth.
+## What It Looks Like
+
+**Log a match in one minute, one-handed.** Tap each player onto a team, tap `+` every time they score or assist, the final score fills itself in. No dropdowns, no typing a score into a box.
+
+![Logging a match in Nutmeg: tap-to-assign teams and goal/assist steppers](.github/images/log-match.png)
+
+**A leaderboard that argues back.** Ranked by performance score, not just who's played the most, so a great record in a few games outranks a mediocre one spread across many. Public link, no account needed to check it.
+
+![Nutmeg leaderboard ranked by performance score, with wins, draws, losses, goals, and assists](.github/images/leaderboard.png)
+
+**Every match gets a fake headline.** Click any logged game and an LLM writes a satirical sports-desk recap, built strictly from the real score, scorers, and assisters - never invented.
+
+![AI-generated match report: 'Shawn Ascends To Godhood In Parulas' Narrow Triumph' after an 8-7 win](.github/images/match-article.png)
+
+**Every player gets roasted, on the numbers.** A savage-but-friendly one-liner regenerated after every match, grounded strictly in that player's real stats.
+
+![Nutmeg player profile with an AI-generated roast referencing real match stats](.github/images/player-roast.png)
+
+---
 
 ## Features
 
-- User authentication (register, login, logout) with session management
-- Self-service account settings (edit name/username/email, change password)
-- Group CRUD (create, read, update, delete)
-- Member management: add/remove members, comma-separated multi-add, CSV roster import, role promotion/demotion, admin inline editing of a player's name/phone/email
-- Public request-to-join flow with admin approve/reject, alongside a public group leaderboard viewable without logging in
-- Match logging with a tap-to-assign team toggle, live score auto-calculation, per-player goals/assists, and an editable match date shown in each visitor's local timezone
-- Sortable, searchable leaderboard and player profile pages (matches played, wins/draws, goals, assists) with truncated/expandable Leaderboard, Roster, and Recent Matches lists
-- AI-generated player "roast" commentary and group activity news: an LLM (local Ollama by default, or Google's Generative Language API — pluggable via `LLM_PROVIDER`) produces a one-off blurb per player after each match via a RiverQueue background job, with an admin-gated, cooldown-limited manual regeneration option
-- Global stats dashboard (`/stats`)
-- Responsive sidebar layout with contextual navigation
-- Flash messages for success and error feedback
-- HTMX-powered interactions for a SPA-like experience
-- Docker Compose for local development with PostgreSQL
-- Hot-reload development workflow with Air + Templ
+- **Group-based organisation** - each group runs independently, with its own roster, matches, and leaderboard.
+- **Role-based access** - admins manage members and settings; everyone else views and plays.
+- **One-minute match logging** - tap-to-assign teams, live goal/assist steppers, auto-calculated score, editable match date shown in each visitor's own timezone.
+- **Public links, no account required** - group leaderboards, player profiles, and match reports are all shareable, read-only links.
+- **Performance-ranked leaderboard** - ranked by (3×Wins + Draws + Goals + Assists) ÷ Matches once a player's played enough games to qualify (3+), so ratio beats raw volume without a single lucky win topping the board.
+- **AI player roasts** - a one-line, savage-but-friendly roast per player, regenerated after every match, built only from real stats, no invented events, ever.
+- **AI match reports** - a full satirical "news article" per match, headline included, generated the same way.
+- **AI group activity feed** - short auto-written blurbs for "a match got logged" / "a new player joined" events.
+- **Pluggable LLM backend** - local Ollama by default, or Google's Generative Language API, switchable via one env var. All generation runs as a background job so a slow or unreachable model never blocks logging a match.
+- Group CRUD, member management (add/remove, CSV import, promote/demote, inline edit), public request-to-join with admin approval
+- Global stats dashboard, responsive sidebar layout, flash messages, HTMX-powered interactions throughout
+- Docker Compose for local dev, hot-reload workflow with Air + Templ
+
+---
 
 ## Tech Stack
 
@@ -46,7 +61,7 @@ A web application for tracking soccer matches, teams, players, and statistics wi
 | **Query Builder**  | [Bob](https://github.com/stephenafamo/bob) + [scan.StructMapper](https://github.com/stephenafamo/scan)                                           |
 | **Migrations**     | [Goose v3](https://github.com/pressly/goose/v3) (embedded, no global registry)                                                                   |
 | **Background Jobs**| [RiverQueue](https://github.com/riverqueue/river) (Postgres-backed job queue, e.g. async AI commentary generation)                               |
-| **AI / LLM**       | Pluggable via `LLM_PROVIDER` — [Ollama](https://ollama.com) (local inference, default) or [Google's Generative Language API](https://ai.google.dev/gemini-api/docs/models) (e.g. Gemma), both hand-rolled clients in `internal/llm/`, no SDK |
+| **AI / LLM**       | Pluggable via `LLM_PROVIDER` — [Ollama](https://ollama.com) (local inference, default) or [Google's Generative Language API](https://ai.google.dev/gemini-api/docs/models) (e.g. Gemma), both hand-rolled clients in `internal/llm/`, no SDK — powers player roasts, match reports, and group-activity blurbs |
 | **Authentication** | [Ezauth](https://github.com/josuebrunel/ezauth)                                                                                                  |
 | **Configuration**  | [Xenv](https://github.com/josuebrunel/gopkg/xenv)                                                                                                |
 | **Hot Reload**     | [Air](https://github.com/air-verse/air)                                                                                                          |
@@ -102,7 +117,7 @@ Every entity follows the same convention: one file each for model, repository op
 
 ## Database Schema
 
-The database contains eight core tables:
+The database contains ten core tables:
 
 | Table                  | Description                                                                                          |
 | ---------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -114,6 +129,8 @@ The database contains eight core tables:
 | `match_players`        | Roster of which players participated on which team for a given match                                   |
 | `group_join_requests`  | Pending/approved/rejected requests from a user to join a group via the public join flow                 |
 | `player_commentary`    | AI-generated "roast" commentary per player, one active row at a time (older rows marked `superseded`)   |
+| `group_activity`       | Auto-written one-line news blurbs for group events (match logged, player added), upgraded from a fallback to AI-generated text by a background job |
+| `match_article`        | AI-generated satirical match report, one row per match, regenerated in place on a new match or an admin's manual regenerate action |
 
 Indexes cover the foreign-key columns for efficient lookups.
 
@@ -214,7 +231,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │   ├── repository/              # Data access layer (Bob psql queries)
 │   ├── router/                  # Route registration
 │   ├── service/                 # Business logic layer
-│   └── worker/                  # RiverQueue background jobs (commentary generation)
+│   └── worker/                  # RiverQueue background jobs (player roasts, group activity, match reports)
 ├── migrations/                  # SQL migration files (embedded)
 ├── static/css/                  # Static assets (CSS)
 ├── views/
@@ -225,7 +242,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │       ├── auth/                # Login, Register
 │       ├── groups/               # List, Form, Detail, Leaderboard
 │       ├── home/                # Dashboard, Stats
-│       ├── matches/              # Match logging/edit modal
+│       ├── matches/              # Match logging/edit modal, AI match report panel
 │       ├── players/              # Player profile + AI commentary
 │       └── stats, teams/         # Currently empty (no dedicated views yet)
 ```
@@ -244,6 +261,7 @@ Authenticated routes are registered in `internal/router/router.go`; public route
 | `GET`  | `/health`                        | —                        | Health check                          |
 | `GET`  | `/groups/:id/leaderboard`        | Group.PublicLeaderboard  | Public, read-only group leaderboard   |
 | `GET`  | `/groups/:id/players/:memberId`  | Group.PlayerProfile      | Public player profile + AI commentary |
+| `GET`  | `/groups/:id/matches/:mid`       | Group.PublicMatchArticle | Public match report (HTMX fragment for in-page clicks, full page with social-preview meta tags for direct/shared links) |
 
 Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, register, logout, and callback endpoints.
 
@@ -278,6 +296,7 @@ Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, r
 | `POST`   | `/groups/:id/join-requests/:reqId/approve`               | Group.ApproveJoinRequest    | Approve a join request                               |
 | `POST`   | `/groups/:id/join-requests/:reqId/reject`                | Group.RejectJoinRequest     | Reject a join request                                |
 | `POST`   | `/groups/:id/players/:memberId/regenerate-commentary`    | Group.RegenerateCommentary  | Manually regenerate AI commentary (cooldown-limited) |
+| `POST`   | `/groups/:id/matches/:mid/regenerate-article`            | Group.RegenerateMatchArticle | Manually regenerate a match's AI report (cooldown-limited) |
 | `GET`    | `/groups/:id/match-modal`                                | Match.LogMatchModal         | Match logging modal                                  |
 | `POST`   | `/groups/:id/matches`                                    | Match.Create                | Log a new match                                      |
 | `GET`    | `/groups/:id/matches/:mid/edit`                          | Match.EditModal             | Match edit modal                                     |
