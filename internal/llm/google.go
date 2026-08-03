@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,11 @@ func NewGoogleClient(apiKey, model string, requestTimeout time.Duration) *Google
 
 type googlePart struct {
 	Text string `json:"text"`
+	// Thought marks this part as the model's internal reasoning trace
+	// rather than its actual answer — "thinking" models like Gemma 4
+	// return the thought part(s) first, then the real response last, all
+	// inside the same Parts slice. Must be skipped when extracting output.
+	Thought bool `json:"thought,omitempty"`
 }
 
 type googleContent struct {
@@ -50,7 +56,8 @@ type googleRequest struct {
 
 type googleResponse struct {
 	Candidates []struct {
-		Content googleContent `json:"content"`
+		Content      googleContent `json:"content"`
+		FinishReason string        `json:"finishReason"`
 	} `json:"candidates"`
 	Error *struct {
 		Message string `json:"message"`
@@ -86,22 +93,48 @@ func (c *GoogleClient) Generate(ctx context.Context, prompt string) (string, err
 		return "", fmt.Errorf("llm: read response: %w", err)
 	}
 
+	return parseGoogleResponse(resp.StatusCode, b)
+}
+
+// parseGoogleResponse extracts the model's actual answer from a
+// generateContent response body, regardless of which model produced it.
+// Deliberately doesn't assume anything about *whether* a given model
+// "thinks" — some do (returning thought:true parts ahead of the real
+// answer, e.g. gemma-4-31b-it) and some don't (a single plain part, e.g.
+// Gemma 3) — so every non-thought part with text is treated as real output
+// and joined, which is correct either way instead of hardcoding per-model
+// behavior.
+func parseGoogleResponse(statusCode int, body []byte) (string, error) {
 	var out googleResponse
-	if err := json.Unmarshal(b, &out); err != nil {
+	if err := json.Unmarshal(body, &out); err != nil {
 		return "", fmt.Errorf("llm: decode response: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if statusCode != http.StatusOK {
 		if out.Error != nil {
-			return "", fmt.Errorf("llm: google returned %d: %s", resp.StatusCode, out.Error.Message)
+			return "", fmt.Errorf("llm: google returned %d: %s", statusCode, out.Error.Message)
 		}
-		return "", fmt.Errorf("llm: google returned %d: %s", resp.StatusCode, string(b))
+		return "", fmt.Errorf("llm: google returned %d: %s", statusCode, string(body))
 	}
-	if len(out.Candidates) == 0 || len(out.Candidates[0].Content.Parts) == 0 {
+	if len(out.Candidates) == 0 {
 		return "", fmt.Errorf("llm: google returned no candidates")
 	}
+	candidate := out.Candidates[0]
 
-	return out.Candidates[0].Content.Parts[0].Text, nil
+	var answer strings.Builder
+	for _, part := range candidate.Content.Parts {
+		if !part.Thought && part.Text != "" {
+			answer.WriteString(part.Text)
+		}
+	}
+	if answer.Len() > 0 {
+		return answer.String(), nil
+	}
+
+	if candidate.FinishReason != "" && candidate.FinishReason != "STOP" {
+		return "", fmt.Errorf("llm: google returned no usable text, finishReason: %s", candidate.FinishReason)
+	}
+	return "", fmt.Errorf("llm: google returned only thought content, no final answer")
 }
 
 // Model returns the model name this client is configured to use, for
