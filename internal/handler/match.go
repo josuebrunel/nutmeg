@@ -146,6 +146,70 @@ func (h *MatchHandler) parseAssistsFromForm(c *echo.Context) string {
 	return strings.Join(parts, ",")
 }
 
+// formIntMap scans the request's form for keys starting with prefix,
+// keeping only positive integer values, keyed by the id left after
+// trimming prefix. Deliberately does not filter by team assignment (unlike
+// parseGoalsFromForm/parseAssistsFromForm) — used to repopulate the
+// log-match form's Goals/Assists after a validation error, where a player
+// may have a tally entered but no team assigned yet (e.g. exactly the
+// "each team must have at least one player" case), and that entry must
+// still round-trip back into the form.
+func formIntMap(c *echo.Context, prefix string) map[string]int {
+	m := make(map[string]int)
+	for key, values := range c.Request().Form {
+		if !strings.HasPrefix(key, prefix) || len(values) == 0 {
+			continue
+		}
+		n, err := strconv.Atoi(values[0])
+		if err != nil || n <= 0 {
+			continue
+		}
+		m[strings.TrimPrefix(key, prefix)] = n
+	}
+	return m
+}
+
+// buildMatchEditData assembles a *matches.MatchEditData from a just-failed
+// Create or Update submission's already-parsed values, so the form can be
+// re-rendered with everything the user entered instead of discarding it.
+// matchID is "" for a failed Create (keeps the form in "create" mode) or
+// the match's id for a failed Update.
+func buildMatchEditData(c *echo.Context, matchID, teamAName, teamBName string, scoreA, scoreB int, teamAPlayers, teamBPlayers []string, playedAt time.Time, errMsg string) *matches.MatchEditData {
+	teams := make(map[string]string, len(teamAPlayers)+len(teamBPlayers))
+	for _, pid := range teamAPlayers {
+		teams[pid] = "a"
+	}
+	for _, pid := range teamBPlayers {
+		teams[pid] = "b"
+	}
+	return &matches.MatchEditData{
+		MatchID:   matchID,
+		TeamAName: teamAName,
+		TeamBName: teamBName,
+		ScoreA:    scoreA,
+		ScoreB:    scoreB,
+		Teams:     teams,
+		Goals:     formIntMap(c, "goals_"),
+		Assists:   formIntMap(c, "assists_"),
+		PlayedAt:  playedAt,
+		Error:     errMsg,
+	}
+}
+
+// renderLogFormError re-renders the log-match form in place with editData
+// (entered values + error message already populated) — the HTMX error
+// path for Create/Update, mirroring how LogMatchModal/EditModal load the
+// form fresh.
+func (h *MatchHandler) renderLogFormError(c *echo.Context, groupID string, editData *matches.MatchEditData) error {
+	members, err := h.repo.ListMembers(c.Request().Context(), groupID)
+	if err != nil {
+		return err
+	}
+	sortMembersByName(members)
+	today := time.Now().In(appmw.LocationFromContext(c)).Format("2006-01-02")
+	return render.Component(c, matches.LogForm(groupID, members, editData, today))
+}
+
 func (h *MatchHandler) parseTeamPlayers(c *echo.Context) ([]string, []string) {
 	var teamAPlayers, teamBPlayers []string
 	for key, values := range c.Request().Form {
@@ -230,8 +294,8 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	matchID, err := h.service.Create(c.Request().Context(), input)
 	if err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
-			return c.NoContent(http.StatusOK)
+			editData := buildMatchEditData(c, "", teamAName, teamBName, scoreA, scoreB, teamAPlayers, teamBPlayers, input.PlayedAt, err.Error())
+			return h.renderLogFormError(c, groupID, editData)
 		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)
@@ -356,8 +420,8 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
-			return c.NoContent(http.StatusOK)
+			editData := buildMatchEditData(c, matchID, teamAName, teamBName, scoreA, scoreB, teamAPlayers, teamBPlayers, input.PlayedAt, err.Error())
+			return h.renderLogFormError(c, groupID, editData)
 		}
 		h.auth.Handler.SetFlash(c.Request().Context(), "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)

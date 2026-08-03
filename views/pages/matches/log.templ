@@ -18,10 +18,20 @@ type MatchEditData struct {
 	Goals     map[string]int
 	Assists   map[string]int
 	PlayedAt  time.Time
+	Error     string
+}
+
+// isEdit reports whether the form should behave as an edit of an existing
+// match (URL, heading, button text) rather than a new-match create. A
+// failed-create repopulation passes a non-nil editData with MatchID == ""
+// to carry the entered values + error, so this can't just check
+// editData != nil the way the other prefill helpers below do.
+func isEdit(editData *MatchEditData) bool {
+	return editData != nil && editData.MatchID != ""
 }
 
 func formAction(groupID string, editData *MatchEditData) string {
-	if editData != nil {
+	if isEdit(editData) {
 		return "/groups/" + groupID + "/matches/" + editData.MatchID + "/update"
 	}
 	return "/groups/" + groupID + "/matches"
@@ -130,7 +140,7 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 		<div class="bg-white p-4 sm:p-6 rounded-xl shadow border-2 border-pitch max-w-5xl mx-auto">
 			<div class="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<h3 class="font-oswald text-2xl text-pitch font-bold">
-					if editData != nil {
+					if isEdit(editData) {
 						EDIT MATCH RESULT
 					} else {
 						LOG MATCH RESULT
@@ -141,7 +151,10 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 					<input type="date" id="played_at" name="played_at" form="match-form" value={ playedAtValue(editData, today) } class="border border-pitch/30 rounded px-2 py-1 text-sm font-mono"/>
 				</div>
 			</div>
-			<form id="match-form" method="POST" action={ templ.URL(formAction(groupID, editData)) } hx-target="body" class="space-y-6">
+			if editData != nil && editData.Error != "" {
+				<div role="alert" class="bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4">{ editData.Error }</div>
+			}
+			<form id="match-form" hx-post={ templ.URL(formAction(groupID, editData)) } hx-target="#detail-content-area" hx-swap="innerHTML" class="space-y-6">
 				<div>
 					<div class="flex justify-between items-end mb-3">
 						<h3 class="font-oswald text-xl text-turf flex items-center gap-2">@components.IconUsers("size-5") 1. Tap Each Player's Team, Then Tally Goals &amp; Assists</h3>
@@ -217,7 +230,7 @@ templ LogForm(groupID string, members []repository.MemberInfo, editData *MatchEd
 					</div>
 				</div>
 				<button type="submit" class="w-full font-oswald bg-gold text-pitch border-2 border-gold py-3 rounded hover:bg-pitch hover:text-gold transition-colors text-lg font-bold">
-					if editData != nil {
+					if isEdit(editData) {
 						UPDATE MATCH
 					} else {
 						SAVE MATCH
