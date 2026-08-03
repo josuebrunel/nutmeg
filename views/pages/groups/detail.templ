@@ -307,10 +307,15 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches 
 	<div id="article-panel"></div>
 }
 
-// scoreTooltip explains the default leaderboard ranking — worded to read
-// sensibly whether a single new player is provisional behind a pack of
-// qualified veterans, or the whole group is still provisional together
-// (e.g. a brand-new group), so it never implies fault or a penalty.
+// scoreTooltip explains the default leaderboard ranking, revealed by
+// tapping/clicking the .score-info-btn icon (static/js/main.js) — a plain
+// click toggle rather than a CSS hover tooltip, since a hover-only tooltip
+// never triggers on touch devices and DaisyUI's absolutely-positioned
+// tooltip content gets clipped by the table wrapper's overflow-x-auto.
+// Worded to read sensibly whether a single new player is provisional
+// behind a pack of qualified veterans, or the whole group is still
+// provisional together (e.g. a brand-new group), so it never implies
+// fault or a penalty.
 const scoreTooltip = "Ranked by performance score: (3×Wins + Draws + Goals + Assists) ÷ Matches. Players are ranked by wins until they've played 3 matches, then by score like everyone else."
 
 // scoreCellClass mutes an unqualified player's score cell — it's still
@@ -358,11 +363,12 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 		<div class="flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-oswald text-ink/50">
 			<span>Sort:</span>
 			@sortLink(sortBaseURL, "", "Score", activeSort)
-			<span class="tooltip tooltip-bottom normal-case font-body text-ink/40 cursor-help" data-tip={ scoreTooltip }>&#9432;</span>
+			<button type="button" class="score-info-btn normal-case font-body text-ink/40 hover:text-ink/70" aria-label="How ranking works" aria-expanded="false">&#9432;</button>
 			@sortLink(sortBaseURL, "goals", "Goals", activeSort)
 			@sortLink(sortBaseURL, "assists", "Assists", activeSort)
 			@sortLink(sortBaseURL, "matches", "Matches", activeSort)
 		</div>
+		<p class="score-info-text hidden px-3 pb-2 text-xs font-body text-ink/60 normal-case">{ scoreTooltip }</p>
 		<table class="w-full text-left border-collapse">
 			<thead class="bg-pitch text-chalk font-oswald text-sm">
 				<tr>
