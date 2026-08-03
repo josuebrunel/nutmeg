@@ -1,12 +1,14 @@
 package players
 
 import (
+	"fmt"
+
 	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 	components "nutmeg/views/components"
 )
 
-templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, commentary *string, chartData ChartData, isTopScorer bool, isTopPasser bool, canEdit bool, successMsg string, errMsg string) {
+templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.PlayerStats, score float64, qualified bool, commentary *string, chartData ChartData, isTopScorer bool, isTopPasser bool, canEdit bool, successMsg string, errMsg string) {
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex items-start justify-between gap-4">
 			<div>
@@ -83,6 +85,19 @@ templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Playe
 				<div class="flex justify-center mb-1">@components.IconBoot("size-5 text-turf")</div>
 				<div class="text-sm font-oswald text-ink/70">Assists</div>
 				<div class="text-3xl font-bold text-turf font-mono">{ stats.Assists }</div>
+			</div>
+			<div class="bg-white p-4 rounded shadow border border-pitch/10 text-center score-info-group">
+				<div class="flex justify-center mb-1">@components.IconStats("size-5 text-turf")</div>
+				<div class="text-sm font-oswald text-ink/70 flex items-center justify-center gap-1">
+					Pts/Game
+					<button type="button" class="score-info-btn text-ink/40 hover:text-ink/70" aria-label="How this is calculated" aria-expanded="false">&#9432;</button>
+				</div>
+				if qualified {
+					<div class="text-3xl font-bold text-pitch font-mono">{ fmt.Sprintf("%.2f", score) }</div>
+				} else {
+					<div class="text-3xl font-bold text-ink/40 font-mono">{ fmt.Sprintf("%.2f", score) }</div>
+				}
+				<p class="score-info-text hidden text-xs font-body text-ink/60 normal-case mt-2 text-left">{ components.ScoreExplainer }</p>
 			</div>
 		</div>
 		if stats.MatchesPlayed > 0 {

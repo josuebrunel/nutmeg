@@ -351,17 +351,6 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches 
 	<div id="article-panel"></div>
 }
 
-// scoreTooltip explains the default leaderboard ranking, revealed by
-// tapping/clicking the .score-info-btn icon (static/js/main.js) — a plain
-// click toggle rather than a CSS hover tooltip, since a hover-only tooltip
-// never triggers on touch devices and DaisyUI's absolutely-positioned
-// tooltip content gets clipped by the table wrapper's overflow-x-auto.
-// Worded to read sensibly whether a single new player is provisional
-// behind a pack of qualified veterans, or the whole group is still
-// provisional together (e.g. a brand-new group), so it never implies
-// fault or a penalty.
-const scoreTooltip = "Ranked by performance score: (3×Wins + Draws + Goals + Assists) ÷ Matches. Players are ranked by wins until they've played 3 matches, then by score like everyone else."
-
 // scoreCellClass mutes an unqualified player's score cell — it's still
 // shown (never hidden, always transparent about the real number), just
 // visually marked as provisional since it isn't what determined their
@@ -403,7 +392,7 @@ func extraRowClass(index, limit int, marker string) string {
 // #detail-content-area to swap into), all rows are rendered up front and
 // "Show all" just reveals the hidden ones client-side (static/js/main.js).
 templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []LeaderboardEntry, activeSort string, limit int, showAllURL string) {
-	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto">
+	<div class="bg-white rounded-lg shadow border border-pitch/20 overflow-x-auto score-info-group">
 		<div class="flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-oswald text-ink/50">
 			<span>Sort:</span>
 			@sortLink(sortBaseURL, "", "Score", activeSort)
@@ -412,7 +401,7 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 			@sortLink(sortBaseURL, "assists", "Assists", activeSort)
 			@sortLink(sortBaseURL, "matches", "Matches", activeSort)
 		</div>
-		<p class="score-info-text hidden px-3 pb-2 text-xs font-body text-ink/60 normal-case">{ scoreTooltip }</p>
+		<p class="score-info-text hidden px-3 pb-2 text-xs font-body text-ink/60 normal-case">{ components.ScoreExplainer }</p>
 		<table class="w-full text-left border-collapse">
 			<thead class="bg-pitch text-chalk font-oswald text-sm">
 				<tr>

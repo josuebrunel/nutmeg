@@ -40,14 +40,18 @@ document.addEventListener('click', function (evt) {
   btn.parentElement.remove()
 })
 
-// Leaderboard ranking explainer — tap/click toggle (not a hover tooltip, so
-// it works on touch devices) revealing the score-info-text paragraph right
-// after the button's row. Delegated on document so it keeps working after
-// htmx swaps.
+// Score-ranking explainer — tap/click toggle (not a hover tooltip, so it
+// works on touch devices) revealing the .score-info-text paragraph inside
+// the same .score-info-group wrapper as the button. Used by both the
+// leaderboard's ranking explainer and the player profile's Pts/Game tile,
+// which have different internal layouts, hence the closest-ancestor
+// lookup rather than an assumed sibling order. Delegated on document so
+// it keeps working after htmx swaps.
 document.addEventListener('click', function (evt) {
   var btn = evt.target.closest('.score-info-btn')
   if (!btn) return
-  var text = btn.parentElement.nextElementSibling
+  var group = btn.closest('.score-info-group')
+  var text = group && group.querySelector('.score-info-text')
   if (!text) return
   var hidden = text.classList.toggle('hidden')
   btn.setAttribute('aria-expanded', hidden ? 'false' : 'true')

@@ -61,6 +61,19 @@ func TopPasserID(entries []LeaderboardEntry) string {
 	return id
 }
 
+// PlayerLeaderboardEntry returns the entry belonging to memberID, or
+// false if the leaderboard doesn't contain them (it always should, for
+// any real member of the group — GetGroupLeaderboard is a LEFT JOIN from
+// group_players, so even a player with zero matches gets a row).
+func PlayerLeaderboardEntry(entries []LeaderboardEntry, memberID string) (LeaderboardEntry, bool) {
+	for _, e := range entries {
+		if e.MemberID == memberID {
+			return e, true
+		}
+	}
+	return LeaderboardEntry{}, false
+}
+
 type PlayerStats struct {
 	MatchesPlayed int `db:"matches_played"`
 	Wins          int `db:"wins"`

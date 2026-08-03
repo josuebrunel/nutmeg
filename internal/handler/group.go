@@ -408,11 +408,17 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 
 	isTopScorer := false
 	isTopPasser := false
+	var score float64
+	var qualified bool
 	if entries, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, ""); lbErr != nil {
 		slog.Error("failed to get leaderboard for profile badges", "group_id", g.ID, "error", lbErr)
 	} else {
 		isTopScorer = repository.TopScorerID(entries) == player.ID
 		isTopPasser = repository.TopPasserID(entries) == player.ID
+		if entry, ok := repository.PlayerLeaderboardEntry(entries, player.ID); ok {
+			score = entry.Score
+			qualified = entry.Qualified
+		}
 	}
 
 	isLoggedIn := false
@@ -435,7 +441,7 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	}
 	description = truncateMeta(description, 200)
 
-	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, commentary, chartData, isTopScorer, isTopPasser, canEdit, successMsg, errMsg))
+	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, score, qualified, commentary, chartData, isTopScorer, isTopPasser, canEdit, successMsg, errMsg))
 }
 
 // buildChartData maps a player's aggregate stats and recent match history
