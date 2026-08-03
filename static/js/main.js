@@ -53,14 +53,38 @@ document.addEventListener('click', function (evt) {
   btn.setAttribute('aria-expanded', hidden ? 'false' : 'true')
 })
 
-// Leaderboard search — only rendered in the expanded (full-width) leaderboard
-// view; filters visible rows by player name as the user types. Delegated on
-// document so it keeps working after htmx swaps.
+// Player-name search — leaderboard (only in the expanded full-width view)
+// and roster (same "Show all" gating, see RosterColumn/visibleMembers)
+// share this one listener since both just filter [data-player-name] rows
+// by substring as the user types. Delegated on document so it keeps
+// working after htmx swaps.
 document.addEventListener('input', function (evt) {
-  if (!evt.target.matches('.leaderboard-search')) return
+  if (!evt.target.matches('.leaderboard-search, .roster-search')) return
   var query = evt.target.value.trim().toLowerCase()
   document.querySelectorAll('[data-player-name]').forEach(function (row) {
     row.classList.toggle('hidden', query !== '' && !row.dataset.playerName.includes(query))
+  })
+})
+
+// Public group page's Leaderboard / Recent Matches tab toggle — both
+// panels are already rendered on page load (no extra request needed,
+// unlike the private page's htmx-swapped tabs), so this just shows/hides
+// them and updates the active button style client-side. Delegated on
+// document so it keeps working after htmx swaps (e.g. the match-article
+// overlay).
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.public-tab-btn')
+  if (!btn) return
+  var target = document.querySelector(btn.dataset.target)
+  if (!target) return
+  btn.parentElement.querySelectorAll('.public-tab-btn').forEach(function (b) {
+    b.classList.remove('border-turf', 'text-turf')
+    b.classList.add('border-transparent', 'text-ink/60')
+  })
+  btn.classList.remove('border-transparent', 'text-ink/60')
+  btn.classList.add('border-turf', 'text-turf')
+  document.querySelectorAll('.public-tab-panel').forEach(function (panel) {
+    panel.classList.toggle('hidden', panel !== target)
   })
 })
 

@@ -72,6 +72,41 @@ templ groupTabButton(groupID, path, key, active string) {
 // bar scroll horizontally on narrow phone screens instead of wrapping or
 // overflowing the viewport — the three labels together are wider than a
 // typical phone's content width once page padding is accounted for.
+func publicTabClass(key, active string) string {
+	if key == active {
+		return "border-turf text-turf"
+	}
+	return "border-transparent text-ink/60 hover:text-pitch"
+}
+
+templ publicTabButton(key, active, target string) {
+	<button
+		type="button"
+		class={ "public-tab-btn px-4 py-2 font-oswald text-sm flex items-center gap-1.5 border-b-2 -mb-0.5 shrink-0 whitespace-nowrap transition-colors", publicTabClass(key, active) }
+		data-target={ target }
+	>
+		{ children... }
+	</button>
+}
+
+// PublicGroupTabs is the public leaderboard page's Leaderboard / Recent
+// Matches menu — visually matching GroupTabs, but a pure client-side
+// show/hide (static/js/main.js) rather than an HTMX swap, since both
+// panels are already fully rendered in the same response and there's no
+// #detail-content-area on this page to swap into.
+templ PublicGroupTabs(active string) {
+	<div class="flex gap-1 mb-6 border-b-2 border-pitch/10 overflow-x-auto">
+		@publicTabButton("leaderboard", active, "#public-panel-leaderboard") {
+			@components.IconTrophy("size-4")
+			LEADERBOARD
+		}
+		@publicTabButton("matches", active, "#public-panel-matches") {
+			@components.IconMatch("size-4")
+			RECENT MATCHES
+		}
+	</div>
+}
+
 templ GroupTabs(groupID string, active string) {
 	<div class="flex gap-1 mb-6 border-b-2 border-pitch/10 overflow-x-auto">
 		@groupTabButton(groupID, "leaderboard-full", "leaderboard", active) {
@@ -282,11 +317,17 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches 
 		if successMsg != "" {
 			<div role="alert" class="bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4">{ successMsg }</div>
 		}
-		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">
-			@components.IconTrophy("size-6")
-			LEADERBOARD
-		</h3>
-		@leaderboardTable(g.ID, "/groups/"+g.ID+"/leaderboard", leaderboard, sortBy, defaultVisibleLimit, "")
+		@PublicGroupTabs("leaderboard")
+		<div id="public-panel-leaderboard" class="public-tab-panel">
+			<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">
+				@components.IconTrophy("size-6")
+				LEADERBOARD
+			</h3>
+			@leaderboardTable(g.ID, "/groups/"+g.ID+"/leaderboard", leaderboard, sortBy, defaultVisibleLimit, "")
+		</div>
+		<div id="public-panel-matches" class="public-tab-panel hidden">
+			@PublicRecentMatchesColumn(g.ID, matches)
+		</div>
 		<div class="mt-6">
 			switch joinStatus {
 				case "anonymous":
@@ -302,7 +343,6 @@ templ PublicLeaderboard(g *model.Group, leaderboard []LeaderboardEntry, matches 
 					</form>
 			}
 		</div>
-		@PublicRecentMatchesColumn(g.ID, matches)
 	</div>
 	<div id="article-panel"></div>
 }
@@ -532,9 +572,12 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 				</form>
 				<p class="text-xs text-ink/40 mt-1">CSV needs a header row: name (required), phone, email (optional)</p>
 			}
+			if fullWidth {
+				<input type="text" class="roster-search w-full border-2 border-pitch/20 rounded px-3 py-2 text-sm mb-3" placeholder="Search players…" aria-label="Search players"/>
+			}
 			<ul class="space-y-1">
 				for _, m := range visibleMembers(members, fullWidth) {
-					<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0">
+					<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0" data-player-name={ strings.ToLower(m.Name) }>
 						<div class="flex flex-col truncate">
 							<span class="font-body truncate">{ m.Name }</span>
 							if m.Email != nil && *m.Email != "" {
