@@ -20,6 +20,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverdatabasesql"
 	"github.com/riverqueue/river/rivermigrate"
 	"github.com/stephenafamo/bob"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
@@ -31,6 +32,7 @@ import (
 	"nutmeg/internal/router"
 	"nutmeg/internal/service"
 	"nutmeg/internal/worker"
+	_ "nutmeg/docs"
 	"nutmeg/migrations"
 )
 
@@ -75,6 +77,14 @@ func runLLMTest(provider, apiKey, model, baseURL string) {
 	fmt.Println(response)
 }
 
+// @title Nutmeg API
+// @version 1.0
+// @description JSON API for Nutmeg, a self-hosted pickup-soccer stats tracker.
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Bearer token obtained from POST /auth/api/login (see ezauth's JSON auth endpoints).
 func main() {
 	migrateFlag := flag.String("migrate", "", "run migrations (up or down) then exit, without starting the server")
 	llmtestFlag := flag.Bool("llmtest", false, "send a sample roast prompt to the configured LLM provider, then exit")
@@ -244,6 +254,22 @@ func main() {
 	app := e.Group("")
 	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
 	router.Register(app, auth, repo, commentarySvc, riverClient)
+
+	// JSON API (/api/v1), authenticated via ezauth's JWT Bearer middleware
+	// rather than the cookie session used by the routes above.
+	apiGroup := e.Group("/api/v1")
+	apiGroup.Use(echo.WrapMiddleware(auth.AuthMiddleware))
+	router.RegisterAPI(apiGroup, auth, repo, commentarySvc, riverClient)
+
+	publicAPI := e.Group("/api/v1/public")
+	router.RegisterPublicAPI(publicAPI, auth, repo, commentarySvc, riverClient)
+
+	// InstanceName must be "nutmeg" (matching -instanceName on `make swag`
+	// and docs.SwaggerInfonutmeg's registration) — the default instance
+	// name ("swagger") collides with ezauth's own embedded Swagger docs,
+	// which registers under that name in the same process-wide swag
+	// registry as soon as ezauth.NewWithDB is called above.
+	e.GET("/swagger/*", echo.WrapHandler(httpSwagger.Handler(httpSwagger.InstanceName("nutmeg"))))
 
 	sc := echo.StartConfig{Address: cfg.Addr}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

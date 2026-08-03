@@ -76,14 +76,14 @@ func pageWithMeta(c *echo.Context, title, description string, isLoggedIn bool, c
 	return layout.Base(title, description, ogImage, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
 }
 
-// recordActivity inserts a new group_activity row with fallback content
+// RecordActivity inserts a new group_activity row with fallback content
 // already in place, then enqueues a background job to upgrade it with an
 // AI-generated blurb. Shared by GroupHandler (player_added) and
 // MatchHandler (match_logged) — both hold a *repository.Repository and a
 // JobEnqueuer already. Failures are logged and swallowed, same as
 // enqueueCommentary: a group's activity feed is never allowed to block
 // the request that triggered it.
-func recordActivity(ctx context.Context, repo *repository.Repository, jobs JobEnqueuer, groupID, kind, subjectID, fallback string) {
+func RecordActivity(ctx context.Context, repo *repository.Repository, jobs JobEnqueuer, groupID, kind, subjectID, fallback string) {
 	activityID, err := repo.CreateGroupActivity(ctx, groupID, kind, subjectID, fallback)
 	if err != nil {
 		slog.Error("record group activity failed", "group_id", groupID, "kind", kind, "error", err)
@@ -94,11 +94,11 @@ func recordActivity(ctx context.Context, repo *repository.Repository, jobs JobEn
 	}
 }
 
-// enqueueEmail enqueues a background job to send an email to one or more
+// EnqueueEmail enqueues a background job to send an email to one or more
 // recipients — a no-op (with no error) if to is empty, e.g. a group with
 // no admin email on file. Same log-and-continue discipline as
-// recordActivity: never blocks or fails the request that triggered it.
-func enqueueEmail(ctx context.Context, jobs JobEnqueuer, to []string, subject, body string) {
+// RecordActivity: never blocks or fails the request that triggered it.
+func EnqueueEmail(ctx context.Context, jobs JobEnqueuer, to []string, subject, body string) {
 	if len(to) == 0 {
 		return
 	}

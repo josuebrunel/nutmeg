@@ -15,6 +15,8 @@ require (
 	github.com/riverqueue/river/rivertype v0.42.0
 	github.com/stephenafamo/bob v0.42.0
 	github.com/stephenafamo/scan v0.7.0
+	github.com/swaggo/http-swagger v1.3.4
+	github.com/swaggo/swag v1.16.6
 )
 
 require (
@@ -54,8 +56,6 @@ require (
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
-	github.com/swaggo/http-swagger v1.3.4 // indirect
-	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/testcontainers/testcontainers-go v0.40.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect

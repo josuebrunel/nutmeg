@@ -1,0 +1,1155 @@
+basePath: /api/v1
+definitions:
+  api.AccountResponse:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      username:
+        type: string
+    type: object
+  api.AccountUpdateRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      username:
+        type: string
+    type: object
+  api.DashboardResponse:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/api.GroupResponse'
+        type: array
+      stats:
+        $ref: '#/definitions/api.GlobalStatsResponse'
+    type: object
+  api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api.GlobalStatsResponse:
+    properties:
+      total_assists:
+        type: integer
+      total_draws:
+        type: integer
+      total_goals:
+        type: integer
+      total_matches:
+        type: integer
+      total_players:
+        type: integer
+    type: object
+  api.GroupCreateRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  api.GroupResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api.GroupUpdateRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  api.JoinRequestResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  api.LeaderboardEntryResponse:
+    properties:
+      assists:
+        type: integer
+      draws:
+        type: integer
+      goals:
+        type: integer
+      id:
+        type: string
+      losses:
+        type: integer
+      matches:
+        type: integer
+      name:
+        type: string
+      wins:
+        type: integer
+    type: object
+  api.MatchDetailResponse:
+    properties:
+      assists:
+        additionalProperties:
+          type: integer
+        type: object
+      goals:
+        additionalProperties:
+          type: integer
+        type: object
+      group_id:
+        type: string
+      match_id:
+        type: string
+      played_at:
+        type: string
+      score_a:
+        type: integer
+      score_b:
+        type: integer
+      team_a_name:
+        type: string
+      team_a_players:
+        items:
+          type: string
+        type: array
+      team_b_name:
+        type: string
+      team_b_players:
+        items:
+          type: string
+        type: array
+    type: object
+  api.MatchResponse:
+    properties:
+      group_id:
+        type: string
+      id:
+        type: string
+      played_at:
+        type: string
+      score_a:
+        type: integer
+      score_b:
+        type: integer
+      team_a_name:
+        type: string
+      team_b_name:
+        type: string
+    type: object
+  api.MatchWriteRequest:
+    properties:
+      assists:
+        additionalProperties:
+          type: integer
+        type: object
+      goals:
+        additionalProperties:
+          type: integer
+        type: object
+      played_at:
+        type: string
+      score_a:
+        type: integer
+      score_b:
+        type: integer
+      team_a_name:
+        type: string
+      team_a_players:
+        items:
+          type: string
+        type: array
+      team_b_name:
+        type: string
+      team_b_players:
+        items:
+          type: string
+        type: array
+    type: object
+  api.MemberAddRequest:
+    properties:
+      email:
+        type: string
+      names:
+        items:
+          type: string
+        type: array
+      phone:
+        type: string
+    type: object
+  api.MemberImportRequest:
+    properties:
+      rows:
+        items:
+          $ref: '#/definitions/api.MemberImportRow'
+        type: array
+    type: object
+  api.MemberImportResponse:
+    properties:
+      imported:
+        type: integer
+      skipped:
+        type: integer
+      updated:
+        type: integer
+    type: object
+  api.MemberImportRow:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  api.MemberResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      joined_at:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+    type: object
+  api.MemberUpdateRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  api.PasswordChangeRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  api.PlayerProfileResponse:
+    properties:
+      assists:
+        type: integer
+      commentary:
+        type: string
+      draws:
+        type: integer
+      goals:
+        type: integer
+      group_id:
+        type: string
+      id:
+        type: string
+      losses:
+        type: integer
+      matches_played:
+        type: integer
+      name:
+        type: string
+      wins:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: JSON API for Nutmeg, a self-hosted pickup-soccer stats tracker.
+  title: Nutmeg API
+  version: "1.0"
+paths:
+  /account:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AccountResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get account
+      tags:
+      - account
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Account fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.AccountUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AccountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update account
+      tags:
+      - account
+  /account/password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Password change
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PasswordChangeRequest'
+      responses:
+        "204":
+          description: no content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - account
+  /dashboard:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.DashboardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard data
+      tags:
+      - home
+  /groups:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.GroupResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List groups
+      tags:
+      - groups
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.GroupCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.GroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a group
+      tags:
+      - groups
+  /groups/{id}:
+    delete:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a group
+      tags:
+      - groups
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GroupResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a group
+      tags:
+      - groups
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Group fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.GroupUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a group
+      tags:
+      - groups
+  /groups/{id}/join-requests:
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.JoinRequestResponse'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List join requests
+      tags:
+      - groups
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Request to join a group
+      tags:
+      - groups
+  /groups/{id}/join-requests/{reqId}/approve:
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Join request ID
+        in: path
+        name: reqId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve a join request
+      tags:
+      - groups
+  /groups/{id}/join-requests/{reqId}/reject:
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Join request ID
+        in: path
+        name: reqId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject a join request
+      tags:
+      - groups
+  /groups/{id}/leaderboard:
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Sort field
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.LeaderboardEntryResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get a group's leaderboard
+      tags:
+      - groups
+  /groups/{id}/matches:
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.MatchResponse'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List matches
+      tags:
+      - matches
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Match
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MatchWriteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.MatchDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Log a match
+      tags:
+      - matches
+  /groups/{id}/matches/{mid}:
+    delete:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Match ID
+        in: path
+        name: mid
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a match
+      tags:
+      - matches
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Match ID
+        in: path
+        name: mid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MatchDetailResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a match
+      tags:
+      - matches
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Match ID
+        in: path
+        name: mid
+        required: true
+        type: string
+      - description: Match
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MatchWriteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MatchDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a match
+      tags:
+      - matches
+  /groups/{id}/members:
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.MemberResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List group members
+      tags:
+      - groups
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member(s) to add
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MemberAddRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/api.MemberResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add group member(s)
+      tags:
+      - groups
+  /groups/{id}/members/{memberId}:
+    delete:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a group member
+      tags:
+      - groups
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      - description: Member fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MemberUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MemberResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a group member
+      tags:
+      - groups
+  /groups/{id}/members/{memberId}/demote:
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Demote an admin to member
+      tags:
+      - groups
+  /groups/{id}/members/{memberId}/promote:
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Promote a member to admin
+      tags:
+      - groups
+  /groups/{id}/members/import:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rows to import
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MemberImportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MemberImportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Import members
+      tags:
+      - groups
+  /groups/{id}/players/{memberId}/regenerate-commentary:
+    post:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      responses:
+        "202":
+          description: accepted
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Regenerate player commentary
+      tags:
+      - groups
+  /public/groups/{id}/players/{memberId}:
+    get:
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member ID
+        in: path
+        name: memberId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PlayerProfileResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get a player's public profile
+      tags:
+      - public
+  /stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GlobalStatsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get global stats
+      tags:
+      - home
+securityDefinitions:
+  BearerAuth:
+    description: Bearer token obtained from POST /auth/api/login (see ezauth's JSON
+      auth endpoints).
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

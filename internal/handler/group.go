@@ -425,7 +425,7 @@ func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 	}
-	enqueueEmail(ctx, h.jobs, h.adminEmails(ctx, id), "New join request for "+g.Name,
+	EnqueueEmail(ctx, h.jobs, h.adminEmails(ctx, id), "New join request for "+g.Name,
 		"Someone requested to join "+g.Name+". Review the request from the group's roster page.")
 
 	h.auth.Handler.SetFlash(ctx, "success", "Request sent! The group admin will review it.")
@@ -453,7 +453,7 @@ func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
-	enqueueEmail(ctx, h.jobs, []string{req.Email}, "You're in! Welcome to "+g.Name,
+	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "You're in! Welcome to "+g.Name,
 		"Your request to join "+g.Name+" was approved. Head to the group page to see the roster and leaderboard.")
 
 	if isHTMX(c) {
@@ -483,7 +483,7 @@ func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
-	enqueueEmail(ctx, h.jobs, []string{req.Email}, "Update on your request to join "+g.Name,
+	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "Update on your request to join "+g.Name,
 		"Your request to join "+g.Name+" was not approved this time.")
 
 	if isHTMX(c) {
@@ -696,7 +696,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 			h.auth.Handler.SetFlash(ctx, "error", err.Error())
 			return c.Redirect(http.StatusFound, "/groups/"+id)
 		}
-		recordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
+		RecordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
 
 		if isHTMX(c) {
 			return h.rosterWithToast(c, id, "Added "+name, "success")

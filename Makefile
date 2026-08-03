@@ -1,4 +1,4 @@
-.PHONY: dev build run db docker-up docker-down migrate migrate-down templ-gen clean test
+.PHONY: dev build run db docker-up docker-down migrate migrate-down templ-gen swag clean test
 
 dev:
 	templ generate --watch > /dev/null 2>&1 &
@@ -28,6 +28,9 @@ migrate-down:
 
 templ-gen:
 	templ generate
+
+swag:
+	go run github.com/swaggo/swag/cmd/swag init -g cmd/server/main.go --output docs --parseInternal --instanceName nutmeg
 
 test:
 	go test -failfast ./... -v -p=1 -count=1

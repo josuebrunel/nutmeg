@@ -184,6 +184,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 | `make migrate-down` | Roll back the last migration                            |
 | `nutmeg -migrate up` / `nutmeg -migrate down` | Run/roll back migrations from the built binary (used by the production Docker image) |
 | `make templ-gen`    | Regenerate Templ template code                          |
+| `make swag`         | Regenerate the Swagger/OpenAPI spec in `docs/` from `@Summary`/`@Router` annotations |
 | `make test`         | Run all tests (sequential, single-run)                  |
 | `make clean`        | Remove build artifacts and generated files              |
 
@@ -199,11 +200,13 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 ├── Makefile                     # Development commands
 ├── go.mod / go.sum              # Go module dependencies
 ├── cmd/server/main.go           # Application entry point
+├── docs/                        # swaggo-generated OpenAPI spec (regenerate via `make swag`)
 ├── internal/
 │   ├── assert/                  # Test assertion helpers
 │   ├── config/                  # Environment-based configuration
 │   ├── database/                # Database connection + migrations
 │   ├── handler/                 # HTTP handlers (auth, account, group, home, match)
+│   │   └── api/                 # JSON API handlers (/api/v1), swaggo-annotated
 │   ├── llm/                     # Ollama + Google LLM clients (pluggable via LLM_PROVIDER)
 │   ├── middleware/               # Auth + timezone middleware
 │   ├── model/                   # Domain structs with db tags
@@ -280,6 +283,50 @@ Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, r
 | `GET`    | `/groups/:id/matches/:mid/edit`                          | Match.EditModal             | Match edit modal                                     |
 | `POST`   | `/groups/:id/matches/:mid/update`                        | Match.Update                | Update a logged match                                |
 | `DELETE` | `/groups/:id/matches/:mid`                               | Match.Delete                | Delete a match                                       |
+
+### JSON API (`/api/v1`)
+
+A full CRUD JSON mirror of the authenticated routes above, plus a small public read-only surface, documented with Swagger/OpenAPI (swaggo, code-first annotations). Registered in `internal/router/api.go`, handlers live in `internal/handler/api/`.
+
+Authenticated via ezauth's JWT Bearer flow — obtain a token from `POST /auth/api/login`, then send `Authorization: Bearer <access_token>` on every `/api/v1/*` request. Interactive docs (Swagger UI) are served at `/swagger/index.html`; the raw spec is at `docs/swagger.json` / `docs/swagger.yaml`.
+
+| Method   | Path                                                    | Description                          |
+| -------- | -------------------------------------------------------- | ------------------------------------- |
+| `GET`    | `/api/v1/dashboard`                                       | Caller's groups + global stats        |
+| `GET`    | `/api/v1/stats`                                           | Caller's global stats                 |
+| `GET`    | `/api/v1/account`                                         | Get account info                      |
+| `PATCH`  | `/api/v1/account`                                         | Update account info                   |
+| `POST`   | `/api/v1/account/password`                                | Change password                       |
+| `GET`    | `/api/v1/groups`                                          | List groups                           |
+| `POST`   | `/api/v1/groups`                                          | Create a group                        |
+| `GET`    | `/api/v1/groups/:id`                                      | Get a group                           |
+| `PATCH`  | `/api/v1/groups/:id`                                      | Update a group                        |
+| `DELETE` | `/api/v1/groups/:id`                                      | Delete a group                        |
+| `GET`    | `/api/v1/groups/:id/members`                              | List members                          |
+| `POST`   | `/api/v1/groups/:id/members`                              | Add member(s)                         |
+| `POST`   | `/api/v1/groups/:id/members/import`                       | Bulk import members                   |
+| `PATCH`  | `/api/v1/groups/:id/members/:memberId`                    | Update a member                       |
+| `DELETE` | `/api/v1/groups/:id/members/:memberId`                    | Remove a member                       |
+| `POST`   | `/api/v1/groups/:id/members/:memberId/promote`            | Promote member to admin               |
+| `POST`   | `/api/v1/groups/:id/members/:memberId/demote`             | Demote admin to member                |
+| `GET`    | `/api/v1/groups/:id/join-requests`                        | List join requests                    |
+| `POST`   | `/api/v1/groups/:id/join-requests`                        | Request to join the group             |
+| `POST`   | `/api/v1/groups/:id/join-requests/:reqId/approve`         | Approve a join request                |
+| `POST`   | `/api/v1/groups/:id/join-requests/:reqId/reject`          | Reject a join request                 |
+| `GET`    | `/api/v1/groups/:id/leaderboard`                          | Group leaderboard                     |
+| `POST`   | `/api/v1/groups/:id/players/:memberId/regenerate-commentary` | Regenerate AI commentary (cooldown-limited) |
+| `GET`    | `/api/v1/groups/:id/matches`                              | List matches                          |
+| `POST`   | `/api/v1/groups/:id/matches`                              | Log a match                           |
+| `GET`    | `/api/v1/groups/:id/matches/:mid`                         | Get a match's full detail             |
+| `PATCH`  | `/api/v1/groups/:id/matches/:mid`                         | Update a match                        |
+| `DELETE` | `/api/v1/groups/:id/matches/:mid`                         | Delete a match                        |
+
+Public (no auth required):
+
+| Method | Path                                          | Description             |
+| ------ | ----------------------------------------------- | ------------------------- |
+| `GET`  | `/api/v1/public/groups/:id/leaderboard`        | Public group leaderboard |
+| `GET`  | `/api/v1/public/groups/:id/players/:memberId`  | Public player profile    |
 
 ## Testing
 
@@ -369,6 +416,7 @@ The project enforces several architectural rules (documented in `prompt.txt`):
 7. **Migrations** — use `IF NOT EXISTS` / `IF EXISTS` for idempotency.
 8. **Router** — wire all routes in a single `Register()` function called with an `echo.Group`.
 9. **Handlers** — group into sub-handlers on a top-level `Handler` struct; use `page()` helper to wrap in layout.
+10. **JSON API** — lives entirely in `internal/handler/api` + `internal/router/api.go`, never mixed into the Templ/HTMX handler files; regenerate `docs/` via `make swag` after changing any `@Router`/`@Summary` annotation.
 
 ## License
 
