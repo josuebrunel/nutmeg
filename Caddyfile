@@ -13,6 +13,13 @@ nutmeg.jkouka.dev {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # 'unsafe-inline' on script-src/style-src is required by the app's
+        # inline Tailwind config block and a few onclick handlers (see
+        # views/layout/base.templ) — not a full XSS mitigation, but
+        # object-src/base-uri/form-action/connect-src still meaningfully
+        # limit what an injected script could do (e.g. no fetch() exfil to
+        # an attacker-controlled host).
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         -Server
     }
 
