@@ -3,6 +3,7 @@ module nutmeg
 go 1.25.7
 
 require (
+	filippo.io/csrf v0.2.1
 	github.com/a-h/templ v0.3.1020
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
@@ -21,7 +22,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	filippo.io/csrf v0.2.1 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/aarondl/opt v0.0.0-20250607033636-982744e1bd65 // indirect

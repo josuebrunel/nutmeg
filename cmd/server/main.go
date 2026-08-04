@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"filippo.io/csrf"
 	"github.com/josuebrunel/ezauth"
 	ezcfg "github.com/josuebrunel/ezauth/pkg/config"
 	"github.com/josuebrunel/gopkg/xenv"
@@ -260,6 +261,11 @@ func main() {
 	// Authenticated routes
 	app := e.Group("")
 	app.Use(echo.WrapMiddleware(auth.LoginRequiredMiddleware))
+	// Rejects state-changing (non-GET/HEAD/OPTIONS) cross-origin requests via
+	// Sec-Fetch-Site/Origin checks — no token needed in forms/HTMX requests.
+	// Not applied to apiGroup below, which is Bearer-JWT authenticated (no
+	// ambient browser credentials, so not CSRF-vulnerable).
+	app.Use(echo.WrapMiddleware(csrf.New().Handler))
 	router.Register(app, auth, repo, commentarySvc, articleSvc, riverClient)
 
 	// JSON API (/api/v1), authenticated via ezauth's JWT Bearer middleware
