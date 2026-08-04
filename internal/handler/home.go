@@ -27,9 +27,9 @@ func (h *HomeHandler) Landing(c *echo.Context) error {
 }
 
 func (h *HomeHandler) Dashboard(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	groups, err := h.groupSvc.List(c.Request().Context(), userID)
@@ -48,9 +48,9 @@ func (h *HomeHandler) Dashboard(c *echo.Context) error {
 }
 
 func (h *HomeHandler) Stats(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	globalStats, statsErr := h.matchSvc.GlobalStats(c.Request().Context(), userID)

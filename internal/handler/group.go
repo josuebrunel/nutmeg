@@ -41,9 +41,9 @@ func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *s
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	list, err := h.service.List(c.Request().Context(), userID)
@@ -59,9 +59,9 @@ func (h *GroupHandler) New(c *echo.Context) error {
 }
 
 func (h *GroupHandler) Create(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	name := c.FormValue("name")
@@ -331,9 +331,9 @@ func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
 // cooldown, mirroring RegenerateCommentary above.
 func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -480,9 +480,9 @@ func truncateMeta(s string, max int) string {
 // hammer the LLM on a memory-constrained box.
 func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -517,9 +517,9 @@ func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 
 func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -541,9 +541,9 @@ func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 
 func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -571,9 +571,9 @@ func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 
 func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -618,9 +618,9 @@ func (h *GroupHandler) adminEmails(ctx context.Context, groupID string) []string
 }
 
 func (h *GroupHandler) Edit(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -640,9 +640,9 @@ func (h *GroupHandler) Edit(c *echo.Context) error {
 }
 
 func (h *GroupHandler) Update(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -672,9 +672,9 @@ func (h *GroupHandler) Update(c *echo.Context) error {
 }
 
 func (h *GroupHandler) Delete(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -696,9 +696,9 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 // leaderboard + activity feed) — hit when the Leaderboard tab button is
 // clicked.
 func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -720,9 +720,9 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 // RosterFull renders the Roster tab (tab bar + complete roster + activity
 // feed) — hit when the Roster tab button is clicked.
 func (h *GroupHandler) RosterFull(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -745,9 +745,9 @@ func (h *GroupHandler) RosterFull(c *echo.Context) error {
 // MatchesFull renders the Recent Matches tab (tab bar + complete match list
 // + activity feed) — hit when the Recent Matches tab button is clicked.
 func (h *GroupHandler) MatchesFull(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -767,9 +767,9 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 }
 
 func (h *GroupHandler) AddMember(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -845,9 +845,9 @@ func splitNames(raw string) []string {
 const maxImportFileSize = 1 << 20 // 1MB
 
 func (h *GroupHandler) ImportMembers(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -951,9 +951,9 @@ func parseMemberImportCSV(r io.Reader) ([]service.ImportRow, error) {
 }
 
 func (h *GroupHandler) RemoveMember(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -974,9 +974,9 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 }
 
 func (h *GroupHandler) PromoteMember(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -997,9 +997,9 @@ func (h *GroupHandler) PromoteMember(c *echo.Context) error {
 }
 
 func (h *GroupHandler) DemoteMember(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -1021,9 +1021,9 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 
 func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")
@@ -1047,9 +1047,9 @@ func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
 
 func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	id := c.Param("id")

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"log/slog"
+	"net/http"
 
 	"github.com/a-h/templ"
 	"github.com/josuebrunel/ezauth"
@@ -63,6 +64,19 @@ var siteBaseURL string
 // requests.
 func SetBaseURL(url string) {
 	siteBaseURL = url
+}
+
+// requireUserID resolves the current session's user id, redirecting to
+// /login and reporting done=true if there's no valid session — the
+// "get user id or redirect" guard repeated at the top of every
+// authenticated handler.
+func requireUserID(c *echo.Context, auth *ezauth.EzAuth) (userID string, done bool) {
+	userID, err := auth.GetUserID(c.Request().Context())
+	if err != nil {
+		c.Redirect(http.StatusFound, "/login")
+		return "", true
+	}
+	return userID, false
 }
 
 func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {

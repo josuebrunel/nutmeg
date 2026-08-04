@@ -72,9 +72,9 @@ func (h *MatchHandler) enqueueMatchArticle(ctx context.Context, matchID string) 
 }
 
 func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	groupID := c.Param("id")
@@ -252,9 +252,9 @@ func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
 }
 
 func (h *MatchHandler) Create(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	groupID := c.Param("id")
@@ -323,9 +323,9 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 }
 
 func (h *MatchHandler) Delete(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	matchID := c.Param("mid")
@@ -346,9 +346,9 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 }
 
 func (h *MatchHandler) EditModal(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	groupID := c.Param("id")
@@ -391,9 +391,9 @@ func (h *MatchHandler) EditModal(c *echo.Context) error {
 }
 
 func (h *MatchHandler) Update(c *echo.Context) error {
-	userID, err := h.auth.GetUserID(c.Request().Context())
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	groupID := c.Param("id")

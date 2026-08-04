@@ -22,9 +22,9 @@ func NewAccountHandler(auth *ezauth.EzAuth) *AccountHandler {
 
 func (h *AccountHandler) Edit(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	user, err := h.auth.Repo.UserGetByID(ctx, userID)
@@ -40,9 +40,9 @@ func (h *AccountHandler) Edit(c *echo.Context) error {
 
 func (h *AccountHandler) Update(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	user, err := h.auth.Repo.UserGetByID(ctx, userID)
@@ -94,9 +94,9 @@ func (h *AccountHandler) Update(c *echo.Context) error {
 
 func (h *AccountHandler) UpdatePassword(c *echo.Context) error {
 	ctx := c.Request().Context()
-	userID, err := h.auth.GetUserID(ctx)
-	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
 	}
 
 	user, err := h.auth.Repo.UserGetByID(ctx, userID)
