@@ -22,7 +22,7 @@ func openTestDB(t *testing.T) *Repository {
 		dsn = "postgres://postgres:postgres@db:5432/nutmeg?sslmode=disable"
 	}
 
-	db, err := database.Open(dsn)
+	db, err := database.Open(dsn, database.PoolConfig{})
 	if err != nil {
 		t.Fatalf("failed to connect to db: %v", err)
 	}

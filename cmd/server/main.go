@@ -117,7 +117,11 @@ func main() {
 		return
 	}
 
-	db, err := database.Open(cfg.Database.DSN)
+	db, err := database.Open(cfg.Database.DSN, database.PoolConfig{
+		MaxOpenConns:    cfg.Database.MaxOpenConns,
+		MaxIdleConns:    cfg.Database.MaxIdleConns,
+		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
+	})
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)

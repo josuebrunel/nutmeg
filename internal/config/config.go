@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type Config struct {
 	Addr    string `env:"ADDR" default:":8080"`
 	BaseURL string `env:"BASE_URL" default:"http://localhost:8080"`
@@ -10,7 +12,10 @@ type Config struct {
 }
 
 type Database struct {
-	DSN string `env:"DB_DSN" required:"true"`
+	DSN             string        `env:"DB_DSN" required:"true"`
+	MaxOpenConns    int           `env:"DB_MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns    int           `env:"DB_MAX_IDLE_CONNS" default:"5"`
+	ConnMaxLifetime time.Duration `env:"DB_CONN_MAX_LIFETIME" default:"5m"`
 }
 
 // LLM is one standardized set of settings shared by every LLMGenerator
