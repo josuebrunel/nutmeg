@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -64,7 +65,11 @@ func (s *MatchService) Create(ctx context.Context, input CreateMatchInput) (stri
 	if err := validateAssists(goals, assists, input.TeamBPlayers); err != nil {
 		return "", err
 	}
-	return s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
+	matchID, err := s.repo.CreateMatch(ctx, input.GroupID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.CreatedBy, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
+	if err != nil {
+		return "", fmt.Errorf("create match: %w", err)
+	}
+	return matchID, nil
 }
 
 // parseTally parses a comma-separated "playerID:team:count" string — the
@@ -142,7 +147,7 @@ func parseInt(s string) (int, error) {
 func (s *MatchService) ListByGroup(ctx context.Context, groupID string) ([]repository.MatchWithTeams, error) {
 	matches, err := s.repo.ListMatchesByGroup(ctx, groupID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list matches: %w", err)
 	}
 	if matches == nil {
 		return []repository.MatchWithTeams{}, nil
@@ -168,7 +173,7 @@ func (s *MatchService) authorizeMatchAccess(ctx context.Context, matchID, userID
 	}
 	g, err := s.groupRepo.GetGroup(ctx, detail.GroupID)
 	if err != nil {
-		return err
+		return fmt.Errorf("authorize match access: fetch group: %w", err)
 	}
 	if g.CreatedBy != userID {
 		return model.ErrNotAuthorized
@@ -180,13 +185,16 @@ func (s *MatchService) Delete(ctx context.Context, matchID, userID string) error
 	if err := s.authorizeMatchAccess(ctx, matchID, userID); err != nil {
 		return err
 	}
-	return s.repo.DeleteMatch(ctx, matchID)
+	if err := s.repo.DeleteMatch(ctx, matchID); err != nil {
+		return fmt.Errorf("delete match: %w", err)
+	}
+	return nil
 }
 
 func (s *MatchService) GetLeaderboard(ctx context.Context, groupID string, sortBy string) ([]repository.LeaderboardEntry, error) {
 	entries, err := s.repo.GetGroupLeaderboard(ctx, groupID, sortBy)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get leaderboard: %w", err)
 	}
 	if entries == nil {
 		return []repository.LeaderboardEntry{}, nil
@@ -237,19 +245,19 @@ func (s *MatchService) GetEditable(ctx context.Context, matchID, userID string) 
 
 	detail, err := s.repo.GetMatchDetail(ctx, matchID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get editable match: fetch detail: %w", err)
 	}
 	players, err := s.repo.GetMatchPlayers(ctx, matchID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get editable match: fetch players: %w", err)
 	}
 	goals, err := s.repo.GetMatchGoals(ctx, matchID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get editable match: fetch goals: %w", err)
 	}
 	assists, err := s.repo.GetMatchAssists(ctx, matchID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get editable match: fetch assists: %w", err)
 	}
 
 	var teamAPlayers, teamBPlayers []string
@@ -297,7 +305,10 @@ func (s *MatchService) Update(ctx context.Context, input UpdateMatchInput) error
 	if err := validateAssists(goals, assists, input.TeamBPlayers); err != nil {
 		return err
 	}
-	return s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt)
+	if err := s.repo.UpdateMatch(ctx, input.MatchID, input.TeamAName, input.TeamBName, input.ScoreA, input.ScoreB, input.TeamAPlayers, input.TeamBPlayers, goals, assists, input.PlayedAt); err != nil {
+		return fmt.Errorf("update match: %w", err)
+	}
+	return nil
 }
 
 func (s *MatchService) GlobalStats(ctx context.Context, userID string) (*repository.GlobalStats, error) {

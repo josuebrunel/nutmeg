@@ -73,10 +73,10 @@ func (s *GroupService) Create(ctx context.Context, name string, description *str
 		CreatedBy:   userID,
 	}
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create group: %w", err)
 	}
 	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, "admin"); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("add creator as admin member: %w", err)
 	}
 	return g, nil
 }
@@ -127,7 +127,10 @@ func (s *GroupService) Update(ctx context.Context, g *model.Group, userID string
 	if !s.CanEdit(ctx, g, userID) {
 		return model.ErrNotAuthorized
 	}
-	return s.repo.UpdateGroup(ctx, g)
+	if err := s.repo.UpdateGroup(ctx, g); err != nil {
+		return fmt.Errorf("update group: %w", err)
+	}
+	return nil
 }
 
 func (s *GroupService) Delete(ctx context.Context, id, userID string) error {
@@ -138,11 +141,18 @@ func (s *GroupService) Delete(ctx context.Context, id, userID string) error {
 	if g.CreatedBy != userID {
 		return model.ErrNotAuthorized
 	}
-	return s.repo.DeleteGroup(ctx, id)
+	if err := s.repo.DeleteGroup(ctx, id); err != nil {
+		return fmt.Errorf("delete group: %w", err)
+	}
+	return nil
 }
 
 func (s *GroupService) Members(ctx context.Context, groupID string) ([]repository.MemberInfo, error) {
-	return s.repo.ListMembers(ctx, groupID)
+	members, err := s.repo.ListMembers(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("list members: %w", err)
+	}
+	return members, nil
 }
 
 // AddMember returns the new (or existing, on a name conflict) member's id.
@@ -159,7 +169,11 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phon
 		return "", model.ErrNotAuthorized
 	}
 
-	return s.repo.AddMember(ctx, groupID, name, phone, email, "member")
+	memberID, err := s.repo.AddMember(ctx, groupID, name, phone, email, "member")
+	if err != nil {
+		return "", fmt.Errorf("add member: %w", err)
+	}
+	return memberID, nil
 }
 
 // AddMembers adds several roster members at once (comma-separated names from
@@ -180,7 +194,7 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 	added := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, "member"); err != nil {
-			return added, err
+			return added, fmt.Errorf("add member %q: %w", name, err)
 		}
 		added = append(added, name)
 	}
@@ -218,7 +232,7 @@ func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows [
 
 	existing, err := s.repo.ListMembers(ctx, groupID)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, fmt.Errorf("list existing members: %w", err)
 	}
 	existingNames := make(map[string]bool, len(existing))
 	for _, m := range existing {
@@ -241,7 +255,7 @@ func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows [
 		}
 
 		if err := s.repo.ImportMember(ctx, groupID, name, phone, email); err != nil {
-			return imported, updated, skipped, err
+			return imported, updated, skipped, fmt.Errorf("import member %q: %w", name, err)
 		}
 		if existingNames[name] {
 			updated++
@@ -270,7 +284,7 @@ func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name
 
 	existing, err := s.repo.ListMembers(ctx, groupID)
 	if err != nil {
-		return err
+		return fmt.Errorf("list existing members: %w", err)
 	}
 	for _, m := range existing {
 		if m.ID != memberID && m.Name == name {
@@ -278,7 +292,10 @@ func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name
 		}
 	}
 
-	return s.repo.UpdateMember(ctx, groupID, memberID, name, phone, email)
+	if err := s.repo.UpdateMember(ctx, groupID, memberID, name, phone, email); err != nil {
+		return fmt.Errorf("update member: %w", err)
+	}
+	return nil
 }
 
 func (s *GroupService) RemoveMember(ctx context.Context, groupID, memberID, actorID string) error {
@@ -295,7 +312,10 @@ func (s *GroupService) RemoveMember(ctx context.Context, groupID, memberID, acto
 		return model.ErrNotFound
 	}
 
-	return s.repo.RemoveMember(ctx, groupID, memberID)
+	if err := s.repo.RemoveMember(ctx, groupID, memberID); err != nil {
+		return fmt.Errorf("remove member: %w", err)
+	}
+	return nil
 }
 
 // PromoteMember grants a roster member admin rights on the group by linking
@@ -326,10 +346,13 @@ func (s *GroupService) PromoteMember(ctx context.Context, groupID, memberID, act
 
 	addGroupAdmin(user, groupID)
 	if _, err := s.authRepo.UserUpdate(ctx, user); err != nil {
-		return err
+		return fmt.Errorf("promote member: grant admin metadata: %w", err)
 	}
 
-	return s.repo.UpdateMemberRole(ctx, groupID, memberID, "admin")
+	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, "admin"); err != nil {
+		return fmt.Errorf("promote member: update role: %w", err)
+	}
+	return nil
 }
 
 // RequestToJoin records a pending request for userID to join g, identified by
@@ -342,7 +365,7 @@ func (s *GroupService) RequestToJoin(ctx context.Context, g *model.Group, userID
 
 	user, err := s.authRepo.UserGetByID(ctx, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("request to join: fetch user: %w", err)
 	}
 
 	if _, err := s.repo.GetMemberByEmail(ctx, g.ID, user.Email); err == nil {
@@ -352,7 +375,10 @@ func (s *GroupService) RequestToJoin(ctx context.Context, g *model.Group, userID
 		return model.ErrRequestAlreadyPending
 	}
 
-	return s.repo.CreateJoinRequest(ctx, g.ID, userID, user.DisplayName(), user.Email)
+	if err := s.repo.CreateJoinRequest(ctx, g.ID, userID, user.DisplayName(), user.Email); err != nil {
+		return fmt.Errorf("create join request: %w", err)
+	}
+	return nil
 }
 
 // ViewerJoinStatus reports how userID relates to g, for driving the "Request
@@ -381,7 +407,11 @@ func (s *GroupService) ViewerJoinStatus(ctx context.Context, g *model.Group, use
 // JoinRequests lists a group's pending join requests, for the admin-facing
 // roster view.
 func (s *GroupService) JoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
-	return s.repo.ListPendingJoinRequests(ctx, groupID)
+	requests, err := s.repo.ListPendingJoinRequests(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("list join requests: %w", err)
+	}
+	return requests, nil
 }
 
 // ApproveJoinRequest is CanEdit-gated like AddMember, since approving a
@@ -399,10 +429,10 @@ func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, r
 	}
 
 	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("approve join request: add member: %w", err)
 	}
 	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved"); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("approve join request: update status: %w", err)
 	}
 	return req, nil
 }
@@ -420,7 +450,7 @@ func (s *GroupService) RejectJoinRequest(ctx context.Context, g *model.Group, re
 	}
 
 	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "rejected"); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reject join request: update status: %w", err)
 	}
 	return req, nil
 }
@@ -444,10 +474,13 @@ func (s *GroupService) DemoteMember(ctx context.Context, groupID, memberID, acto
 		if user, err := s.authRepo.UserGetByEmail(ctx, *member.Email); err == nil {
 			removeGroupAdmin(user, groupID)
 			if _, err := s.authRepo.UserUpdate(ctx, user); err != nil {
-				return err
+				return fmt.Errorf("demote member: revoke admin metadata: %w", err)
 			}
 		}
 	}
 
-	return s.repo.UpdateMemberRole(ctx, groupID, memberID, "member")
+	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, "member"); err != nil {
+		return fmt.Errorf("demote member: update role: %w", err)
+	}
+	return nil
 }
