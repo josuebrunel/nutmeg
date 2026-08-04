@@ -8,7 +8,10 @@ package account
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
+import (
+	ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
+	components "nutmeg/views/components"
+)
 
 func Form(user *ezauthmodels.User, successMsg string, errMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -35,107 +38,104 @@ func Form(user *ezauthmodels.User, successMsg string, errMsg string) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if errMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"alert\" class=\"bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 9, Col: 98}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		if successMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div role=\"alert\" class=\"bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(successMsg)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 12, Col: 106}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"bg-white p-8 rounded-xl shadow border-2 border-pitch mb-8\"><h3 class=\"font-oswald text-xl text-pitch font-bold mb-4\">PROFILE</h3><form method=\"POST\" action=\"/account\" class=\"space-y-4\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\"><div><label class=\"font-oswald text-ink mb-1 block\">First Name</label> <input type=\"text\" name=\"first_name\" value=\"")
+		templ_7745c5c3_Err = components.Alert("error", errMsg).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(user.FirstName)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 20, Col: 65}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+		templ_7745c5c3_Err = components.Alert("success", successMsg).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Last Name</label> <input type=\"text\" name=\"last_name\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-white p-8 rounded-xl shadow border-2 border-pitch mb-8\"><h3 class=\"font-oswald text-xl text-pitch font-bold mb-4\">PROFILE</h3><form method=\"POST\" action=\"/account\" class=\"space-y-4\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(user.LastName)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 24, Col: 63}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div></div><div><label class=\"font-oswald text-ink mb-1 block\">Username</label> <input type=\"text\" name=\"username\" value=\"")
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label: "First Name",
+			Type:  "text",
+			Name:  "first_name",
+			Value: user.FirstName,
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(user.Username)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 29, Col: 61}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" placeholder=\"pickup_king\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Email</label> <input type=\"email\" name=\"email\" value=\"")
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label: "Last Name",
+			Type:  "text",
+			Name:  "last_name",
+			Value: user.LastName,
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(user.Email)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/account/form.templ`, Line: 33, Col: 56}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">SAVE CHANGES</button></form></div>")
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:       "Username",
+			Type:        "text",
+			Name:        "username",
+			Value:       user.Username,
+			Placeholder: "pickup_king",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:    "Email",
+			Type:     "email",
+			Name:     "email",
+			Value:    user.Email,
+			Required: true,
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">SAVE CHANGES</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if user.IsLocal() {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"bg-white p-8 rounded-xl shadow border-2 border-pitch\"><h3 class=\"font-oswald text-xl text-pitch font-bold mb-4\">CHANGE PASSWORD</h3><form method=\"POST\" action=\"/account/password\" class=\"space-y-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Current Password</label> <input type=\"password\" name=\"current_password\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><div><label class=\"font-oswald text-ink mb-1 block\">New Password</label> <input type=\"password\" name=\"new_password\" required minlength=\"8\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Confirm New Password</label> <input type=\"password\" name=\"new_password_confirm\" required minlength=\"8\" class=\"w-full border-2 border-pitch rounded px-4 py-2\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">UPDATE PASSWORD</button></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"bg-white p-8 rounded-xl shadow border-2 border-pitch\"><h3 class=\"font-oswald text-xl text-pitch font-bold mb-4\">CHANGE PASSWORD</h3><form method=\"POST\" action=\"/account/password\" class=\"space-y-4\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+				Label:    "Current Password",
+				Type:     "password",
+				Name:     "current_password",
+				Required: true,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+				Label:     "New Password",
+				Type:      "password",
+				Name:      "new_password",
+				Required:  true,
+				MinLength: 8,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+				Label:     "Confirm New Password",
+				Type:      "password",
+				Name:      "new_password_confirm",
+				Required:  true,
+				MinLength: 8,
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2\">UPDATE PASSWORD</button></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -1,0 +1,62 @@
+package components
+
+import "strconv"
+
+// FormFieldProps configures FormField. MinLength <= 0 omits the minlength
+// attribute; Optional switches the border to the lighter style used for
+// non-required fields (e.g. phone/email on the member/account forms).
+type FormFieldProps struct {
+	Label       string
+	Type        string
+	Name        string
+	Value       string
+	Placeholder string
+	Required    bool
+	MinLength   int
+	Optional    bool
+}
+
+// FormField renders the label+input pattern repeated across every form in
+// the app: group create/edit, member edit, account profile, login, and
+// register.
+templ FormField(p FormFieldProps) {
+	<div>
+		<label class="font-oswald text-ink mb-1 block">{ p.Label }</label>
+		<input
+			type={ p.Type }
+			name={ p.Name }
+			value={ p.Value }
+			placeholder={ p.Placeholder }
+			class={ formFieldClass(p.Optional) }
+			if p.Required {
+				required
+			}
+			if p.MinLength > 0 {
+				minlength={ strconv.Itoa(p.MinLength) }
+			}
+		/>
+	</div>
+}
+
+func formFieldClass(optional bool) string {
+	if optional {
+		return "w-full border-2 border-pitch/50 rounded px-4 py-2"
+	}
+	return "w-full border-2 border-pitch rounded px-4 py-2"
+}
+
+// Alert renders the role="alert" success/error message box repeated across
+// every form page. Renders nothing when message is empty. kind is "error"
+// (default) or "success".
+templ Alert(kind, message string) {
+	if message != "" {
+		<div role="alert" class={ alertClass(kind) }>{ message }</div>
+	}
+}
+
+func alertClass(kind string) string {
+	if kind == "success" {
+		return "bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4"
+	}
+	return "bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4"
+}

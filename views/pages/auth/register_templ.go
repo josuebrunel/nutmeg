@@ -35,45 +35,60 @@ func Register(errMsg string, sucMsg string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if errMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"alert\" class=\"bg-error/10 text-error text-sm font-body p-3 rounded-lg mb-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 10, Col: 99}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = components.Alert("error", errMsg).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
-		if sucMsg != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div role=\"alert\" class=\"bg-success/10 text-success text-sm font-body p-3 rounded-lg mb-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sucMsg)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/auth/register.templ`, Line: 13, Col: 103}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = components.Alert("success", sucMsg).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2\">CREATE ACCOUNT</h2><form method=\"POST\" action=\"/auth/register\" class=\"flex flex-col gap-4\"><div><label class=\"font-oswald text-ink mb-1 block\">Email</label> <input type=\"email\" name=\"email\" required class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"player@pitch.com\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Username</label> <input type=\"text\" name=\"username\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"pickup_king\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Password</label> <input type=\"password\" name=\"password\" required minlength=\"6\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><div><label class=\"font-oswald text-ink mb-1 block\">Confirm Password</label> <input type=\"password\" name=\"password_confirm\" required minlength=\"6\" class=\"w-full border-2 border-pitch rounded px-4 py-2\" placeholder=\"&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;\"></div><button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2 flex items-center justify-center gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h2 class=\"font-oswald text-3xl text-pitch font-bold mb-6 text-center mt-2\">CREATE ACCOUNT</h2><form method=\"POST\" action=\"/auth/register\" class=\"flex flex-col gap-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:       "Email",
+			Type:        "email",
+			Name:        "email",
+			Required:    true,
+			Placeholder: "player@pitch.com",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:       "Username",
+			Type:        "text",
+			Name:        "username",
+			Placeholder: "pickup_king",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:       "Password",
+			Type:        "password",
+			Name:        "password",
+			Required:    true,
+			MinLength:   6,
+			Placeholder: "••••••••",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.FormField(components.FormFieldProps{
+			Label:       "Confirm Password",
+			Type:        "password",
+			Name:        "password_confirm",
+			Required:    true,
+			MinLength:   6,
+			Placeholder: "••••••••",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<button type=\"submit\" class=\"w-full font-oswald bg-pitch text-chalk hover:bg-turf py-3 rounded transition-colors text-lg mt-2 flex items-center justify-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -81,7 +96,7 @@ func Register(errMsg string, sucMsg string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "CREATE ACCOUNT</button></form><p class=\"mt-4 text-sm text-center text-ink/70 font-body\">Already have an account? <a href=\"/login\" class=\"font-oswald text-gold hover:text-nutmeg underline\">Sign in</a></p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "CREATE ACCOUNT</button></form><p class=\"mt-4 text-sm text-center text-ink/70 font-body\">Already have an account? <a href=\"/login\" class=\"font-oswald text-gold hover:text-nutmeg underline\">Sign in</a></p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
