@@ -261,8 +261,8 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	if err := h.service.AuthorizeGroupAccess(c.Request().Context(), groupID, userID); err != nil {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
-	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
-	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
+	scoreA, errA := strconv.Atoi(c.FormValue("score_a"))
+	scoreB, errB := strconv.Atoi(c.FormValue("score_b"))
 
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
@@ -276,6 +276,16 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 	if teamBName == "" {
 		teamBName = "Skins"
 	}
+	playedAt := parsePlayedAt(c, appmw.LocationFromContext(c))
+
+	if errA != nil || errB != nil {
+		if isHTMX(c) {
+			editData := buildMatchEditData(c, "", teamAName, teamBName, scoreA, scoreB, teamAPlayers, teamBPlayers, playedAt, "Score must be a number")
+			return h.renderLogFormError(c, groupID, editData)
+		}
+		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Score must be a number")
+		return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	}
 
 	input := service.CreateMatchInput{
 		GroupID:      groupID,
@@ -288,7 +298,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
 		AssistsInput: assistsInput,
-		PlayedAt:     parsePlayedAt(c, appmw.LocationFromContext(c)),
+		PlayedAt:     playedAt,
 	}
 
 	matchID, err := h.service.Create(c.Request().Context(), input)
@@ -388,8 +398,8 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 
 	groupID := c.Param("id")
 	matchID := c.Param("mid")
-	scoreA, _ := strconv.Atoi(c.FormValue("score_a"))
-	scoreB, _ := strconv.Atoi(c.FormValue("score_b"))
+	scoreA, errA := strconv.Atoi(c.FormValue("score_a"))
+	scoreB, errB := strconv.Atoi(c.FormValue("score_b"))
 
 	teamAPlayers, teamBPlayers := h.parseTeamPlayers(c)
 	goalsInput := h.parseGoalsFromForm(c)
@@ -403,6 +413,16 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 	if teamBName == "" {
 		teamBName = "Skins"
 	}
+	playedAt := parsePlayedAt(c, appmw.LocationFromContext(c))
+
+	if errA != nil || errB != nil {
+		if isHTMX(c) {
+			editData := buildMatchEditData(c, matchID, teamAName, teamBName, scoreA, scoreB, teamAPlayers, teamBPlayers, playedAt, "Score must be a number")
+			return h.renderLogFormError(c, groupID, editData)
+		}
+		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Score must be a number")
+		return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	}
 
 	input := service.UpdateMatchInput{
 		MatchID:      matchID,
@@ -415,7 +435,7 @@ func (h *MatchHandler) Update(c *echo.Context) error {
 		TeamBPlayers: teamBPlayers,
 		GoalsInput:   goalsInput,
 		AssistsInput: assistsInput,
-		PlayedAt:     parsePlayedAt(c, appmw.LocationFromContext(c)),
+		PlayedAt:     playedAt,
 	}
 
 	if err := h.service.Update(c.Request().Context(), input); err != nil {
