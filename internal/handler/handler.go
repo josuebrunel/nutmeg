@@ -73,7 +73,7 @@ func SetBaseURL(url string) {
 func requireUserID(c *echo.Context, auth *ezauth.EzAuth) (userID string, done bool) {
 	userID, err := auth.GetUserID(c.Request().Context())
 	if err != nil {
-		c.Redirect(http.StatusFound, "/login")
+		c.Redirect(http.StatusFound, routeLogin)
 		return "", true
 	}
 	return userID, false

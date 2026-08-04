@@ -67,7 +67,7 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 	name := c.FormValue("name")
 	if name == "" {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", `{"showToast":{"message":"Name is required","type":"error"}}`)
+			c.Response().Header().Set(hxTrigger, `{"showToast":{"message":"Name is required","type":"error"}}`)
 			return c.NoContent(http.StatusOK)
 		}
 		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Error: "Name is required"}))
@@ -75,14 +75,14 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 
 	user, err := ezauth.GetUser(c.Request().Context())
 	if err != nil {
-		return c.Redirect(http.StatusFound, "/login")
+		return c.Redirect(http.StatusFound, routeLogin)
 	}
 	creatorName := h.userName(c)
 
 	g, err := h.service.Create(c.Request().Context(), name, nil, userID, creatorName, user.Email)
 	if err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
+			c.Response().Header().Set(hxTrigger, toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		return page(c, "New Group", true, "", h.userName(c), groups.Form("", &groups.FormData{Name: name, Error: err.Error()}))
@@ -101,9 +101,9 @@ func (h *GroupHandler) groupListFragment(c *echo.Context, userID string) error {
 		return err
 	}
 
-	referer := c.Request().Header.Get("HX-Current-URL")
-	c.Response().Header().Set("HX-Trigger", toastHXTrigger("Group created!", "success"))
-	if strings.Contains(referer, "/dashboard") {
+	referer := c.Request().Header.Get(hxCurrentURL)
+	c.Response().Header().Set(hxTrigger, toastHXTrigger("Group created!", "success"))
+	if strings.Contains(referer, routeDashboard) {
 		return render.Component(c, home.DashboardGroupList(list))
 	}
 	return render.Component(c, groups.GroupGrid(list))
@@ -123,7 +123,7 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 
 	canEdit, isOwner, _ := h.rosterViewData(c.Request().Context(), g, userID)
 	if !canEdit {
-		return c.Redirect(http.StatusFound, "/dashboard")
+		return c.Redirect(http.StatusFound, routeDashboard)
 	}
 
 	tabContent, err := h.groupTabComponent(c, g, userID, c.QueryParam("tab"))
@@ -340,7 +340,7 @@ func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
 	matchID := c.Param("mid")
 	redirectURL := "/groups/" + id + "?tab=matches"
 
-	_, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	_, err, done := h.requireGroupEdit(c, userID, routeDashboard)
 	if done {
 		return err
 	}
@@ -486,7 +486,7 @@ func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 	memberID := c.Param("memberId")
 	profileURL := "/groups/" + id + "/players/" + memberID
 
-	_, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	_, err, done := h.requireGroupEdit(c, userID, routeDashboard)
 	if done {
 		return err
 	}
@@ -592,7 +592,7 @@ func (h *GroupHandler) adminEmails(ctx context.Context, groupID string) []string
 	}
 	var emails []string
 	for _, m := range members {
-		if m.Role == "admin" && m.Email != nil && *m.Email != "" {
+		if m.Role == model.RoleAdmin && m.Email != nil && *m.Email != "" {
 			emails = append(emails, *m.Email)
 		}
 	}
@@ -605,7 +605,7 @@ func (h *GroupHandler) Edit(c *echo.Context) error {
 		return nil
 	}
 
-	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	g, err, done := h.requireGroupEdit(c, userID, routeDashboard)
 	if done {
 		return err
 	}
@@ -663,10 +663,10 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	}
 
 	if isHTMX(c) {
-		c.Response().Header().Set("HX-Redirect", "/dashboard")
+		c.Response().Header().Set(hxRedirect, routeDashboard)
 		return c.NoContent(http.StatusOK)
 	}
-	return c.Redirect(http.StatusFound, "/dashboard")
+	return c.Redirect(http.StatusFound, routeDashboard)
 }
 
 // LeaderboardFull renders the Leaderboard tab (tab bar + complete
@@ -678,7 +678,7 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 		return nil
 	}
 
-	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	g, err, done := h.requireGroupEdit(c, userID, routeDashboard)
 	if done {
 		return err
 	}
@@ -725,7 +725,7 @@ func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	}
 	canEdit, _, _ := h.rosterViewData(c.Request().Context(), g, userID)
 	if !canEdit {
-		return c.Redirect(http.StatusFound, "/dashboard")
+		return c.Redirect(http.StatusFound, routeDashboard)
 	}
 
 	tabContent, err := h.groupTabComponent(c, g, userID, "roster")
@@ -743,7 +743,7 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 		return nil
 	}
 
-	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	g, err, done := h.requireGroupEdit(c, userID, routeDashboard)
 	if done {
 		return err
 	}
@@ -1037,7 +1037,7 @@ func (h *GroupHandler) rosterTabWithToast(c *echo.Context, groupID, message, toa
 		return err
 	}
 
-	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
+	c.Response().Header().Set(hxTrigger, toastHXTrigger(message, toastType))
 	return render.Component(c, tabContent)
 }
 
@@ -1078,7 +1078,7 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 	joinRequests := h.joinRequestEntries(c.Request().Context(), groupID, canEdit)
 	fullWidth := c.QueryParam("view") == "full"
 
-	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
+	c.Response().Header().Set(hxTrigger, toastHXTrigger(message, toastType))
 	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests, fullWidth))
 }
 
@@ -1116,7 +1116,7 @@ func (h *GroupHandler) rosterViewData(ctx context.Context, g *model.Group, userI
 }
 
 func isHTMX(c *echo.Context) bool {
-	return c.Request().Header.Get("HX-Request") == "true"
+	return c.Request().Header.Get(hxRequest) == "true"
 }
 
 func (h *GroupHandler) userName(c *echo.Context) string {

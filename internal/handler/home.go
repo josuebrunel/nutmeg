@@ -21,7 +21,7 @@ type HomeHandler struct {
 func (h *HomeHandler) Landing(c *echo.Context) error {
 	_, err := ezauth.GetUser(c.Request().Context())
 	if err == nil {
-		return c.Redirect(http.StatusFound, "/dashboard")
+		return c.Redirect(http.StatusFound, routeDashboard)
 	}
 	return page(c, "Nutmeg - Self-Hosted Pickup Soccer Stats Tracker", false, "", "", home.Landing())
 }

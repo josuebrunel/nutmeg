@@ -79,7 +79,7 @@ func (h *MatchHandler) LogMatchModal(c *echo.Context) error {
 
 	groupID := c.Param("id")
 	if err := h.service.AuthorizeGroupAccess(c.Request().Context(), groupID, userID); err != nil {
-		return c.Redirect(http.StatusFound, "/dashboard")
+		return c.Redirect(http.StatusFound, routeDashboard)
 	}
 
 	members, err := h.repo.ListMembers(c.Request().Context(), groupID)
@@ -247,7 +247,7 @@ func parsePlayedAt(c *echo.Context, loc *time.Location) time.Time {
 // tab — the natural place to land after logging, editing, or deleting a
 // match, since that's where the change is immediately visible.
 func (h *MatchHandler) htmxRedirect(c *echo.Context, groupID string) error {
-	c.Response().Header().Set("HX-Redirect", "/groups/"+groupID+"?tab=matches")
+	c.Response().Header().Set(hxRedirect, "/groups/"+groupID+"?tab=matches")
 	return c.NoContent(http.StatusOK)
 }
 
@@ -259,7 +259,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 
 	groupID := c.Param("id")
 	if err := h.service.AuthorizeGroupAccess(c.Request().Context(), groupID, userID); err != nil {
-		return c.Redirect(http.StatusFound, "/dashboard")
+		return c.Redirect(http.StatusFound, routeDashboard)
 	}
 	scoreA, errA := strconv.Atoi(c.FormValue("score_a"))
 	scoreB, errB := strconv.Atoi(c.FormValue("score_b"))
@@ -333,7 +333,7 @@ func (h *MatchHandler) Delete(c *echo.Context) error {
 
 	if err := h.service.Delete(c.Request().Context(), matchID, userID); err != nil {
 		if isHTMX(c) {
-			c.Response().Header().Set("HX-Trigger", toastHXTrigger(err.Error(), "error"))
+			c.Response().Header().Set(hxTrigger, toastHXTrigger(err.Error(), "error"))
 			return c.NoContent(http.StatusOK)
 		}
 		return c.Redirect(http.StatusFound, "/groups/"+groupID)

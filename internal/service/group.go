@@ -75,7 +75,7 @@ func (s *GroupService) Create(ctx context.Context, name string, description *str
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
 		return nil, fmt.Errorf("create group: %w", err)
 	}
-	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, "admin"); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, model.RoleAdmin); err != nil {
 		return nil, fmt.Errorf("add creator as admin member: %w", err)
 	}
 	return g, nil
@@ -169,7 +169,7 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phon
 		return "", model.ErrNotAuthorized
 	}
 
-	memberID, err := s.repo.AddMember(ctx, groupID, name, phone, email, "member")
+	memberID, err := s.repo.AddMember(ctx, groupID, name, phone, email, model.RoleMember)
 	if err != nil {
 		return "", fmt.Errorf("add member: %w", err)
 	}
@@ -193,7 +193,7 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 
 	added := make([]string, 0, len(names))
 	for _, name := range names {
-		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, "member"); err != nil {
+		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, model.RoleMember); err != nil {
 			return added, fmt.Errorf("add member %q: %w", name, err)
 		}
 		added = append(added, name)
@@ -349,7 +349,7 @@ func (s *GroupService) PromoteMember(ctx context.Context, groupID, memberID, act
 		return fmt.Errorf("promote member: grant admin metadata: %w", err)
 	}
 
-	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, "admin"); err != nil {
+	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, model.RoleAdmin); err != nil {
 		return fmt.Errorf("promote member: update role: %w", err)
 	}
 	return nil
@@ -428,7 +428,7 @@ func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, r
 		return nil, model.ErrNotFound
 	}
 
-	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, "member"); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, model.RoleMember); err != nil {
 		return nil, fmt.Errorf("approve join request: add member: %w", err)
 	}
 	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved"); err != nil {
@@ -479,7 +479,7 @@ func (s *GroupService) DemoteMember(ctx context.Context, groupID, memberID, acto
 		}
 	}
 
-	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, "member"); err != nil {
+	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, model.RoleMember); err != nil {
 		return fmt.Errorf("demote member: update role: %w", err)
 	}
 	return nil

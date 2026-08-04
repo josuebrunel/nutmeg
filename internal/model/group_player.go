@@ -2,6 +2,12 @@ package model
 
 import "time"
 
+// Roster roles, stored on GroupPlayer.Role / group_players.role.
+const (
+	RoleAdmin  = "admin"
+	RoleMember = "member"
+)
+
 type GroupPlayer struct {
 	ID       string    `db:"id"`
 	GroupID  string    `db:"group_id"`

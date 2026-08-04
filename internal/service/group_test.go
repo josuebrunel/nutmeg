@@ -156,7 +156,7 @@ func defaultMock() *mockGroupRepo {
 			return nil, nil
 		},
 		getMemberFn: func(_ context.Context, groupID, memberID string) (*model.GroupPlayer, error) {
-			return &model.GroupPlayer{Role: "admin", ID: memberID}, nil
+			return &model.GroupPlayer{Role: model.RoleAdmin, ID: memberID}, nil
 		},
 		memberCountFn: func(_ context.Context, groupID string) (int, error) {
 			return 0, nil
