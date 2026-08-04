@@ -202,6 +202,12 @@ func main() {
 	authCfg.Pages.Login = "/login"
 	authCfg.Pages.Register = "/register"
 	authCfg.Debug = true
+	if os.Getenv("EZAUTH_RATE_LIMIT_ENABLED") == "" {
+		// ezauth defaults rate limiting off; without it, login/register/
+		// password-reset have no brute-force protection. Still overridable
+		// via EZAUTH_RATE_LIMIT_ENABLED=false if an operator needs it off.
+		authCfg.RateLimit.Enabled = true
+	}
 
 	auth, err := ezauth.NewWithDB(&authCfg, db, "auth")
 	if err != nil {
