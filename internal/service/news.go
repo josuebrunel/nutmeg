@@ -24,6 +24,7 @@ type NewsRepository interface {
 	GetMatchDetail(ctx context.Context, matchID string) (*repository.MatchDetail, error)
 	GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error)
 	GetMatchAssists(ctx context.Context, matchID string) (map[string]int, error)
+	GetMatchDefenders(ctx context.Context, matchID string) (teamADefenders, teamBDefenders []string, err error)
 	SetGroupNewsContent(ctx context.Context, id, content, model string) error
 	GetGroupNewsBySubject(ctx context.Context, kind, subjectID string) (*model.GroupNews, error)
 }
@@ -90,8 +91,13 @@ func (s *NewsService) buildPrompt(ctx context.Context, kind, subjectID string) (
 		if err != nil {
 			return "", 0, fmt.Errorf("resolve player names: %w", err)
 		}
+		teamADefenders, teamBDefenders, err := s.repo.GetMatchDefenders(ctx, subjectID)
+		if err != nil {
+			return "", 0, fmt.Errorf("fetch defenders: %w", err)
+		}
 		prompt := buildMatchReportPrompt(match.TeamAName, match.TeamBName, match.ScoreA, match.ScoreB,
-			formatStatLines(goals, names, "goal"), formatStatLines(assists, names, "assist"))
+			formatStatLines(goals, names, "goal"), formatStatLines(assists, names, "assist"),
+			teamADefenders, teamBDefenders)
 		return prompt, maxMatchReportLength, nil
 	default:
 		return "", 0, fmt.Errorf("unknown news kind %q", kind)
@@ -169,8 +175,8 @@ Write only the announcement itself, nothing else - no preamble, no quotation mar
 }
 
 // buildMatchReportPrompt is pure — built strictly from the real score,
-// scorers, and assisters, no invented players or events.
-func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, scorers, assisters []string) string {
+// scorers, assisters, and defenders, no invented players or events.
+func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, scorers, assisters, teamADefenders, teamBDefenders []string) string {
 	scorerLine := "No goals were scored by anyone listed."
 	if len(scorers) > 0 {
 		scorerLine = "Goal scorers: " + strings.Join(scorers, ", ")
@@ -180,16 +186,29 @@ func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, sco
 		assisterLine = "Assists: " + strings.Join(assisters, ", ")
 	}
 
+	defenseLine := "No clean sheets this match."
+	var cleanSheets []string
+	if scoreB == 0 && len(teamADefenders) > 0 {
+		cleanSheets = append(cleanSheets, teamAName+"'s defense ("+strings.Join(teamADefenders, ", ")+") kept a clean sheet")
+	}
+	if scoreA == 0 && len(teamBDefenders) > 0 {
+		cleanSheets = append(cleanSheets, teamBName+"'s defense ("+strings.Join(teamBDefenders, ", ")+") kept a clean sheet")
+	}
+	if len(cleanSheets) > 0 {
+		defenseLine = strings.Join(cleanSheets, ". ") + "."
+	}
+
 	return fmt.Sprintf(`You are a satirical sports journalist writing a funny, over-the-top "match report" for a casual pickup soccer group's website.
 
-Write a short punchy headline on its own first line, then 2-4 short paragraphs of exaggerated, comedic sports-journalism prose recapping this match. Base every claim ONLY on the real data below — do not invent any player, event, or stat beyond what's listed. If no goals or assists are listed for a side, do not invent any. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
+Write a short punchy headline on its own first line, then 2-4 short paragraphs of exaggerated, comedic sports-journalism prose recapping this match. Base every claim ONLY on the real data below — do not invent any player, event, or stat beyond what's listed. If no goals or assists are listed for a side, do not invent any. A clean sheet is a real defensive achievement — when one is listed below, give the defenders credit for it, don't only focus on goal scorers. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
 
 Final score: %s %d - %d %s
 %s
 %s
+%s
 
 Write only the headline and article itself, nothing else - no preamble, no quotation marks.`,
-		teamAName, scoreA, scoreB, teamBName, scorerLine, assisterLine)
+		teamAName, scoreA, scoreB, teamBName, scorerLine, assisterLine, defenseLine)
 }
 
 // MatchReportRegenerationCooldown is the minimum time between

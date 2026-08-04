@@ -13,6 +13,8 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 	"github.com/stephenafamo/bob/dialect/psql/um"
 	"github.com/stephenafamo/scan"
+
+	"nutmeg/internal/model"
 )
 
 type MatchWithTeams struct {
@@ -26,16 +28,18 @@ type MatchWithTeams struct {
 }
 
 type LeaderboardEntry struct {
-	MemberID  string  `db:"member_id"`
-	Name      string  `db:"name"`
-	Matches   int     `db:"matches"`
-	Wins      int     `db:"wins"`
-	Draws     int     `db:"draws"`
-	Losses    int     `db:"losses"`
-	Goals     int     `db:"goals"`
-	Assists   int     `db:"assists"`
-	Score     float64 `db:"score"`
-	Qualified bool    `db:"qualified"`
+	MemberID    string  `db:"member_id"`
+	Name        string  `db:"name"`
+	Position    *string `db:"position"`
+	Matches     int     `db:"matches"`
+	Wins        int     `db:"wins"`
+	Draws       int     `db:"draws"`
+	Losses      int     `db:"losses"`
+	Goals       int     `db:"goals"`
+	Assists     int     `db:"assists"`
+	CleanSheets int     `db:"clean_sheets"`
+	Score       float64 `db:"score"`
+	Qualified   bool    `db:"qualified"`
 }
 
 // TopScorerID returns the member id with the strictly-highest Goals in
@@ -62,6 +66,25 @@ func TopPasserID(entries []LeaderboardEntry) string {
 	return id
 }
 
+// TopDefenderID is TopScorerID's counterpart for CleanSheets, restricted to
+// goalkeepers and defenders — a forward who happened to play on a
+// clean-sheet-heavy team shouldn't wear the defensive badge.
+func TopDefenderID(entries []LeaderboardEntry) string {
+	id, max := "", 0
+	for _, e := range entries {
+		if e.Position == nil {
+			continue
+		}
+		if *e.Position != model.PositionGK && *e.Position != model.PositionD {
+			continue
+		}
+		if e.CleanSheets > max {
+			id, max = e.MemberID, e.CleanSheets
+		}
+	}
+	return id
+}
+
 // PlayerLeaderboardEntry returns the entry belonging to memberID, or
 // false if the leaderboard doesn't contain them (it always should, for
 // any real member of the group — GetGroupLeaderboard is a LEFT JOIN from
@@ -82,6 +105,7 @@ type PlayerStats struct {
 	Losses        int `db:"losses"`
 	Goals         int `db:"goals"`
 	Assists       int `db:"assists"`
+	CleanSheets   int `db:"clean_sheets"`
 }
 
 // PlayerMatchResult is one match from a player's history, most-recent
@@ -285,6 +309,8 @@ func leaderboardOrderClause(sortBy string) string {
 		return "goals DESC, wins DESC"
 	case "assists":
 		return "assists DESC, wins DESC"
+	case "clean_sheets":
+		return "clean_sheets DESC, wins DESC"
 	case "matches":
 		return "matches DESC, wins DESC"
 	default:
@@ -292,12 +318,21 @@ func leaderboardOrderClause(sortBy string) string {
 	}
 }
 
+// cleanSheetScoreBonus is how many score points a clean sheet is worth for
+// a goalkeeper or defender — the same weight class as a goal or assist, so
+// a defender who shuts out the other team can climb the board the way a
+// forward does by scoring. Forwards/midfielders don't get this bonus even
+// though a clean sheet is technically a team-wide fact, so it can't be
+// farmed for free points by a position it isn't that player's job to hold.
+const cleanSheetScoreBonus = 2.0
+
 func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string, sortBy string) ([]LeaderboardEntry, error) {
 	query := psql.RawQuery(`
 		WITH stats AS (
 			SELECT
 				gp.id AS member_id,
 				gp.name AS name,
+				gp.position AS position,
 				COUNT(DISTINCT mp.match_id) AS matches,
 				COUNT(DISTINCT mp.match_id) FILTER (WHERE
 					(m.home_team_id = mp.team_id AND m.home_score > m.away_score)
@@ -309,19 +344,27 @@ func (r *Repository) GetGroupLeaderboard(ctx context.Context, groupID string, so
 					OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score)
 				) AS losses,
 				COUNT(DISTINCT me.id) AS goals,
-				COUNT(DISTINCT mea.id) AS assists
+				COUNT(DISTINCT mea.id) AS assists,
+				COUNT(DISTINCT mp.match_id) FILTER (WHERE
+					(m.home_team_id = mp.team_id AND m.away_score = 0)
+					OR (m.away_team_id = mp.team_id AND m.home_score = 0)
+				) AS clean_sheets
 			FROM group_players gp
 			LEFT JOIN matches m ON m.group_id = gp.group_id
 			LEFT JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = gp.id
 			LEFT JOIN match_events me ON me.match_id = m.id AND me.scorer_id = gp.id
 			LEFT JOIN match_events mea ON mea.match_id = m.id AND mea.assister_id = gp.id
 			WHERE gp.group_id = ?
-			GROUP BY gp.id, gp.name
+			GROUP BY gp.id, gp.name, gp.position
 		)
 		SELECT
-			member_id, name, matches, wins, draws, losses, goals, assists,
+			member_id, name, position, matches, wins, draws, losses, goals, assists, clean_sheets,
 			CASE WHEN matches > 0
-				THEN (3.0 * wins + draws + goals + assists) / matches
+				THEN (3.0 * wins + draws + goals + assists +
+					CASE WHEN position IN ('`+model.PositionGK+`', '`+model.PositionD+`')
+						THEN `+strconv.FormatFloat(cleanSheetScoreBonus, 'f', -1, 64)+` * clean_sheets
+						ELSE 0
+					END) / matches
 				ELSE 0
 			END AS score,
 			(matches >= `+strconv.Itoa(minMatchesForRanking)+`) AS qualified
@@ -416,6 +459,38 @@ func (r *Repository) GetMatchAssists(ctx context.Context, matchID string) (map[s
 		assists[row.AssisterID] = row.Count
 	}
 	return assists, nil
+}
+
+// GetMatchDefenders returns the names of goalkeepers/defenders on each side
+// of a match — teamADefenders played for the home team, teamBDefenders for
+// the away team, matching the Team A/Team B convention used by
+// GetMatchDetail. Used to give the match-report prompt enough to credit a
+// clean sheet to the players actually responsible for it.
+func (r *Repository) GetMatchDefenders(ctx context.Context, matchID string) (teamADefenders, teamBDefenders []string, err error) {
+	type defenderRow struct {
+		Name   string `db:"name"`
+		IsHome bool   `db:"is_home"`
+	}
+	query := psql.RawQuery(`
+		SELECT gp.name AS name, (mp.team_id = m.home_team_id) AS is_home
+		FROM match_players mp
+		JOIN matches m ON m.id = mp.match_id
+		JOIN group_players gp ON gp.id = mp.player_id
+		WHERE mp.match_id = ? AND gp.position IN (?, ?)
+		ORDER BY gp.name
+	`, matchID, model.PositionGK, model.PositionD)
+	rows, err := bob.All[defenderRow](ctx, r.db, query, scan.StructMapper[defenderRow]())
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, row := range rows {
+		if row.IsHome {
+			teamADefenders = append(teamADefenders, row.Name)
+		} else {
+			teamBDefenders = append(teamBDefenders, row.Name)
+		}
+	}
+	return teamADefenders, teamBDefenders, nil
 }
 
 type matchTeamIDs struct {
@@ -548,7 +623,9 @@ func (r *Repository) GetPlayerStats(ctx context.Context, memberID string) (*Play
 			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.home_score < m.away_score)
 				OR (m.away_team_id = mp.team_id AND m.away_score < m.home_score) THEN mp.match_id END) AS losses,
 			COUNT(DISTINCT me.id) FILTER (WHERE me.scorer_id = ?) AS goals,
-			COUNT(DISTINCT me.id) FILTER (WHERE me.assister_id = ?) AS assists
+			COUNT(DISTINCT me.id) FILTER (WHERE me.assister_id = ?) AS assists,
+			COUNT(DISTINCT CASE WHEN (m.home_team_id = mp.team_id AND m.away_score = 0)
+				OR (m.away_team_id = mp.team_id AND m.home_score = 0) THEN mp.match_id END) AS clean_sheets
 		FROM match_players mp
 		JOIN matches m ON m.id = mp.match_id
 		LEFT JOIN match_events me ON me.match_id = mp.match_id

@@ -49,12 +49,21 @@ templ IconShare(class string) {
 	<iconify-icon icon="mdi:share-variant" class={ "size-5", class }></iconify-icon>
 }
 
-templ IconArrowUp(class string) {
-	<iconify-icon icon="mdi:arrow-up" class={ "size-5", class }></iconify-icon>
+// IconShield marks clean sheets / defensive performance.
+templ IconShield(class string) {
+	<iconify-icon icon="mdi:shield-check" class={ "size-5", class }></iconify-icon>
 }
 
+// IconArrowUp marks a "promote this person" action — used only by the
+// roster row's Promote button.
+templ IconArrowUp(class string) {
+	<iconify-icon icon="mdi:account-arrow-up" class={ "size-5", class }></iconify-icon>
+}
+
+// IconArrowDown marks a "demote this person" action — used only by the
+// roster row's Demote button.
 templ IconArrowDown(class string) {
-	<iconify-icon icon="mdi:arrow-down" class={ "size-5", class }></iconify-icon>
+	<iconify-icon icon="mdi:account-arrow-down" class={ "size-5", class }></iconify-icon>
 }
 
 templ IconWhistle(class string) {

@@ -199,16 +199,18 @@ func mapLeaderboardEntries(entries []repository.LeaderboardEntry) []groups.Leade
 	out := make([]groups.LeaderboardEntry, len(entries))
 	for i, e := range entries {
 		out[i] = groups.LeaderboardEntry{
-			ID:        e.MemberID,
-			Name:      e.Name,
-			Matches:   e.Matches,
-			Wins:      e.Wins,
-			Draws:     e.Draws,
-			Losses:    e.Losses,
-			Goals:     e.Goals,
-			Assists:   e.Assists,
-			Score:     e.Score,
-			Qualified: e.Qualified,
+			ID:          e.MemberID,
+			Name:        e.Name,
+			Position:    stringPtrValue(e.Position),
+			Matches:     e.Matches,
+			Wins:        e.Wins,
+			Draws:       e.Draws,
+			Losses:      e.Losses,
+			Goals:       e.Goals,
+			Assists:     e.Assists,
+			CleanSheets: e.CleanSheets,
+			Score:       e.Score,
+			Qualified:   e.Qualified,
 		}
 	}
 	return out
@@ -423,6 +425,7 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 
 	isTopScorer := false
 	isTopPasser := false
+	isTopDefender := false
 	var score float64
 	var qualified bool
 	if entries, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, ""); lbErr != nil {
@@ -430,6 +433,7 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	} else {
 		isTopScorer = repository.TopScorerID(entries) == player.ID
 		isTopPasser = repository.TopPasserID(entries) == player.ID
+		isTopDefender = repository.TopDefenderID(entries) == player.ID
 		if entry, ok := repository.PlayerLeaderboardEntry(entries, player.ID); ok {
 			score = entry.Score
 			qualified = entry.Qualified
@@ -456,7 +460,7 @@ func (h *GroupHandler) PlayerProfile(c *echo.Context) error {
 	}
 	description = truncateMeta(description, 200)
 
-	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, score, qualified, commentary, chartData, isTopScorer, isTopPasser, canEdit, successMsg, errMsg))
+	return pageWithMeta(c, player.Name+" — "+g.Name, description, isLoggedIn, "", userName, players.Profile(g, player, stats, score, qualified, commentary, chartData, isTopScorer, isTopPasser, isTopDefender, canEdit, successMsg, errMsg))
 }
 
 // buildChartData maps a player's aggregate stats and recent match history
@@ -812,15 +816,18 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 
 	if len(names) == 1 {
 		name := names[0]
-		var phonePtr, emailPtr *string
+		var phonePtr, emailPtr, positionPtr *string
 		if phone := c.FormValue("phone"); phone != "" {
 			phonePtr = &phone
 		}
 		if email := c.FormValue("email"); email != "" {
 			emailPtr = &email
 		}
+		if position := c.FormValue("position"); position != "" {
+			positionPtr = &position
+		}
 
-		memberID, err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID)
+		memberID, err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, positionPtr, userID)
 		if err != nil {
 			return h.respondRosterMutationErr(c, id, err)
 		}
@@ -901,7 +908,7 @@ func (h *GroupHandler) ImportMembers(c *echo.Context) error {
 
 // parseMemberImportCSV reads a roster CSV with a header row (case-insensitive
 // column names, any order) into service.ImportRow values. Only a "name"
-// column is required; "phone" and "email" are optional.
+// column is required; "phone", "email", and "position" are optional.
 func parseMemberImportCSV(r io.Reader) ([]service.ImportRow, error) {
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = -1 // tolerate rows missing trailing optional columns
@@ -921,6 +928,7 @@ func parseMemberImportCSV(r io.Reader) ([]service.ImportRow, error) {
 	}
 	phoneIdx, hasPhone := col["phone"]
 	emailIdx, hasEmail := col["email"]
+	positionIdx, hasPosition := col["position"]
 
 	field := func(record []string, idx int, has bool) string {
 		if !has || idx >= len(record) {
@@ -942,9 +950,10 @@ func parseMemberImportCSV(r io.Reader) ([]service.ImportRow, error) {
 			continue
 		}
 		rows = append(rows, service.ImportRow{
-			Name:  record[nameIdx],
-			Phone: field(record, phoneIdx, hasPhone),
-			Email: field(record, emailIdx, hasEmail),
+			Name:     record[nameIdx],
+			Phone:    field(record, phoneIdx, hasPhone),
+			Email:    field(record, emailIdx, hasEmail),
+			Position: field(record, positionIdx, hasPosition),
 		})
 	}
 	return rows, nil
@@ -998,6 +1007,26 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	return h.respondRosterMutation(c, id, "Admin demoted to member", "success")
 }
 
+// SetMemberPosition handles a tap on the roster row's inline position
+// picker — a lighter-weight sibling to UpdateMember, since changing just
+// the position shouldn't require resubmitting name/phone/email.
+func (h *GroupHandler) SetMemberPosition(c *echo.Context) error {
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
+	}
+
+	id := c.Param("id")
+	memberID := c.Param("memberId")
+	code := c.Param("code")
+
+	if err := h.service.SetMemberPosition(c.Request().Context(), id, memberID, code, userID); err != nil {
+		return h.respondRosterMutationErr(c, id, err)
+	}
+
+	return h.respondRosterMutation(c, id, "Position updated", "success")
+}
+
 func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
 	ctx := c.Request().Context()
 	userID, done := requireUserID(c, h.auth)
@@ -1032,18 +1061,21 @@ func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 	name := c.FormValue("name")
 
-	var phonePtr, emailPtr *string
+	var phonePtr, emailPtr, positionPtr *string
 	if phone := c.FormValue("phone"); phone != "" {
 		phonePtr = &phone
 	}
 	if email := c.FormValue("email"); email != "" {
 		emailPtr = &email
 	}
+	if position := c.FormValue("position"); position != "" {
+		positionPtr = &position
+	}
 
-	if err := h.service.UpdateMember(ctx, id, memberID, name, phonePtr, emailPtr, userID); err != nil {
+	if err := h.service.UpdateMember(ctx, id, memberID, name, phonePtr, emailPtr, positionPtr, userID); err != nil {
 		logUnexpected("member update failed", err, "group_id", id, "member_id", memberID)
 		if isHTMX(c) {
-			member := &model.GroupPlayer{ID: memberID, GroupID: id, Name: name, Phone: phonePtr, Email: emailPtr}
+			member := &model.GroupPlayer{ID: memberID, GroupID: id, Name: name, Phone: phonePtr, Email: emailPtr, Position: positionPtr}
 			return render.Component(c, groups.MemberEditForm(id, member, err.Error()))
 		}
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())

@@ -73,8 +73,9 @@ func (s *CommentaryService) Generate(ctx context.Context, groupPlayerID string, 
 	}
 	isTopScorer := repository.TopScorerID(leaderboard) == groupPlayerID
 	isTopPasser := repository.TopPasserID(leaderboard) == groupPlayerID
+	isTopDefender := repository.TopDefenderID(leaderboard) == groupPlayerID
 
-	prompt := s.BuildPrompt(member.Name, *stats, history, isTopScorer, isTopPasser)
+	prompt := s.BuildPrompt(member.Name, member.Position, *stats, history, isTopScorer, isTopPasser, isTopDefender)
 
 	raw, err := s.llm.Generate(ctx, prompt)
 	if err != nil {
@@ -132,8 +133,10 @@ func (s *CommentaryService) CanRegenerate(ctx context.Context, groupPlayerID str
 
 // BuildPrompt constructs the roast prompt strictly from derived stats,
 // streak data, and group-standing facts — nothing about a player is ever
-// invented.
-func (s *CommentaryService) BuildPrompt(playerName string, stats repository.PlayerStats, history []repository.PlayerMatchResult, isTopScorer, isTopPasser bool) string {
+// invented. position is nil when the player hasn't set one; the
+// clean-sheet line only appears for goalkeepers/defenders, since that's the
+// stat that's actually their job.
+func (s *CommentaryService) BuildPrompt(playerName string, position *string, stats repository.PlayerStats, history []repository.PlayerMatchResult, isTopScorer, isTopPasser, isTopDefender bool) string {
 	scoreless := scorelessStreak(history)
 	losing := losingStreak(history)
 
@@ -152,7 +155,19 @@ func (s *CommentaryService) BuildPrompt(playerName string, stats repository.Play
 	if isTopPasser {
 		titles = append(titles, "They are currently the group's top assist provider.")
 	}
+	if isTopDefender {
+		titles = append(titles, "They are currently the group's top defender by clean sheets.")
+	}
 	titleLine := strings.Join(titles, " ")
+
+	defenseLine := ""
+	if position != nil && (*position == model.PositionGK || *position == model.PositionD) {
+		if stats.CleanSheets > 0 {
+			defenseLine = fmt.Sprintf("They play %s and have kept %d clean sheet(s) in %d matches.", *position, stats.CleanSheets, stats.MatchesPlayed)
+		} else {
+			defenseLine = fmt.Sprintf("They play %s and haven't kept a single clean sheet yet in %d matches.", *position, stats.MatchesPlayed)
+		}
+	}
 
 	return fmt.Sprintf(`You are a savage but good-natured trash-talking commentator for a casual pickup soccer group chat.
 
@@ -165,9 +180,10 @@ Goals: %d
 Assists: %d
 %s
 %s
+%s
 
 Write only the roast itself, nothing else - no preamble, no quotation marks.`,
-		playerName, stats.MatchesPlayed, stats.Wins, stats.Draws, stats.Losses, stats.Goals, stats.Assists, streakLine, titleLine)
+		playerName, stats.MatchesPlayed, stats.Wins, stats.Draws, stats.Losses, stats.Goals, stats.Assists, defenseLine, streakLine, titleLine)
 }
 
 // scorelessStreak counts consecutive most-recent matches (history is

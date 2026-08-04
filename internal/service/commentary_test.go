@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"nutmeg/internal/assert"
+	"nutmeg/internal/model"
 	"nutmeg/internal/repository"
 )
 
@@ -94,7 +95,7 @@ func TestMatchResult(t *testing.T) {
 func TestBuildPrompt_NoInventedStats(t *testing.T) {
 	s := &CommentaryService{}
 	stats := repository.PlayerStats{MatchesPlayed: 5, Wins: 2, Draws: 1, Losses: 2, Goals: 3, Assists: 1}
-	prompt := s.BuildPrompt("Chris", stats, nil, false, false)
+	prompt := s.BuildPrompt("Chris", nil, stats, nil, false, false, false)
 
 	assert.StrContains(t, prompt, "Chris")
 	assert.StrContains(t, prompt, "2 wins, 1 draws, 2 losses")
@@ -104,6 +105,8 @@ func TestBuildPrompt_NoInventedStats(t *testing.T) {
 	assert.StrContains(t, prompt, "minutes played")
 	assert.False(t, strings.Contains(prompt, "top scorer"))
 	assert.False(t, strings.Contains(prompt, "top assist provider"))
+	assert.False(t, strings.Contains(prompt, "top defender"))
+	assert.False(t, strings.Contains(prompt, "clean sheet"))
 }
 
 func TestBuildPrompt_TitleFacts(t *testing.T) {
@@ -111,18 +114,48 @@ func TestBuildPrompt_TitleFacts(t *testing.T) {
 	stats := repository.PlayerStats{MatchesPlayed: 5, Wins: 2, Draws: 1, Losses: 2, Goals: 3, Assists: 1}
 
 	t.Run("top scorer", func(t *testing.T) {
-		prompt := s.BuildPrompt("Chris", stats, nil, true, false)
+		prompt := s.BuildPrompt("Chris", nil, stats, nil, true, false, false)
 		assert.StrContains(t, prompt, "currently the group's top scorer")
 	})
 
 	t.Run("top passer", func(t *testing.T) {
-		prompt := s.BuildPrompt("Chris", stats, nil, false, true)
+		prompt := s.BuildPrompt("Chris", nil, stats, nil, false, true, false)
 		assert.StrContains(t, prompt, "currently the group's top assist provider")
 	})
 
-	t.Run("both", func(t *testing.T) {
-		prompt := s.BuildPrompt("Chris", stats, nil, true, true)
+	t.Run("top defender", func(t *testing.T) {
+		prompt := s.BuildPrompt("Chris", nil, stats, nil, false, false, true)
+		assert.StrContains(t, prompt, "top defender by clean sheets")
+	})
+
+	t.Run("all three", func(t *testing.T) {
+		prompt := s.BuildPrompt("Chris", nil, stats, nil, true, true, true)
 		assert.StrContains(t, prompt, "top scorer")
 		assert.StrContains(t, prompt, "top assist provider")
+		assert.StrContains(t, prompt, "top defender")
+	})
+}
+
+func TestBuildPrompt_DefenseLine(t *testing.T) {
+	s := &CommentaryService{}
+	gk := model.PositionGK
+	forward := model.PositionA
+
+	t.Run("goalkeeper with clean sheets", func(t *testing.T) {
+		stats := repository.PlayerStats{MatchesPlayed: 5, CleanSheets: 3}
+		prompt := s.BuildPrompt("Chris", &gk, stats, nil, false, false, false)
+		assert.StrContains(t, prompt, "kept 3 clean sheet(s) in 5 matches")
+	})
+
+	t.Run("goalkeeper with zero clean sheets", func(t *testing.T) {
+		stats := repository.PlayerStats{MatchesPlayed: 5, CleanSheets: 0}
+		prompt := s.BuildPrompt("Chris", &gk, stats, nil, false, false, false)
+		assert.StrContains(t, prompt, "haven't kept a single clean sheet yet")
+	})
+
+	t.Run("forward gets no defense line even with clean sheets on record", func(t *testing.T) {
+		stats := repository.PlayerStats{MatchesPlayed: 5, CleanSheets: 3}
+		prompt := s.BuildPrompt("Chris", &forward, stats, nil, false, false, false)
+		assert.False(t, strings.Contains(prompt, "clean sheet"))
 	})
 }

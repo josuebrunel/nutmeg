@@ -50,11 +50,12 @@ type MemberResponse struct {
 	Phone    *string   `json:"phone,omitempty"`
 	Email    *string   `json:"email,omitempty"`
 	Role     string    `json:"role"`
+	Position *string   `json:"position,omitempty"`
 	JoinedAt time.Time `json:"joined_at"`
 }
 
 func toMemberResponse(m repository.MemberInfo) MemberResponse {
-	return MemberResponse{ID: m.ID, Name: m.Name, Phone: m.Phone, Email: m.Email, Role: m.Role, JoinedAt: m.JoinedAt}
+	return MemberResponse{ID: m.ID, Name: m.Name, Phone: m.Phone, Email: m.Email, Role: m.Role, Position: m.Position, JoinedAt: m.JoinedAt}
 }
 
 func toMemberResponses(members []repository.MemberInfo) []MemberResponse {
@@ -70,21 +71,24 @@ func toMemberResponses(members []repository.MemberInfo) []MemberResponse {
 // comma-separated "name" field, which only accepts phone/email for a
 // single addition since they can't be shared across people.
 type MemberAddRequest struct {
-	Names []string `json:"names"`
-	Phone *string  `json:"phone,omitempty"`
-	Email *string  `json:"email,omitempty"`
+	Names    []string `json:"names"`
+	Phone    *string  `json:"phone,omitempty"`
+	Email    *string  `json:"email,omitempty"`
+	Position *string  `json:"position,omitempty"`
 }
 
 type MemberUpdateRequest struct {
-	Name  string  `json:"name"`
-	Phone *string `json:"phone,omitempty"`
-	Email *string `json:"email,omitempty"`
+	Name     string  `json:"name"`
+	Phone    *string `json:"phone,omitempty"`
+	Email    *string `json:"email,omitempty"`
+	Position *string `json:"position,omitempty"`
 }
 
 type MemberImportRow struct {
-	Name  string `json:"name"`
-	Phone string `json:"phone,omitempty"`
-	Email string `json:"email,omitempty"`
+	Name     string `json:"name"`
+	Phone    string `json:"phone,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Position string `json:"position,omitempty"`
 }
 
 type MemberImportRequest struct {

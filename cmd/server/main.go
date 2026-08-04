@@ -24,6 +24,7 @@ import (
 	"github.com/stephenafamo/bob"
 	httpSwagger "github.com/swaggo/http-swagger"
 
+	_ "nutmeg/docs"
 	"nutmeg/internal/config"
 	"nutmeg/internal/database"
 	"nutmeg/internal/email"
@@ -34,7 +35,6 @@ import (
 	"nutmeg/internal/router"
 	"nutmeg/internal/service"
 	"nutmeg/internal/worker"
-	_ "nutmeg/docs"
 	"nutmeg/migrations"
 )
 
@@ -63,7 +63,7 @@ func runLLMTest(provider, apiKey, model, baseURL string) {
 		{GoalsScored: 0},
 		{GoalsScored: 0},
 	}
-	prompt := (&service.CommentaryService{}).BuildPrompt("Chris", stats, history, true, false)
+	prompt := (&service.CommentaryService{}).BuildPrompt("Chris", nil, stats, history, true, false, false)
 
 	fmt.Println("--- prompt ---")
 	fmt.Println(prompt)

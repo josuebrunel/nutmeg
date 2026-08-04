@@ -431,6 +431,7 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 			<button type="button" class="score-info-btn normal-case font-body text-ink/40 hover:text-ink/70" aria-label="How ranking works" aria-expanded="false">&#9432;</button>
 			@sortLink(sortBaseURL, "goals", "Goals", activeSort)
 			@sortLink(sortBaseURL, "assists", "Assists", activeSort)
+			@sortLink(sortBaseURL, "clean_sheets", "Clean Sheets", activeSort)
 			@sortLink(sortBaseURL, "matches", "Matches", activeSort)
 		</div>
 		<p class="score-info-text hidden px-3 pb-2 text-xs font-body text-ink/60 normal-case">{ components.ScoreExplainer }</p>
@@ -445,12 +446,13 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 					<th class="p-3 text-center">L</th>
 					<th class="p-3 text-center">G</th>
 					<th class="p-3 text-center">A</th>
+					<th class="p-3 text-center">CS</th>
 					<th class="p-3 text-center">PTS/G</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-pitch/10">
 				if len(leaderboard) == 0 {
-					<tr><td colspan="9" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
+					<tr><td colspan="10" class="p-6 text-center text-ink/50 font-body text-sm">No match data yet.</td></tr>
 				} else {
 					for i, p := range visibleLeaderboardRows(leaderboard, limit, showAllURL) {
 						<tr class={ "hover:bg-chalk/50 transition-colors", leaderboardRowClass(i, limit, showAllURL) } data-player-name={ strings.ToLower(p.Name) }>
@@ -465,6 +467,9 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 							</td>
 							<td class="p-3 font-medium">
 								<a href={ templ.URL("/groups/" + groupID + "/players/" + p.ID) } class="hover:text-turf hover:underline">{ p.Name }</a>
+								if p.Position != "" {
+									<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5 ml-1">{ p.Position }</span>
+								}
 							</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Matches }</td>
 							<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
@@ -472,6 +477,7 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 							<td class="p-3 text-center font-mono text-nutmeg">{ p.Losses }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Goals }</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Assists }</td>
+							<td class="p-3 text-center font-mono text-ink/70">{ p.CleanSheets }</td>
 							<td class={ "p-3 text-center font-mono", scoreCellClass(p.Qualified) } title={ scoreCellTitle(p.Qualified) }>
 								{ fmt.Sprintf("%.2f", p.Score) }
 							</td>
@@ -479,7 +485,7 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 					}
 					if len(leaderboard) > limit {
 						<tr class="show-more-row">
-							<td colspan="9" class="p-2 text-center">
+							<td colspan="10" class="p-2 text-center">
 								if showAllURL != "" {
 									<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL(showAllURL) } hx-target="#detail-content-area" hx-swap="innerHTML">
 										Show all ({ len(leaderboard) - limit } more)
@@ -586,6 +592,11 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 					<input type="text" name="name" placeholder="Name(s) — comma separated" class="border-2 border-pitch rounded px-2 py-1.5 text-sm" required />
 					<input type="tel" name="phone" placeholder="Phone (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
 					<input type="email" name="email" placeholder="Email (optional)" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm" />
+					<select name="position" class="border-2 border-pitch/50 rounded px-2 py-1.5 text-sm">
+						for _, p := range components.PlayerPositions {
+							<option value={ p.Value } if p.Value == model.PositionM { selected }>{ p.Label }</option>
+						}
+					</select>
 					<button type="submit" class="bg-pitch text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-turf transition-colors whitespace-nowrap flex items-center justify-center gap-1">
 						@components.IconPlus("size-3.5")
 						Add
@@ -595,63 +606,108 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 					<input type="file" name="csv" accept=".csv" required class="text-xs flex-1 min-w-0" />
 					<button type="submit" class="bg-turf text-chalk font-oswald text-xs px-3 py-1.5 rounded hover:bg-pitch transition-colors whitespace-nowrap">Import CSV</button>
 				</form>
-				<p class="text-xs text-ink/40 mt-1">CSV needs a header row: name (required), phone, email (optional)</p>
+				<p class="text-xs text-ink/40 mt-1">CSV needs a header row: name (required), phone, email, position (optional)</p>
 			}
 			if fullWidth {
 				<input type="text" class="roster-search w-full border-2 border-pitch/20 rounded px-3 py-2 text-sm mb-3" placeholder="Search players…" aria-label="Search players"/>
 			}
-			<ul class="space-y-1">
-				for _, m := range visibleMembers(members, fullWidth) {
-					<li class="flex justify-between items-center text-sm py-1.5 border-b border-base-200 last:border-0" data-player-name={ strings.ToLower(m.Name) }>
-						<div class="flex flex-col truncate">
-							<span class="font-body truncate">{ m.Name }</span>
-							if m.Email != nil && *m.Email != "" {
-								<span class="text-xs text-ink/50">{ *m.Email }</span>
-							}
-						</div>
-						<div class="flex items-center gap-2 shrink-0">
-							if isRosterOwner(m, ownerEmail) {
-								<span class="text-xs font-oswald text-gold">Owner</span>
-							}
-							if isPromotedAdmin(m, ownerEmail) {
-								<span class="text-xs font-oswald text-turf">Admin</span>
-							}
-							if isOwner && !isRosterOwner(m, ownerEmail) {
-								if isPromotedAdmin(m, ownerEmail) {
-									<button class="font-oswald text-xs bg-gold/20 text-pitch hover:bg-gold px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Demote " + m.Name + " to member?" }>
-										@components.IconArrowDown("size-3.5")
-										Demote
+			<div class="overflow-x-auto">
+				<table class="w-full text-left border-collapse">
+					<thead class="bg-pitch text-chalk font-oswald text-sm">
+						<tr>
+							<th class="p-2">Player</th>
+							<th class="p-2">Position</th>
+							<th class="p-2">Role</th>
+							<th class="p-2 text-right">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-pitch/10">
+						for _, m := range visibleMembers(members, fullWidth) {
+							<tr class="text-sm" data-player-name={ strings.ToLower(m.Name) }>
+								<td class="p-2">
+									<div class="flex flex-col truncate">
+										<span class="font-body truncate">{ m.Name }</span>
+										if m.Email != nil && *m.Email != "" {
+											<span class="text-xs text-ink/50">{ *m.Email }</span>
+										}
+									</div>
+								</td>
+								<td class="p-2">
+									if isAdmin {
+										<div class="inline-flex rounded overflow-hidden border border-pitch/20 text-[9px] font-oswald leading-none">
+											for _, p := range components.PlayerPositions {
+												<button
+													type="button"
+													class={ positionPillClass(p.Value, stringPtrValue(m.Position)) }
+													aria-label={ "Set " + m.Name + "'s position to " + p.Label }
+													hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/position/" + p.Value + viewParam(fullWidth)) }
+													hx-target="#roster-column"
+													hx-swap="outerHTML show:none"
+												>{ p.Value }</button>
+											}
+										</div>
+									} else if m.Position != nil && *m.Position != "" {
+										<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5">{ *m.Position }</span>
+									}
+								</td>
+								<td class="p-2">
+									if isRosterOwner(m, ownerEmail) {
+										<span class="text-xs font-oswald text-gold">Owner</span>
+									} else if isPromotedAdmin(m, ownerEmail) {
+										<span class="text-xs font-oswald text-turf">Admin</span>
+									}
+								</td>
+								<td class="p-2">
+									<div class="flex items-center justify-end gap-2">
+										if isOwner && !isRosterOwner(m, ownerEmail) {
+											if isPromotedAdmin(m, ownerEmail) {
+												<button class="bg-gold/20 text-pitch hover:bg-gold p-1.5 rounded transition-colors" aria-label={ "Demote " + m.Name + " to member" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML show:none" hx-confirm={ "Demote " + m.Name + " to member?" }>
+													@components.IconArrowDown("size-3.5")
+												</button>
+											} else {
+												<button class="bg-turf/10 text-turf hover:bg-turf hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Promote " + m.Name + " to admin" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML show:none" hx-confirm={ "Promote " + m.Name + " to admin?" }>
+													@components.IconArrowUp("size-3.5")
+												</button>
+											}
+										}
+										if isAdmin {
+											<button class="text-turf hover:text-pitch p-1.5 rounded transition-colors" aria-label={ "Edit " + m.Name } hx-get={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">
+												@components.IconEdit("size-3.5")
+											</button>
+										}
+										if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
+											<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
+												@components.IconClose("size-3.5")
+											</button>
+										}
+									</div>
+								</td>
+							</tr>
+						}
+						if !fullWidth && len(members) > defaultVisibleLimit {
+							<tr>
+								<td colspan="4" class="text-center py-1.5">
+									<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL("/groups/" + g.ID + "/roster-full") } hx-target="#detail-content-area" hx-swap="innerHTML">
+										Show all ({ len(members) - defaultVisibleLimit } more)
 									</button>
-								} else {
-									<button class="font-oswald text-xs bg-turf/10 text-turf hover:bg-turf hover:text-chalk px-2 py-1 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Promote " + m.Name + " to admin?" }>
-										@components.IconArrowUp("size-3.5")
-										Promote
-									</button>
-								}
-							}
-							if isAdmin {
-								<button class="text-turf hover:text-pitch p-1.5 rounded transition-colors" aria-label={ "Edit " + m.Name } hx-get={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">
-									@components.IconEdit("size-3.5")
-								</button>
-							}
-							if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
-								<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
-									@components.IconClose("size-3.5")
-								</button>
-							}
-						</div>
-					</li>
-				}
-				if !fullWidth && len(members) > defaultVisibleLimit {
-					<li class="text-center py-1.5">
-						<button type="button" class="text-xs font-oswald text-turf hover:text-pitch underline" hx-get={ templ.URL("/groups/" + g.ID + "/roster-full") } hx-target="#detail-content-area" hx-swap="innerHTML">
-							Show all ({ len(members) - defaultVisibleLimit } more)
-						</button>
-					</li>
-				}
-			</ul>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	</div>
+}
+
+// positionPillClass highlights the active pill in a roster row's inline
+// position picker — filled for the currently-set code, muted-but-tappable
+// for the other three.
+func positionPillClass(code, active string) string {
+	if code == active {
+		return "px-1.5 py-1 bg-turf text-chalk transition-colors"
+	}
+	return "px-1.5 py-1 text-ink/40 hover:bg-turf/10 hover:text-turf transition-colors"
 }
 
 // viewParam appends ?view=full to a roster-mutation URL when the roster is
@@ -693,16 +749,18 @@ type JoinRequestEntry struct {
 }
 
 type LeaderboardEntry struct {
-	ID        string
-	Name      string
-	Matches   int
-	Wins      int
-	Draws     int
-	Losses    int
-	Goals     int
-	Assists   int
-	Score     float64
-	Qualified bool
+	ID          string
+	Name        string
+	Position    string
+	Matches     int
+	Wins        int
+	Draws       int
+	Losses      int
+	Goals       int
+	Assists     int
+	CleanSheets int
+	Score       float64
+	Qualified   bool
 }
 
 type MatchEntry struct {
