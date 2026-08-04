@@ -83,19 +83,30 @@ func (h *GroupHandler) Create(c *echo.Context) error {
 	return c.JSON(http.StatusCreated, toGroupResponse(g))
 }
 
-// Get returns a single group by id.
+// Get returns a single group by id. Owner or promoted admin only — use the
+// public leaderboard/player-profile endpoints for unauthenticated access.
 // @Summary Get a group
 // @Tags groups
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Group ID"
 // @Success 200 {object} GroupResponse
+// @Failure 403 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Router /groups/{id} [get]
 func (h *GroupHandler) Get(c *echo.Context) error {
-	g, err := h.service.Get(c.Request().Context(), c.Param("id"))
+	ctx := c.Request().Context()
+	userID, err := currentUserID(c, h.auth)
+	if err != nil {
+		return writeError(c, model.ErrNotAuthorized)
+	}
+
+	g, err := h.service.Get(ctx, c.Param("id"))
 	if err != nil {
 		return writeError(c, model.ErrNotFound)
+	}
+	if !h.service.CanEdit(ctx, g, userID) {
+		return writeError(c, model.ErrNotAuthorized)
 	}
 	return c.JSON(http.StatusOK, toGroupResponse(g))
 }
@@ -159,17 +170,33 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// ListMembers returns a group's roster.
+// ListMembers returns a group's roster, including each member's phone/email.
+// Owner or promoted admin only.
 // @Summary List group members
 // @Tags groups
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Group ID"
 // @Success 200 {array} MemberResponse
+// @Failure 403 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Router /groups/{id}/members [get]
 func (h *GroupHandler) ListMembers(c *echo.Context) error {
-	members, err := h.service.Members(c.Request().Context(), c.Param("id"))
+	ctx := c.Request().Context()
+	userID, err := currentUserID(c, h.auth)
+	if err != nil {
+		return writeError(c, model.ErrNotAuthorized)
+	}
+
+	g, err := h.service.Get(ctx, c.Param("id"))
+	if err != nil {
+		return writeError(c, model.ErrNotFound)
+	}
+	if !h.service.CanEdit(ctx, g, userID) {
+		return writeError(c, model.ErrNotAuthorized)
+	}
+
+	members, err := h.service.Members(ctx, g.ID)
 	if err != nil {
 		return writeError(c, err)
 	}
