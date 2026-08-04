@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"time"
 
@@ -187,7 +188,7 @@ func insertGoalEvents(ctx context.Context, tx bob.Executor, matchID, teamA, team
 	for playerID, count := range goals {
 		teamID := teamA
 		queue := &assistQueueA
-		if contains(teamBPlayers, playerID) {
+		if slices.Contains(teamBPlayers, playerID) {
 			teamID = teamB
 			queue = &assistQueueB
 		}
@@ -216,7 +217,7 @@ func insertGoalEvents(ctx context.Context, tx bob.Executor, matchID, teamA, team
 func buildAssistQueues(assists map[string]int, teamBPlayers []string) (queueA, queueB []string) {
 	for playerID, count := range assists {
 		for i := 0; i < count; i++ {
-			if contains(teamBPlayers, playerID) {
+			if slices.Contains(teamBPlayers, playerID) {
 				queueB = append(queueB, playerID)
 			} else {
 				queueA = append(queueA, playerID)
@@ -232,15 +233,6 @@ func insertTeam(ctx context.Context, exec bob.Executor, groupID, name string) (s
 		im.Values(psql.Arg(groupID, name)),
 		im.Returning("id"),
 	), scan.SingleColumnMapper[string])
-}
-
-func contains(slice []string, val string) bool {
-	for _, s := range slice {
-		if s == val {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *Repository) ListMatchesByGroup(ctx context.Context, groupID string) ([]MatchWithTeams, error) {

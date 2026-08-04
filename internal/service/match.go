@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -100,28 +101,19 @@ func parseTally(input string) map[string]int {
 	return tally
 }
 
-func contains(slice []string, val string) bool {
-	for _, s := range slice {
-		if s == val {
-			return true
-		}
-	}
-	return false
-}
-
 // validateAssists rejects a per-team assist tally that exceeds that team's
 // goal tally — an assist implies an associated goal, so it can never exceed it.
 func validateAssists(goals, assists map[string]int, teamBPlayers []string) error {
 	var goalsA, goalsB, assistsA, assistsB int
 	for pid, c := range goals {
-		if contains(teamBPlayers, pid) {
+		if slices.Contains(teamBPlayers, pid) {
 			goalsB += c
 		} else {
 			goalsA += c
 		}
 	}
 	for pid, c := range assists {
-		if contains(teamBPlayers, pid) {
+		if slices.Contains(teamBPlayers, pid) {
 			assistsB += c
 		} else {
 			assistsA += c
