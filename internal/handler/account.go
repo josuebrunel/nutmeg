@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -82,7 +83,8 @@ func (h *AccountHandler) Update(c *echo.Context) error {
 	}
 
 	if _, err := h.auth.Repo.UserUpdate(ctx, user); err != nil {
-		h.auth.Handler.SetFlash(ctx, "error", "Could not update your info: "+err.Error())
+		slog.Error("failed to update account", "user_id", userID, "error", err)
+		h.auth.Handler.SetFlash(ctx, "error", "Could not update your info. Please try again.")
 		return c.Redirect(http.StatusFound, "/account")
 	}
 
