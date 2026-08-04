@@ -9,8 +9,8 @@ import (
 	"nutmeg/internal/service"
 )
 
-func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, articleSvc *service.MatchArticleService, jobs handler.JobEnqueuer) {
-	h := handler.New(auth, repo, commentarySvc, articleSvc, jobs)
+func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, newsSvc *service.NewsService, jobs handler.JobEnqueuer) {
+	h := handler.New(auth, repo, commentarySvc, newsSvc, jobs)
 
 	app.GET("/dashboard", h.Home.Dashboard)
 	app.GET("/stats", h.Home.Stats)
@@ -45,5 +45,5 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	app.GET("/groups/:id/matches/:mid/edit", h.Match.EditModal)
 	app.POST("/groups/:id/matches/:mid/update", h.Match.Update)
 	app.DELETE("/groups/:id/matches/:mid", h.Match.Delete)
-	app.POST("/groups/:id/matches/:mid/regenerate-article", h.Group.RegenerateMatchArticle)
+	app.POST("/groups/:id/matches/:mid/regenerate-article", h.Group.RegenerateMatchReport)
 }

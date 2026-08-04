@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -116,8 +115,7 @@ func (h *MatchHandler) Create(c *echo.Context) error {
 		return badRequest(c, err)
 	}
 	h.enqueueCommentary(ctx, matchID, append(append([]string{}, req.TeamAPlayers...), req.TeamBPlayers...))
-	handler.RecordActivity(ctx, h.repo, h.jobs, groupID, "match_logged", matchID,
-		fmt.Sprintf("%s %d - %d %s logged", req.TeamAName, req.ScoreA, req.ScoreB, req.TeamBName))
+	handler.RecordNews(ctx, h.repo, h.jobs, groupID, "match_logged", matchID, "Full match report coming soon.")
 
 	editable, err := h.service.GetEditable(ctx, matchID, userID)
 	if err != nil {

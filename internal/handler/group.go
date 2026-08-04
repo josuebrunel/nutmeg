@@ -32,12 +32,12 @@ type GroupHandler struct {
 	matchSvc      *service.MatchService
 	repo          *repository.Repository
 	commentarySvc *service.CommentaryService
-	articleSvc    *service.MatchArticleService
+	newsSvc       *service.NewsService
 	jobs          JobEnqueuer
 }
 
-func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository, commentarySvc *service.CommentaryService, articleSvc *service.MatchArticleService, jobs JobEnqueuer) *GroupHandler {
-	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo, commentarySvc: commentarySvc, articleSvc: articleSvc, jobs: jobs}
+func NewGroupHandler(auth *ezauth.EzAuth, svc *service.GroupService, matchSvc *service.MatchService, repo *repository.Repository, commentarySvc *service.CommentaryService, newsSvc *service.NewsService, jobs JobEnqueuer) *GroupHandler {
+	return &GroupHandler{auth: auth, service: svc, matchSvc: matchSvc, repo: repo, commentarySvc: commentarySvc, newsSvc: newsSvc, jobs: jobs}
 }
 
 func (h *GroupHandler) Index(c *echo.Context) error {
@@ -152,32 +152,32 @@ func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID
 			return nil, err
 		}
 		joinRequests := h.joinRequestEntries(ctx, g.ID, canEdit)
-		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
-		if actErr != nil {
-			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
+		if newsErr != nil {
+			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
 		}
-		return groups.RosterTab(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+		return groups.RosterTab(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapNewsEntries(news, appmw.LocationFromContext(c))), nil
 	case "matches":
 		matches, matchErr := h.matchSvc.ListByGroup(ctx, g.ID)
 		if matchErr != nil {
 			slog.Error("failed to list matches", "group_id", g.ID, "error", matchErr)
 		}
-		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
-		if actErr != nil {
-			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
+		if newsErr != nil {
+			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
 		}
-		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c)), mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c)), mapNewsEntries(news, appmw.LocationFromContext(c))), nil
 	default:
 		sortBy := c.QueryParam("sort")
 		leaderboard, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, sortBy)
 		if lbErr != nil {
 			slog.Error("failed to get leaderboard", "group_id", g.ID, "error", lbErr)
 		}
-		activity, actErr := h.repo.ListGroupActivity(ctx, g.ID, 20)
-		if actErr != nil {
-			slog.Error("failed to list group activity", "group_id", g.ID, "error", actErr)
+		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
+		if newsErr != nil {
+			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
 		}
-		return groups.LeaderboardTab(g.ID, sortBy, mapLeaderboardEntries(leaderboard), mapActivityEntries(activity, appmw.LocationFromContext(c))), nil
+		return groups.LeaderboardTab(g.ID, sortBy, mapLeaderboardEntries(leaderboard), mapNewsEntries(news, appmw.LocationFromContext(c))), nil
 	}
 }
 
@@ -222,16 +222,17 @@ func mapMatchEntries(matches []repository.MatchWithTeams, loc *time.Location) []
 	return out
 }
 
-// mapActivityEntries converts repository group_activity rows into the
-// groups view struct — shared by every handler that renders the activity
-// feed (Detail, LeaderboardFull, RosterFull, MatchesFull, rosterTabWithToast).
-func mapActivityEntries(entries []model.GroupActivity, loc *time.Location) []groups.ActivityEntry {
-	out := make([]groups.ActivityEntry, len(entries))
+// mapNewsEntries converts repository group_news rows into the groups view
+// struct — shared by every handler that renders the news feed (Detail,
+// LeaderboardFull, RosterFull, MatchesFull, rosterTabWithToast).
+func mapNewsEntries(entries []model.GroupNews, loc *time.Location) []groups.NewsEntry {
+	out := make([]groups.NewsEntry, len(entries))
 	for i, e := range entries {
-		out[i] = groups.ActivityEntry{
-			Kind: e.Kind,
-			Text: e.Content,
-			When: e.CreatedAt.In(loc).Format("Jan 2, 3:04 PM"),
+		out[i] = groups.NewsEntry{
+			Kind:      e.Kind,
+			SubjectID: e.SubjectID,
+			Text:      e.Content,
+			When:      e.CreatedAt.In(loc).Format("Jan 2, 3:04 PM"),
 		}
 	}
 	return out
@@ -261,6 +262,12 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	}
 	matchEntries := mapMatchEntries(matches, appmw.LocationFromContext(c))
 
+	news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
+	if newsErr != nil {
+		slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
+	}
+	newsEntries := mapNewsEntries(news, appmw.LocationFromContext(c))
+
 	isLoggedIn := false
 	userName := ""
 	userID := ""
@@ -277,15 +284,15 @@ func (h *GroupHandler) PublicLeaderboard(c *echo.Context) error {
 	errMsg := h.auth.GetErrorMessage(ctx)
 
 	description := fmt.Sprintf("%s's leaderboard on Nutmeg — %d players tracked, updated after every match.", g.Name, len(lbEntries))
-	return pageWithMeta(c, g.Name+" Leaderboard", description, isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, matchEntries, joinStatus, sortBy, successMsg, errMsg))
+	return pageWithMeta(c, g.Name+" Leaderboard", description, isLoggedIn, "", userName, groups.PublicLeaderboard(g, lbEntries, matchEntries, newsEntries, joinStatus, sortBy, successMsg, errMsg))
 }
 
-// PublicMatchArticle renders the AI-generated news article for a single
+// PublicMatchReport renders the AI-generated news report for a single
 // match — public/unauthenticated, like PublicLeaderboard. An HTMX request
 // (a match card click on the public or private page) gets just the
 // overlay fragment; a direct/non-HTMX request (a shared link or a social
 // crawler) gets a full standalone page with proper link-preview meta tags.
-func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
+func (h *GroupHandler) PublicMatchReport(c *echo.Context) error {
 	ctx := c.Request().Context()
 	groupID := c.Param("id")
 	matchID := c.Param("mid")
@@ -295,13 +302,13 @@ func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	article, err := h.repo.GetMatchArticle(ctx, matchID)
+	news, err := h.repo.GetGroupNewsBySubject(ctx, "match_logged", matchID)
 	if err != nil {
-		slog.Error("failed to get match article", "match_id", matchID, "error", err)
+		slog.Error("failed to get match report", "match_id", matchID, "error", err)
 	}
 
 	if isHTMX(c) {
-		return render.Component(c, groups.MatchArticlePanel(match, article))
+		return render.Component(c, groups.MatchReportPanel(match, news))
 	}
 
 	g, err := h.service.Get(ctx, groupID)
@@ -311,8 +318,8 @@ func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
 
 	title := fmt.Sprintf("%s %d - %d %s", match.TeamAName, match.ScoreA, match.ScoreB, match.TeamBName)
 	description := "The match report is being written up — check back in a few seconds."
-	if article != nil {
-		description = truncateMeta(article.Content, 200)
+	if news != nil {
+		description = truncateMeta(news.Content, 200)
 	}
 
 	isLoggedIn := false
@@ -322,14 +329,14 @@ func (h *GroupHandler) PublicMatchArticle(c *echo.Context) error {
 		userName = user.DisplayName()
 	}
 
-	return pageWithMeta(c, title+" — "+g.Name, description, isLoggedIn, "", userName, groups.MatchArticlePage(g, match, article))
+	return pageWithMeta(c, title+" — "+g.Name, description, isLoggedIn, "", userName, groups.MatchReportPage(g, match, news))
 }
 
-// RegenerateMatchArticle lets a group admin manually re-run article
+// RegenerateMatchReport lets a group admin manually re-run report
 // generation for a single match — the same generation+validation flow as
 // automatic post-match generation, gated by CanEdit and a per-match
 // cooldown, mirroring RegenerateCommentary above.
-func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
+func (h *GroupHandler) RegenerateMatchReport(c *echo.Context) error {
 	ctx := c.Request().Context()
 	userID, done := requireUserID(c, h.auth)
 	if done {
@@ -345,7 +352,7 @@ func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
 		return err
 	}
 
-	ok, wait, err := h.articleSvc.CanRegenerate(ctx, matchID)
+	ok, wait, err := h.newsSvc.CanRegenerate(ctx, matchID)
 	if err != nil {
 		return err
 	}
@@ -354,18 +361,18 @@ func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
 
-	article, err := h.repo.GetMatchArticle(ctx, matchID)
-	if err != nil || article == nil {
-		h.auth.Handler.SetFlash(ctx, "error", "No article to regenerate for this match yet.")
+	news, err := h.repo.GetGroupNewsBySubject(ctx, "match_logged", matchID)
+	if err != nil || news == nil {
+		h.auth.Handler.SetFlash(ctx, "error", "No report to regenerate for this match yet.")
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
 
-	if _, err := h.jobs.Insert(ctx, worker.GenerateMatchArticleArgs{ArticleID: article.ID, MatchID: matchID}, nil); err != nil {
+	if _, err := h.jobs.Insert(ctx, worker.GenerateGroupNewsArgs{NewsID: news.ID, EventKind: "match_logged", SubjectID: matchID}, nil); err != nil {
 		h.auth.Handler.SetFlash(ctx, "error", "Could not start regeneration: "+err.Error())
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
 
-	h.auth.Handler.SetFlash(ctx, "success", "Regenerating match article — refresh in a few seconds.")
+	h.auth.Handler.SetFlash(ctx, "success", "Regenerating match report — refresh in a few seconds.")
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
@@ -672,7 +679,7 @@ func (h *GroupHandler) Delete(c *echo.Context) error {
 }
 
 // LeaderboardFull renders the Leaderboard tab (tab bar + complete
-// leaderboard + activity feed) — hit when the Leaderboard tab button is
+// leaderboard + news feed) — hit when the Leaderboard tab button is
 // clicked.
 func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
@@ -698,7 +705,7 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 // failure (propagate it) or the CanEdit-redirect's own result (usually
 // nil) — so the caller should just `return err`. Shared by every handler
 // that needs "load this group, then require CanEdit" (Edit, LeaderboardFull,
-// MatchesFull, RegenerateMatchArticle, RegenerateCommentary,
+// MatchesFull, RegenerateMatchReport, RegenerateCommentary,
 // EditMemberForm); RosterFull below uses rosterViewData instead since it
 // also needs isOwner/ownerEmail.
 func (h *GroupHandler) requireGroupEdit(c *echo.Context, userID, redirectTo string) (g *model.Group, err error, done bool) {
@@ -738,7 +745,7 @@ func (h *GroupHandler) RosterFull(c *echo.Context) error {
 }
 
 // MatchesFull renders the Recent Matches tab (tab bar + complete match list
-// + activity feed) — hit when the Recent Matches tab button is clicked.
+// + news feed) — hit when the Recent Matches tab button is clicked.
 func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
 	if done {
@@ -786,7 +793,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 		if err != nil {
 			return h.respondRosterMutationErr(c, id, err)
 		}
-		RecordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
+		RecordNews(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
 
 		return h.respondRosterMutation(c, id, "Added "+name, "success")
 	}

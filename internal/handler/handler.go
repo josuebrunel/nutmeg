@@ -35,7 +35,7 @@ type Handler struct {
 	Match   *MatchHandler
 }
 
-func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, articleSvc *service.MatchArticleService, jobs JobEnqueuer) *Handler {
+func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, newsSvc *service.NewsService, jobs JobEnqueuer) *Handler {
 	groupSvc := service.NewGroupService(repo, auth.Repo)
 	matchSvc := service.NewMatchService(repo, repo)
 	return &Handler{
@@ -44,7 +44,7 @@ func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *servic
 		Home:    &HomeHandler{groupSvc: groupSvc, auth: auth, matchSvc: matchSvc},
 		Auth:    NewAuthHandler(auth),
 		Account: NewAccountHandler(auth),
-		Group:   NewGroupHandler(auth, groupSvc, matchSvc, repo, commentarySvc, articleSvc, jobs),
+		Group:   NewGroupHandler(auth, groupSvc, matchSvc, repo, commentarySvc, newsSvc, jobs),
 		Match:   NewMatchHandler(auth, matchSvc, repo, jobs),
 	}
 }
@@ -104,28 +104,28 @@ func pageWithMeta(c *echo.Context, title, description string, isLoggedIn bool, c
 	return layout.Base(title, description, ogImage, isLoggedIn, currentGroupID, userName).Render(ctx, c.Response())
 }
 
-// RecordActivity inserts a new group_activity row with fallback content
-// already in place, then enqueues a background job to upgrade it with an
-// AI-generated blurb. Shared by GroupHandler (player_added) and
-// MatchHandler (match_logged) — both hold a *repository.Repository and a
-// JobEnqueuer already. Failures are logged and swallowed, same as
-// enqueueCommentary: a group's activity feed is never allowed to block
-// the request that triggered it.
-func RecordActivity(ctx context.Context, repo *repository.Repository, jobs JobEnqueuer, groupID, kind, subjectID, fallback string) {
-	activityID, err := repo.CreateGroupActivity(ctx, groupID, kind, subjectID, fallback)
+// RecordNews inserts a new group_news row with fallback content already in
+// place, then enqueues a background job to upgrade it with AI-generated
+// copy. Shared by GroupHandler (player_added) and MatchHandler
+// (match_logged) — both hold a *repository.Repository and a JobEnqueuer
+// already. Failures are logged and swallowed, same as enqueueCommentary: a
+// group's news feed is never allowed to block the request that triggered
+// it.
+func RecordNews(ctx context.Context, repo *repository.Repository, jobs JobEnqueuer, groupID, kind, subjectID, fallback string) {
+	newsID, err := repo.CreateGroupNews(ctx, groupID, kind, subjectID, fallback)
 	if err != nil {
-		slog.Error("record group activity failed", "group_id", groupID, "kind", kind, "error", err)
+		slog.Error("record group news failed", "group_id", groupID, "kind", kind, "error", err)
 		return
 	}
-	if _, err := jobs.Insert(ctx, worker.GenerateGroupNewsArgs{ActivityID: activityID, EventKind: kind, SubjectID: subjectID}, nil); err != nil {
-		slog.Error("enqueue group news generation failed", "activity_id", activityID, "error", err)
+	if _, err := jobs.Insert(ctx, worker.GenerateGroupNewsArgs{NewsID: newsID, EventKind: kind, SubjectID: subjectID}, nil); err != nil {
+		slog.Error("enqueue group news generation failed", "news_id", newsID, "error", err)
 	}
 }
 
 // EnqueueEmail enqueues a background job to send an email to one or more
 // recipients — a no-op (with no error) if to is empty, e.g. a group with
 // no admin email on file. Same log-and-continue discipline as
-// RecordActivity: never blocks or fails the request that triggered it.
+// RecordNews: never blocks or fails the request that triggered it.
 func EnqueueEmail(ctx context.Context, jobs JobEnqueuer, to []string, subject, body string) {
 	if len(to) == 0 {
 		return

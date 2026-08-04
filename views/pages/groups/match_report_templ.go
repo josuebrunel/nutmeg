@@ -16,11 +16,11 @@ import (
 	components "nutmeg/views/components"
 )
 
-// matchArticleBody is the shared headline/score line + content-or-fallback
-// block, reused by both the in-page overlay (MatchArticlePanel) and the
-// standalone shareable page (MatchArticlePage) so the "no article yet"
-// state isn't duplicated between them.
-func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle) templ.Component {
+// matchReportBody is the shared headline/score line + content-or-fallback
+// block, reused by both the in-page overlay (MatchReportPanel) and the
+// standalone shareable page (MatchReportPage) so the "no report yet" state
+// isn't duplicated between them.
+func matchReportBody(match *repository.MatchDetail, news *model.GroupNews) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -48,7 +48,7 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(match.TeamAName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 16, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 16, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -61,7 +61,7 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(match.ScoreA))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 16, Col: 95}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 16, Col: 95}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -74,7 +74,7 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(match.ScoreB))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 16, Col: 126}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 16, Col: 126}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -87,7 +87,7 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(match.TeamBName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 16, Col: 146}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 16, Col: 146}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -97,7 +97,7 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if article == nil {
+		if news == nil {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<p class=\"font-body text-ink/60 text-sm py-8 text-center\">Still writing this one up — check back in a few seconds.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -108,9 +108,9 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(article.Content)
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(news.Content)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 20, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 20, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -125,10 +125,10 @@ func matchArticleBody(match *repository.MatchDetail, article *model.MatchArticle
 	})
 }
 
-// MatchArticlePanel is the in-page overlay shown when a match card is
+// MatchReportPanel is the in-page overlay shown when a match card is
 // clicked (HTMX request, swapped into #article-panel on the public
 // leaderboard page and the private group detail page).
-func MatchArticlePanel(match *repository.MatchDetail, article *model.MatchArticle) templ.Component {
+func MatchReportPanel(match *repository.MatchDetail, news *model.GroupNews) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -161,7 +161,7 @@ func MatchArticlePanel(match *repository.MatchDetail, article *model.MatchArticl
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = matchArticleBody(match, article).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = matchReportBody(match, news).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -173,10 +173,10 @@ func MatchArticlePanel(match *repository.MatchDetail, article *model.MatchArticl
 	})
 }
 
-// MatchArticlePage is the standalone shareable page shown for a direct
-// link or a social-media crawler (no #article-panel to swap into) — same
-// content as the overlay, wrapped as a normal page with a Share button.
-func MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *model.MatchArticle) templ.Component {
+// MatchReportPage is the standalone shareable page shown for a direct link
+// or a social-media crawler (no #article-panel to swap into) — same content
+// as the overlay, wrapped as a normal page with a Share button.
+func MatchReportPage(g *model.Group, match *repository.MatchDetail, news *model.GroupNews) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -204,7 +204,7 @@ func MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *mo
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 44, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 44, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -222,7 +222,7 @@ func MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *mo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = matchArticleBody(match, article).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = matchReportBody(match, news).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -233,7 +233,7 @@ func MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *mo
 		var templ_7745c5c3_Var10 templ.SafeURL
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/groups/" + g.ID + "/leaderboard"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 50, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 50, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -246,7 +246,7 @@ func MatchArticlePage(g *model.Group, match *repository.MatchDetail, article *mo
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(g.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_article.templ`, Line: 50, Col: 163}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/groups/match_report.templ`, Line: 50, Col: 163}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {

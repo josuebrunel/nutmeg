@@ -40,8 +40,7 @@ Log a match in under a minute, keep an unarguable leaderboard, and let a local o
 - **Public links, no account required** - group leaderboards, player profiles, and match reports are all shareable, read-only links.
 - **Performance-ranked leaderboard** - ranked by (3×Wins + Draws + Goals + Assists) ÷ Matches once a player's played enough games to qualify (3+), so ratio beats raw volume without a single lucky win topping the board.
 - **AI player roasts** - a one-line, savage-but-friendly roast per player, regenerated after every match, built only from real stats, no invented events, ever.
-- **AI match reports** - a full satirical "news article" per match, headline included, generated the same way.
-- **AI group activity feed** - short auto-written blurbs for "a match got logged" / "a new player joined" events.
+- **AI-powered News feed** - a full satirical match report (headline included) for every match, and a signing-style blurb for every new player, public and readable from each group's page, no account required.
 - **Pluggable LLM backend** - local Ollama by default, or Google's Generative Language API, switchable via one env var. All generation runs as a background job so a slow or unreachable model never blocks logging a match.
 - Group CRUD, member management (add/remove, CSV import, promote/demote, inline edit), public request-to-join with admin approval
 - Global stats dashboard, responsive sidebar layout, flash messages, HTMX-powered interactions throughout
@@ -61,7 +60,7 @@ Log a match in under a minute, keep an unarguable leaderboard, and let a local o
 | **Query Builder**  | [Bob](https://github.com/stephenafamo/bob) + [scan.StructMapper](https://github.com/stephenafamo/scan)                                           |
 | **Migrations**     | [Goose v3](https://github.com/pressly/goose/v3) (embedded, no global registry)                                                                   |
 | **Background Jobs**| [RiverQueue](https://github.com/riverqueue/river) (Postgres-backed job queue, e.g. async AI commentary generation)                               |
-| **AI / LLM**       | Pluggable via `LLM_PROVIDER` — [Ollama](https://ollama.com) (local inference, default) or [Google's Generative Language API](https://ai.google.dev/gemini-api/docs/models) (e.g. Gemma), both hand-rolled clients in `internal/llm/`, no SDK — powers player roasts, match reports, and group-activity blurbs |
+| **AI / LLM**       | Pluggable via `LLM_PROVIDER` — [Ollama](https://ollama.com) (local inference, default) or [Google's Generative Language API](https://ai.google.dev/gemini-api/docs/models) (e.g. Gemma), both hand-rolled clients in `internal/llm/`, no SDK — powers player roasts and the group News feed (match reports, player-signing blurbs) |
 | **Authentication** | [Ezauth](https://github.com/josuebrunel/ezauth)                                                                                                  |
 | **Configuration**  | [Xenv](https://github.com/josuebrunel/gopkg/xenv)                                                                                                |
 | **Hot Reload**     | [Air](https://github.com/air-verse/air)                                                                                                          |
@@ -129,8 +128,7 @@ The database contains ten core tables:
 | `match_players`        | Roster of which players participated on which team for a given match                                   |
 | `group_join_requests`  | Pending/approved/rejected requests from a user to join a group via the public join flow                 |
 | `player_commentary`    | AI-generated "roast" commentary per player, one active row at a time (older rows marked `superseded`)   |
-| `group_activity`       | Auto-written one-line news blurbs for group events (match logged, player added), upgraded from a fallback to AI-generated text by a background job |
-| `match_article`        | AI-generated satirical match report, one row per match, regenerated in place on a new match or an admin's manual regenerate action |
+| `group_news`           | Public News feed entries — a signing-style blurb per new player, a full satirical match report per match — upgraded from a fallback to AI-generated text by a background job; match entries are regenerated in place on a new match or an admin's manual regenerate action |
 
 Indexes cover the foreign-key columns for efficient lookups.
 
@@ -231,7 +229,7 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │   ├── repository/              # Data access layer (Bob psql queries)
 │   ├── router/                  # Route registration
 │   ├── service/                 # Business logic layer
-│   └── worker/                  # RiverQueue background jobs (player roasts, group activity, match reports)
+│   └── worker/                  # RiverQueue background jobs (player roasts, group news)
 ├── migrations/                  # SQL migration files (embedded)
 ├── static/css/                  # Static assets (CSS)
 ├── views/
@@ -240,9 +238,9 @@ This starts Templ's file watcher (for automatic `.templ` → `.go` generation) a
 │   └── pages/                   # Page-specific templates
 │       ├── account/             # Account settings
 │       ├── auth/                # Login, Register
-│       ├── groups/               # List, Form, Detail, Leaderboard
+│       ├── groups/               # List, Form, Detail, Leaderboard, News feed, match report
 │       ├── home/                # Dashboard, Stats
-│       ├── matches/              # Match logging/edit modal, AI match report panel
+│       ├── matches/              # Match logging/edit modal
 │       ├── players/              # Player profile + AI commentary
 │       └── stats, teams/         # Currently empty (no dedicated views yet)
 ```
@@ -261,7 +259,7 @@ Authenticated routes are registered in `internal/router/router.go`; public route
 | `GET`  | `/health`                        | —                        | Health check                          |
 | `GET`  | `/groups/:id/leaderboard`        | Group.PublicLeaderboard  | Public, read-only group leaderboard   |
 | `GET`  | `/groups/:id/players/:memberId`  | Group.PlayerProfile      | Public player profile + AI commentary |
-| `GET`  | `/groups/:id/matches/:mid`       | Group.PublicMatchArticle | Public match report (HTMX fragment for in-page clicks, full page with social-preview meta tags for direct/shared links) |
+| `GET`  | `/groups/:id/matches/:mid`       | Group.PublicMatchReport  | Public match report (HTMX fragment for in-page clicks, full page with social-preview meta tags for direct/shared links) |
 
 Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, register, logout, and callback endpoints.
 
@@ -296,7 +294,7 @@ Auth routes (`/auth/*`) are handled by Ezauth automatically and include login, r
 | `POST`   | `/groups/:id/join-requests/:reqId/approve`               | Group.ApproveJoinRequest    | Approve a join request                               |
 | `POST`   | `/groups/:id/join-requests/:reqId/reject`                | Group.RejectJoinRequest     | Reject a join request                                |
 | `POST`   | `/groups/:id/players/:memberId/regenerate-commentary`    | Group.RegenerateCommentary  | Manually regenerate AI commentary (cooldown-limited) |
-| `POST`   | `/groups/:id/matches/:mid/regenerate-article`            | Group.RegenerateMatchArticle | Manually regenerate a match's AI report (cooldown-limited) |
+| `POST`   | `/groups/:id/matches/:mid/regenerate-article`            | Group.RegenerateMatchReport | Manually regenerate a match's AI report (cooldown-limited) |
 | `GET`    | `/groups/:id/match-modal`                                | Match.LogMatchModal         | Match logging modal                                  |
 | `POST`   | `/groups/:id/matches`                                    | Match.Create                | Log a new match                                      |
 | `GET`    | `/groups/:id/matches/:mid/edit`                          | Match.EditModal             | Match edit modal                                     |

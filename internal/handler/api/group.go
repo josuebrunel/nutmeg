@@ -236,7 +236,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 		if err != nil {
 			return writeError(c, err)
 		}
-		handler.RecordActivity(ctx, h.repo, h.jobs, groupID, "player_added", memberID, req.Names[0]+" joined the group")
+		handler.RecordNews(ctx, h.repo, h.jobs, groupID, "player_added", memberID, req.Names[0]+" joined the group")
 		singleID = memberID
 	} else if _, err := h.service.AddMembers(ctx, groupID, req.Names, userID); err != nil {
 		return writeError(c, err)

@@ -1,0 +1,57 @@
+package groups
+
+import (
+	"strings"
+
+	components "nutmeg/views/components"
+)
+
+// NewsEntry is a group_news row mapped for display — see mapNewsEntries in
+// internal/handler/group.go. SubjectID carries the match id for
+// "match_logged" entries, used to link to the full match report page.
+type NewsEntry struct {
+	Kind      string
+	SubjectID string
+	Text      string
+	When      string
+}
+
+// newsHeadline returns just the first line of a news entry's content — the
+// full text for a one-line player-signing blurb, or the headline line of a
+// multi-paragraph match report (whose body is only shown on the dedicated
+// match report page, linked to below).
+func newsHeadline(text string) string {
+	if i := strings.IndexByte(text, '\n'); i >= 0 {
+		return text[:i]
+	}
+	return text
+}
+
+templ NewsFeed(groupID string, entries []NewsEntry) {
+	if len(entries) > 0 {
+		<div class="mt-6">
+			<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">
+				@components.IconWhistle("size-6")
+				NEWS
+			</h3>
+			<div class="bg-white rounded-lg shadow border border-pitch/20 divide-y divide-pitch/10">
+				for _, entry := range entries {
+					<div class="p-3 flex items-start gap-3">
+						if entry.Kind == "match_logged" {
+							@components.IconMatch("size-5 text-pitch shrink-0 mt-0.5")
+						} else {
+							@components.IconUsers("size-5 text-turf shrink-0 mt-0.5")
+						}
+						<div>
+							<p class="font-body text-sm text-ink">{ newsHeadline(entry.Text) }</p>
+							if entry.Kind == "match_logged" {
+								<a href={ templ.URL("/groups/" + groupID + "/matches/" + entry.SubjectID) } class="text-xs font-oswald text-turf hover:text-pitch underline">Read full report →</a>
+							}
+							<p class="font-oswald text-xs text-ink/40 mt-0.5">{ entry.When }</p>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}

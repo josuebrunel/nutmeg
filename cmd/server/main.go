@@ -246,14 +246,12 @@ func main() {
 
 	llmClient := buildLLMClient(cfg.LLM.Provider, cfg.LLM.APIKey, cfg.LLM.Model, cfg.LLM.BaseURL)
 	commentarySvc := service.NewCommentaryService(repo, llmClient)
-	activitySvc := service.NewActivityService(repo, llmClient)
-	articleSvc := service.NewMatchArticleService(repo, llmClient)
+	newsSvc := service.NewNewsService(repo, llmClient)
 	emailClient := email.NewClient(cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.Username, cfg.Email.Password, cfg.Email.From)
 
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &worker.GenerateCommentaryWorker{Service: commentarySvc})
-	river.AddWorker(workers, &worker.GenerateGroupNewsWorker{Service: activitySvc})
-	river.AddWorker(workers, &worker.GenerateMatchArticleWorker{Service: articleSvc})
+	river.AddWorker(workers, &worker.GenerateGroupNewsWorker{Service: newsSvc})
 	river.AddWorker(workers, &worker.SendEmailWorker{Client: emailClient})
 
 	riverClient, err := river.NewClient(riverDriver, &river.Config{
@@ -319,7 +317,7 @@ func main() {
 	e.Any("/auth/*", echo.WrapHandler(auth.Handler))
 
 	handler.SetBaseURL(cfg.BaseURL)
-	h := handler.New(auth, repo, commentarySvc, articleSvc, riverClient)
+	h := handler.New(auth, repo, commentarySvc, newsSvc, riverClient)
 
 	// Public routes
 	e.GET("/", h.Home.Landing)
@@ -336,8 +334,8 @@ func main() {
 	// Deliberately no "/article" suffix, so this doubles as the clean,
 	// canonical, shareable URL for a match (used both as the HTMX overlay
 	// target and as the social-preview-able direct link — see
-	// GroupHandler.PublicMatchArticle).
-	e.GET("/groups/:id/matches/:mid", h.Group.PublicMatchArticle)
+	// GroupHandler.PublicMatchReport).
+	e.GET("/groups/:id/matches/:mid", h.Group.PublicMatchReport)
 	// Detail does its own auth check (redirecting to the public leaderboard
 	// above when unauthenticated) rather than living behind the blanket
 	// LoginRequiredMiddleware, since that middleware can only redirect to a
@@ -352,7 +350,7 @@ func main() {
 	// Not applied to apiGroup below, which is Bearer-JWT authenticated (no
 	// ambient browser credentials, so not CSRF-vulnerable).
 	app.Use(echo.WrapMiddleware(csrf.New().Handler))
-	router.Register(app, auth, repo, commentarySvc, articleSvc, riverClient)
+	router.Register(app, auth, repo, commentarySvc, newsSvc, riverClient)
 
 	// JSON API (/api/v1), authenticated via ezauth's JWT Bearer middleware
 	// rather than the cookie session used by the routes above.

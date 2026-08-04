@@ -11,11 +11,10 @@ var (
 )
 
 // generationBlocklist is a coarse, illustrative safety net, not a real
-// moderation solution — both the player profile and group activity feed
-// are public and unauthenticated, and a local model has no built-in
-// moderation of its own, so this is a last-resort backstop against the
-// worst outputs rather than a substitute for actually reviewing model
-// behavior.
+// moderation solution — both the player profile and group news feed are
+// public and unauthenticated, and a local model has no built-in moderation
+// of its own, so this is a last-resort backstop against the worst outputs
+// rather than a substitute for actually reviewing model behavior.
 var generationBlocklist = []string{
 	"kill yourself", "kys", "slur",
 }
@@ -24,8 +23,8 @@ var generationBlocklist = []string{
 // anything ever stored or shown: reject empty output, reject anything
 // hitting the (coarse) blocklist, and trim overly long output at a
 // sentence boundary rather than mid-word. Shared by player commentary and
-// group activity news so the safety blocklist can't silently drift
-// between the two generation paths.
+// group news so the safety blocklist can't silently drift between the two
+// generation paths.
 func validateGeneratedText(text string, max int) (string, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
