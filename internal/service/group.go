@@ -443,7 +443,9 @@ func (s *GroupService) DemoteMember(ctx context.Context, groupID, memberID, acto
 	if member.Email != nil && *member.Email != "" {
 		if user, err := s.authRepo.UserGetByEmail(ctx, *member.Email); err == nil {
 			removeGroupAdmin(user, groupID)
-			_, _ = s.authRepo.UserUpdate(ctx, user)
+			if _, err := s.authRepo.UserUpdate(ctx, user); err != nil {
+				return err
+			}
 		}
 	}
 
