@@ -549,18 +549,12 @@ func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 
 	req, err := h.service.ApproveJoinRequest(ctx, g, reqID, userID)
 	if err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "You're in! Welcome to "+g.Name,
 		"Your request to join "+g.Name+" was approved. Head to the group page to see the roster and leaderboard.")
 
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Member approved", "success")
-	}
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, "Member approved", "success")
 }
 
 func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
@@ -579,18 +573,12 @@ func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
 
 	req, err := h.service.RejectJoinRequest(ctx, g, reqID, userID)
 	if err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "Update on your request to join "+g.Name,
 		"Your request to join "+g.Name+" was not approved this time.")
 
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Request rejected", "success")
-	}
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, "Request rejected", "success")
 }
 
 // adminEmails returns the email addresses of a group's admin members
@@ -777,11 +765,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 	raw := c.FormValue("name")
 	names := splitNames(raw)
 	if len(names) == 0 {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, "Name is required", "error")
-		}
-		h.auth.Handler.SetFlash(c.Request().Context(), "error", "Name is required")
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, "Name is required", "error")
 	}
 
 	ctx := c.Request().Context()
@@ -798,36 +782,19 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 
 		memberID, err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID)
 		if err != nil {
-			if isHTMX(c) {
-				return h.rosterWithToast(c, id, err.Error(), "error")
-			}
-			h.auth.Handler.SetFlash(ctx, "error", err.Error())
-			return c.Redirect(http.StatusFound, "/groups/"+id)
+			return h.respondRosterMutation(c, id, err.Error(), "error")
 		}
 		RecordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
 
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, "Added "+name, "success")
-		}
-		h.auth.Handler.SetFlash(ctx, "success", "Added member "+name+" successfully!")
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, "Added "+name, "success")
 	}
 
 	added, err := h.service.AddMembers(ctx, id, names, userID)
 	if err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		h.auth.Handler.SetFlash(ctx, "error", err.Error())
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 
-	msg := fmt.Sprintf("Added %d players", len(added))
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, msg, "success")
-	}
-	h.auth.Handler.SetFlash(ctx, "success", msg)
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, fmt.Sprintf("Added %d players", len(added)), "success")
 }
 
 // splitNames turns a comma-separated "name" field into a deduplicated-free
@@ -855,11 +822,7 @@ func (h *GroupHandler) ImportMembers(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	failWith := func(msg string) error {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, msg, "error")
-		}
-		h.auth.Handler.SetFlash(ctx, "error", msg)
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, msg, "error")
 	}
 
 	fileHeader, err := c.FormFile("csv")
@@ -893,11 +856,7 @@ func (h *GroupHandler) ImportMembers(c *echo.Context) error {
 	if skipped > 0 {
 		msg += fmt.Sprintf(", skipped %d", skipped)
 	}
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, msg, "success")
-	}
-	h.auth.Handler.SetFlash(ctx, "success", msg)
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, msg, "success")
 }
 
 // parseMemberImportCSV reads a roster CSV with a header row (case-insensitive
@@ -961,17 +920,10 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.RemoveMember(c.Request().Context(), id, memberID, userID); err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Member removed", "success")
-	}
-
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, "Member removed", "success")
 }
 
 func (h *GroupHandler) PromoteMember(c *echo.Context) error {
@@ -984,17 +936,10 @@ func (h *GroupHandler) PromoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.PromoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Member promoted to admin", "success")
-	}
-
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, "Member promoted to admin", "success")
 }
 
 func (h *GroupHandler) DemoteMember(c *echo.Context) error {
@@ -1007,17 +952,10 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.DemoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		if isHTMX(c) {
-			return h.rosterWithToast(c, id, err.Error(), "error")
-		}
-		return c.Redirect(http.StatusFound, "/groups/"+id)
+		return h.respondRosterMutation(c, id, err.Error(), "error")
 	}
 
-	if isHTMX(c) {
-		return h.rosterWithToast(c, id, "Admin demoted to member", "success")
-	}
-
-	return c.Redirect(http.StatusFound, "/groups/"+id)
+	return h.respondRosterMutation(c, id, "Admin demoted to member", "success")
 }
 
 func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
@@ -1101,6 +1039,20 @@ func (h *GroupHandler) rosterTabWithToast(c *echo.Context, groupID, message, toa
 
 	c.Response().Header().Set("HX-Trigger", toastHXTrigger(message, toastType))
 	return render.Component(c, tabContent)
+}
+
+// respondRosterMutation replies to a roster mutation with an HTMX toast
+// (re-rendering #roster-column) or a flash message + redirect back to the
+// group page for the non-JS fallback — the "if isHTMX { toast } else {
+// flash + redirect }" branch repeated after nearly every roster mutation
+// handler (add/import/update/remove member, promote/demote,
+// approve/reject join request).
+func (h *GroupHandler) respondRosterMutation(c *echo.Context, groupID, message, toastType string) error {
+	if isHTMX(c) {
+		return h.rosterWithToast(c, groupID, message, toastType)
+	}
+	h.auth.Handler.SetFlash(c.Request().Context(), toastType, message)
+	return c.Redirect(http.StatusFound, "/groups/"+groupID)
 }
 
 // rosterWithToast re-renders #roster-column with a toast after a roster
