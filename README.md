@@ -432,7 +432,7 @@ The project enforces several architectural rules (documented in `prompt.txt`):
 4. **Ezauth** — `SessionMiddleware` on `e.Use` (global); `LoginRequiredMiddleware` only on the app group.
 5. **Templ** — no `if` inside function call arguments; use `@{ }` code blocks instead.
 6. **Models** — use `db` struct tags for `scan.StructMapper`.
-7. **Migrations** — use `IF NOT EXISTS` / `IF EXISTS` for idempotency.
+7. **Migrations** — use `IF NOT EXISTS` / `IF EXISTS` for idempotency. Name new files `YYYYMMDDHHMMSS_description.sql` (full timestamp, not `YYYYMMDD_NNN`) — Goose derives a migration's version from the digits before the *first* underscore in the filename (see `goose.NumericComponent`), so two `YYYYMMDD_NNN` files created on the same date collide on the same 8-digit version regardless of their `NNN` suffix. The full-timestamp form is always unique to the second. Existing files aren't renamed to match, since that would change their already-applied version numbers.
 8. **Router** — wire all routes in a single `Register()` function called with an `echo.Group`.
 9. **Handlers** — group into sub-handlers on a top-level `Handler` struct; use `page()` helper to wrap in layout.
 10. **JSON API** — lives entirely in `internal/handler/api` + `internal/router/api.go`, never mixed into the Templ/HTMX handler files; regenerate `docs/` via `make swag` after changing any `@Router`/`@Summary` annotation.

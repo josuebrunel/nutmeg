@@ -17,7 +17,7 @@ You are building [APP_NAME] — [ONE_LINE_DESCRIPTION].
 6. Templ: layout uses `{ children... }` to capture passed components.
 7. Templ: use `templ.URL()` for all href/action attributes.
 8. Models: use `db` struct tags for `scan.StructMapper`.
-9. Migration: use `IF NOT EXISTS` / `IF EXISTS` for idempotency.
+9. Migration: use `IF NOT EXISTS` / `IF EXISTS` for idempotency. Name files `YYYYMMDDHHMMSS_description.sql` (full timestamp) — Goose's version is the digits before the first `_`, so `YYYYMMDD_NNN` files sharing a date collide on the same version regardless of `NNN`.
 10. Router: wire all routes in a single `Register()` function called with an `echo.Group`.
 11. Handlers: group into sub-handlers on a top-level `Handler` struct. Use `page()` helper to wrap in layout.
 
