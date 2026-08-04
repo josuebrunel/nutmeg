@@ -41,12 +41,14 @@ templ MatchReportPanel(match *repository.MatchDetail, news *model.GroupNews) {
 templ MatchReportPage(g *model.Group, match *repository.MatchDetail, news *model.GroupNews) {
 	<div class="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-6 mb-6 flex items-start justify-between gap-4">
-			<h2 class="font-oswald text-xl sm:text-2xl text-chalk font-bold">{ g.Name }</h2>
+			<div>
+				<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; Back to { g.Name }</a>
+				<h2 class="font-oswald text-xl sm:text-2xl text-chalk font-bold mt-2">{ g.Name }</h2>
+			</div>
 			@components.ShareWidget(match.TeamAName + " " + fmt.Sprint(match.ScoreA) + " - " + fmt.Sprint(match.ScoreB) + " " + match.TeamBName)
 		</div>
 		<div class="bg-white rounded-lg shadow border border-pitch/20 p-6">
 			@matchReportBody(match, news)
 		</div>
-		<a href={ templ.URL("/groups/" + g.ID + "/leaderboard") } class="inline-block mt-4 text-sm font-oswald text-turf hover:text-pitch underline">← Back to { g.Name }</a>
 	</div>
 }

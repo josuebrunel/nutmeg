@@ -39,6 +39,7 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	app.GET("/groups/:id/leaderboard-full", h.Group.LeaderboardFull)
 	app.GET("/groups/:id/roster-full", h.Group.RosterFull)
 	app.GET("/groups/:id/matches-full", h.Group.MatchesFull)
+	app.GET("/groups/:id/news-full", h.Group.NewsFull)
 	app.POST("/groups/:id/players/:memberId/regenerate-commentary", h.Group.RegenerateCommentary)
 	app.GET("/groups/:id/match-modal", h.Match.LogMatchModal)
 	app.POST("/groups/:id/matches", h.Match.Create)

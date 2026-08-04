@@ -125,6 +125,10 @@ templ GroupTabs(groupID string, active string) {
 			@components.IconMatch("size-4")
 			RECENT MATCHES
 		}
+		@groupTabButton(groupID, "news-full", "news", active) {
+			@components.IconWhistle("size-4")
+			NEWS
+		}
 	</div>
 }
 
@@ -144,6 +148,19 @@ templ MatchesTab(groupID string, matches []MatchEntry, news []NewsEntry) {
 	@GroupTabs(groupID, "matches")
 	@RecentMatchesColumn(groupID, matches, true)
 	@NewsFeed(groupID, news)
+}
+
+templ NewsTab(groupID string, news []NewsEntry) {
+	@GroupTabs(groupID, "news")
+	if len(news) == 0 {
+		<h3 class="font-oswald text-2xl text-pitch mb-4 flex items-center gap-2">
+			@components.IconWhistle("size-6")
+			NEWS
+		</h3>
+		<p class="font-body text-ink/60 text-sm py-8 text-center">No news yet — check back after the next match.</p>
+	} else {
+		@NewsFeed(groupID, news)
+	}
 }
 
 // widthClass picks between a section's normal grid column span (now unused

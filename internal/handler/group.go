@@ -137,11 +137,16 @@ func (h *GroupHandler) Detail(c *echo.Context) error {
 	return page(c, g.Name, true, g.ID, h.userName(c), groups.Detail(g, canEdit, isOwner, tabContent, successMsg, errMsg))
 }
 
+// newsFullLimit caps how many entries the dedicated News tab fetches — a
+// larger page than the trailing news preview (see mapNewsEntries) the other
+// tabs show, since browsing news is this tab's whole purpose.
+const newsFullLimit = 50
+
 // groupTabComponent builds whichever tab's content the caller asked for
-// ("roster", "matches", or the default "leaderboard") — shared by Detail
-// (the default group-page load, which honors ?tab= so redirects like
+// ("roster", "matches", "news", or the default "leaderboard") — shared by
+// Detail (the default group-page load, which honors ?tab= so redirects like
 // "match logged" can land on the right tab) and the LeaderboardFull /
-// RosterFull / MatchesFull handlers (a tab-bar click).
+// RosterFull / MatchesFull / NewsFull handlers (a tab-bar click).
 func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID string, tab string) (templ.Component, error) {
 	ctx := c.Request().Context()
 	switch tab {
@@ -167,6 +172,12 @@ func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID
 			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
 		}
 		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c)), mapNewsEntries(news, appmw.LocationFromContext(c))), nil
+	case "news":
+		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, newsFullLimit)
+		if newsErr != nil {
+			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
+		}
+		return groups.NewsTab(g.ID, mapNewsEntries(news, appmw.LocationFromContext(c))), nil
 	default:
 		sortBy := c.QueryParam("sort")
 		leaderboard, lbErr := h.matchSvc.GetLeaderboard(ctx, g.ID, sortBy)
@@ -758,6 +769,26 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 	}
 
 	tabContent, err := h.groupTabComponent(c, g, userID, "matches")
+	if err != nil {
+		return err
+	}
+	return render.Component(c, tabContent)
+}
+
+// NewsFull renders the News tab (tab bar + full news feed) — hit when the
+// News tab button is clicked.
+func (h *GroupHandler) NewsFull(c *echo.Context) error {
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
+	}
+
+	g, err, done := h.requireGroupEdit(c, userID, routeDashboard)
+	if done {
+		return err
+	}
+
+	tabContent, err := h.groupTabComponent(c, g, userID, "news")
 	if err != nil {
 		return err
 	}
