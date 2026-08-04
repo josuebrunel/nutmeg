@@ -201,7 +201,7 @@ func main() {
 	authCfg.Redirects.AfterLogin = "/dashboard"
 	authCfg.Pages.Login = "/login"
 	authCfg.Pages.Register = "/register"
-	authCfg.Debug = true
+	authCfg.Debug = cfg.Debug
 	if os.Getenv("EZAUTH_RATE_LIMIT_ENABLED") == "" {
 		// ezauth defaults rate limiting off; without it, login/register/
 		// password-reset have no brute-force protection. Still overridable
