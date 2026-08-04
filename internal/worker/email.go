@@ -36,5 +36,6 @@ func (w *SendEmailWorker) Work(ctx context.Context, job *river.Job[SendEmailArgs
 		slog.Error("send email failed", "to", job.Args.To, "subject", job.Args.Subject, "error", err)
 		return err
 	}
+	slog.Debug("sent email", "to", job.Args.To, "subject", job.Args.Subject)
 	return nil
 }

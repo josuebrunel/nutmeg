@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -78,6 +79,67 @@ func runLLMTest(provider, apiKey, model, baseURL string) {
 	fmt.Println(response)
 }
 
+// requestLoggerMiddleware mirrors middleware.RequestLogger()'s field
+// selection and slog output exactly (see that function in
+// github.com/labstack/echo/v5/middleware/request_logger.go), but adds a
+// Skipper for /health and /static/* so uptime-checker and static-asset
+// traffic doesn't dominate the request log — there's no way to override
+// just the Skipper on the zero-config RequestLogger() without
+// reconstructing its whole config.
+func requestLoggerMiddleware() echo.MiddlewareFunc {
+	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		Skipper: func(c *echo.Context) bool {
+			p := c.Request().URL.Path
+			return p == "/health" || strings.HasPrefix(p, "/static/")
+		},
+		LogLatency:       true,
+		LogRemoteIP:      true,
+		LogHost:          true,
+		LogMethod:        true,
+		LogURI:           true,
+		LogRequestID:     true,
+		LogUserAgent:     true,
+		LogStatus:        true,
+		LogContentLength: true,
+		LogResponseSize:  true,
+		// forwards error to the global error handler, so it can decide
+		// appropriate status code — matches RequestLogger()'s default.
+		HandleError: true,
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
+			logger := c.Logger()
+			if v.Error == nil {
+				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
+					slog.String("method", v.Method),
+					slog.String("uri", v.URI),
+					slog.Int("status", v.Status),
+					slog.Duration("latency", v.Latency),
+					slog.String("host", v.Host),
+					slog.String("bytes_in", v.ContentLength),
+					slog.Int64("bytes_out", v.ResponseSize),
+					slog.String("user_agent", v.UserAgent),
+					slog.String("remote_ip", v.RemoteIP),
+					slog.String("request_id", v.RequestID),
+				)
+				return nil
+			}
+			logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.Int("status", v.Status),
+				slog.Duration("latency", v.Latency),
+				slog.String("host", v.Host),
+				slog.String("bytes_in", v.ContentLength),
+				slog.Int64("bytes_out", v.ResponseSize),
+				slog.String("user_agent", v.UserAgent),
+				slog.String("remote_ip", v.RemoteIP),
+				slog.String("request_id", v.RequestID),
+				slog.String("error", v.Error.Error()),
+			)
+			return nil
+		},
+	})
+}
+
 // @title Nutmeg API
 // @version 1.0
 // @description JSON API for Nutmeg, a self-hosted pickup-soccer stats tracker.
@@ -99,6 +161,15 @@ func main() {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+
+	// Debug (env DEBUG) also gates the app's own log level — Info by
+	// default, Debug when set, so slog.Debug calls (job-completion traces,
+	// etc.) are visible without needing a separate LOG_LEVEL var.
+	logLevel := slog.LevelInfo
+	if cfg.Debug {
+		logLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 
 	if *llmtestFlag {
 		provider := cfg.LLM.Provider
@@ -224,7 +295,12 @@ func main() {
 	}
 
 	e := echo.New()
-	e.Use(middleware.RequestLogger())
+	// echo.New() builds its own independent JSON-to-stdout logger by
+	// default, ignoring slog.SetDefault — point it at the leveled handler
+	// configured above so request logs share the same level/format/
+	// destination as every other slog call in the app.
+	e.Logger = slog.Default()
+	e.Use(requestLoggerMiddleware())
 	e.Use(middleware.Recover())
 	e.Use(echo.WrapMiddleware(auth.SessionMiddleware))
 	e.Use(appmw.Location)
@@ -305,7 +381,9 @@ func main() {
 	defer func() {
 		if err := riverClient.Stop(context.Background()); err != nil {
 			slog.Error("failed to stop river client", "error", err)
+			return
 		}
+		slog.Info("river client stopped")
 	}()
 
 	slog.Info("starting server", "addr", cfg.Addr)

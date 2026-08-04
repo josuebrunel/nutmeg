@@ -523,6 +523,7 @@ func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 	}
 
 	if err := h.service.RequestToJoin(ctx, g, userID); err != nil {
+		logUnexpected("request to join failed", err, "group_id", id, "user_id", userID)
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 	}
@@ -549,7 +550,7 @@ func (h *GroupHandler) ApproveJoinRequest(c *echo.Context) error {
 
 	req, err := h.service.ApproveJoinRequest(ctx, g, reqID, userID)
 	if err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "You're in! Welcome to "+g.Name,
 		"Your request to join "+g.Name+" was approved. Head to the group page to see the roster and leaderboard.")
@@ -573,7 +574,7 @@ func (h *GroupHandler) RejectJoinRequest(c *echo.Context) error {
 
 	req, err := h.service.RejectJoinRequest(ctx, g, reqID, userID)
 	if err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 	EnqueueEmail(ctx, h.jobs, []string{req.Email}, "Update on your request to join "+g.Name,
 		"Your request to join "+g.Name+" was not approved this time.")
@@ -642,6 +643,7 @@ func (h *GroupHandler) Update(c *echo.Context) error {
 	}
 
 	if err := h.service.Update(c.Request().Context(), g, userID); err != nil {
+		logUnexpected("group update failed", err, "group_id", id, "user_id", userID)
 		return page(c, "Edit Group", true, id, h.userName(c), groups.Form(id, &groups.FormData{Name: name, Description: desc, Error: err.Error()}))
 	}
 
@@ -782,7 +784,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 
 		memberID, err := h.service.AddMember(ctx, id, name, phonePtr, emailPtr, userID)
 		if err != nil {
-			return h.respondRosterMutation(c, id, err.Error(), "error")
+			return h.respondRosterMutationErr(c, id, err)
 		}
 		RecordActivity(ctx, h.repo, h.jobs, id, "player_added", memberID, name+" joined the group")
 
@@ -791,7 +793,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 
 	added, err := h.service.AddMembers(ctx, id, names, userID)
 	if err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 
 	return h.respondRosterMutation(c, id, fmt.Sprintf("Added %d players", len(added)), "success")
@@ -849,7 +851,7 @@ func (h *GroupHandler) ImportMembers(c *echo.Context) error {
 
 	imported, updated, skipped, err := h.service.ImportMembers(ctx, id, rows, userID)
 	if err != nil {
-		return failWith(err.Error())
+		return h.respondRosterMutationErr(c, id, err)
 	}
 
 	msg := fmt.Sprintf("Imported %d, updated %d", imported, updated)
@@ -920,7 +922,7 @@ func (h *GroupHandler) RemoveMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.RemoveMember(c.Request().Context(), id, memberID, userID); err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 
 	return h.respondRosterMutation(c, id, "Member removed", "success")
@@ -936,7 +938,7 @@ func (h *GroupHandler) PromoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.PromoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 
 	return h.respondRosterMutation(c, id, "Member promoted to admin", "success")
@@ -952,7 +954,7 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.DemoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		return h.respondRosterMutation(c, id, err.Error(), "error")
+		return h.respondRosterMutationErr(c, id, err)
 	}
 
 	return h.respondRosterMutation(c, id, "Admin demoted to member", "success")
@@ -1001,6 +1003,7 @@ func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 	}
 
 	if err := h.service.UpdateMember(ctx, id, memberID, name, phonePtr, emailPtr, userID); err != nil {
+		logUnexpected("member update failed", err, "group_id", id, "member_id", memberID)
 		if isHTMX(c) {
 			member := &model.GroupPlayer{ID: memberID, GroupID: id, Name: name, Phone: phonePtr, Email: emailPtr}
 			return render.Component(c, groups.MemberEditForm(id, member, err.Error()))
@@ -1053,6 +1056,15 @@ func (h *GroupHandler) respondRosterMutation(c *echo.Context, groupID, message, 
 	}
 	h.auth.Handler.SetFlash(c.Request().Context(), toastType, message)
 	return c.Redirect(http.StatusFound, "/groups/"+groupID)
+}
+
+// respondRosterMutationErr is respondRosterMutation's error-path sibling —
+// logs err first (via logUnexpected, so only genuine operational failures
+// are logged, not expected/validation rejections) before showing the
+// caller-facing message.
+func (h *GroupHandler) respondRosterMutationErr(c *echo.Context, groupID string, err error) error {
+	logUnexpected("roster mutation failed", err, "group_id", groupID)
+	return h.respondRosterMutation(c, groupID, err.Error(), "error")
 }
 
 // rosterWithToast re-renders #roster-column with a toast after a roster

@@ -67,5 +67,6 @@ func (w *GenerateCommentaryWorker) Work(ctx context.Context, job *river.Job[Gene
 		slog.Error("generate commentary failed", "group_player_id", job.Args.GroupPlayerID, "error", err)
 		return err
 	}
+	slog.Debug("generated commentary", "group_player_id", job.Args.GroupPlayerID)
 	return nil
 }

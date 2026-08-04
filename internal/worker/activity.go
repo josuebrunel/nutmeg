@@ -34,5 +34,6 @@ func (w *GenerateGroupNewsWorker) Work(ctx context.Context, job *river.Job[Gener
 		slog.Error("generate group news failed", "activity_id", job.Args.ActivityID, "error", err)
 		return err
 	}
+	slog.Debug("generated group news", "activity_id", job.Args.ActivityID)
 	return nil
 }

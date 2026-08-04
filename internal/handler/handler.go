@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -77,6 +78,19 @@ func requireUserID(c *echo.Context, auth *ezauth.EzAuth) (userID string, done bo
 		return "", true
 	}
 	return userID, false
+}
+
+// logUnexpected logs err at Error if it's an operational failure — i.e. it
+// wraps a lower-level cause via fmt.Errorf("...: %w", err), per the
+// discipline internal/service/{group,match}.go follow for real repo/DB
+// failures. Flat errors (model's sentinel errors, hand-written validation
+// errors) are normal application flow already shown to the user via a
+// flash message or toast, and are deliberately not logged here.
+func logUnexpected(msg string, err error, args ...any) {
+	if errors.Unwrap(err) == nil {
+		return
+	}
+	slog.Error(msg, append(args, "error", err)...)
 }
 
 func page(c *echo.Context, title string, isLoggedIn bool, currentGroupID string, userName string, cmp templ.Component) error {

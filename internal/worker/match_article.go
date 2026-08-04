@@ -35,5 +35,6 @@ func (w *GenerateMatchArticleWorker) Work(ctx context.Context, job *river.Job[Ge
 		slog.Error("generate match article failed", "article_id", job.Args.ArticleID, "match_id", job.Args.MatchID, "error", err)
 		return err
 	}
+	slog.Debug("generated match article", "article_id", job.Args.ArticleID, "match_id", job.Args.MatchID)
 	return nil
 }

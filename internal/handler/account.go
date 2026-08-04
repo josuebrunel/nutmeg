@@ -119,11 +119,13 @@ func (h *AccountHandler) UpdatePassword(c *echo.Context) error {
 	}
 
 	if _, err := h.auth.Service.UserAuthenticate(ctx, ezauthservice.RequestBasicAuth{Email: user.Email, Password: currentPassword}); err != nil {
+		slog.Warn("password change: current password incorrect", "user_id", userID)
 		h.auth.Handler.SetFlash(ctx, "error", "Current password is incorrect")
 		return c.Redirect(http.StatusFound, "/account")
 	}
 
 	if _, err := h.auth.Service.UserUpdatePassword(ctx, user, newPassword); err != nil {
+		slog.Error("failed to update password", "user_id", userID, "error", err)
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/account")
 	}
