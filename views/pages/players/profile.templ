@@ -12,7 +12,11 @@ templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Playe
 	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="stadium-gradient rounded-xl px-5 py-5 sm:px-8 sm:py-6 mb-8 flex items-start justify-between gap-4">
 			<div>
-				<a href={ templ.URL("/groups/" + g.PublicPath() + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
+				if canEdit {
+					<a href={ templ.URL("/groups/" + g.ID) } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Dashboard</a>
+				} else {
+					<a href={ templ.URL("/groups/" + g.PublicPath() + "/leaderboard") } class="text-turf hover:text-gold text-sm font-oswald">&larr; { g.Name } Leaderboard</a>
+				}
 				<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold mt-2 flex items-center gap-2">
 					// Icons are sized in em, not a fixed rem class, so they always
 					// match this heading's own font-size (text-3xl / sm:text-4xl)
