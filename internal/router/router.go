@@ -33,6 +33,7 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	app.POST("/groups/:id/members/:memberId", h.Group.UpdateMember)
 	app.POST("/groups/:id/members/:memberId/promote", h.Group.PromoteMember)
 	app.POST("/groups/:id/members/:memberId/demote", h.Group.DemoteMember)
+	app.POST("/groups/:id/members/:memberId/position/:code", h.Group.SetMemberPosition)
 	app.POST("/groups/:id/join-requests", h.Group.RequestJoin)
 	app.POST("/groups/:id/join-requests/:reqId/approve", h.Group.ApproveJoinRequest)
 	app.POST("/groups/:id/join-requests/:reqId/reject", h.Group.RejectJoinRequest)

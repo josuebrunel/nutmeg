@@ -13,21 +13,22 @@ import (
 )
 
 type mockGroupRepo struct {
-	createGroupFn      func(ctx context.Context, g *model.Group) error
-	getGroupFn         func(ctx context.Context, id string) (*model.Group, error)
-	listGroupsFn       func(ctx context.Context, userID string) ([]*model.Group, error)
-	getGroupsByIDsFn   func(ctx context.Context, ids []string) ([]*model.Group, error)
-	updateGroupFn      func(ctx context.Context, g *model.Group) error
-	deleteGroupFn      func(ctx context.Context, id string) error
-	addMemberFn        func(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error)
-	importMemberFn     func(ctx context.Context, groupID, name string, phone, email *string) error
-	removeMemberFn     func(ctx context.Context, groupID, memberID string) error
-	listMembersFn      func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
-	getMemberFn        func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
-	memberCountFn      func(ctx context.Context, groupID string) (int, error)
-	updateMemberFn     func(ctx context.Context, groupID, memberID, name string, phone, email *string) error
-	updateMemberRoleFn func(ctx context.Context, groupID, memberID, role string) error
-	getMemberByEmailFn func(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
+	createGroupFn          func(ctx context.Context, g *model.Group) error
+	getGroupFn             func(ctx context.Context, id string) (*model.Group, error)
+	listGroupsFn           func(ctx context.Context, userID string) ([]*model.Group, error)
+	getGroupsByIDsFn       func(ctx context.Context, ids []string) ([]*model.Group, error)
+	updateGroupFn          func(ctx context.Context, g *model.Group) error
+	deleteGroupFn          func(ctx context.Context, id string) error
+	addMemberFn            func(ctx context.Context, groupID, name string, phone, email, position *string, role string) (string, error)
+	importMemberFn         func(ctx context.Context, groupID, name string, phone, email, position *string) error
+	removeMemberFn         func(ctx context.Context, groupID, memberID string) error
+	listMembersFn          func(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
+	getMemberFn            func(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
+	memberCountFn          func(ctx context.Context, groupID string) (int, error)
+	updateMemberFn         func(ctx context.Context, groupID, memberID, name string, phone, email, position *string) error
+	updateMemberRoleFn     func(ctx context.Context, groupID, memberID, role string) error
+	updateMemberPositionFn func(ctx context.Context, groupID, memberID, position string) error
+	getMemberByEmailFn     func(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
 
 	createJoinRequestFn       func(ctx context.Context, groupID, userID, name, email string) error
 	getPendingJoinRequestFn   func(ctx context.Context, groupID, userID string) (*model.JoinRequest, error)
@@ -54,11 +55,11 @@ func (m *mockGroupRepo) UpdateGroup(ctx context.Context, g *model.Group) error {
 func (m *mockGroupRepo) DeleteGroup(ctx context.Context, id string) error {
 	return m.deleteGroupFn(ctx, id)
 }
-func (m *mockGroupRepo) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error) {
-	return m.addMemberFn(ctx, groupID, name, phone, email, role)
+func (m *mockGroupRepo) AddMember(ctx context.Context, groupID, name string, phone, email, position *string, role string) (string, error) {
+	return m.addMemberFn(ctx, groupID, name, phone, email, position, role)
 }
-func (m *mockGroupRepo) ImportMember(ctx context.Context, groupID, name string, phone, email *string) error {
-	return m.importMemberFn(ctx, groupID, name, phone, email)
+func (m *mockGroupRepo) ImportMember(ctx context.Context, groupID, name string, phone, email, position *string) error {
+	return m.importMemberFn(ctx, groupID, name, phone, email, position)
 }
 func (m *mockGroupRepo) RemoveMember(ctx context.Context, groupID, memberID string) error {
 	return m.removeMemberFn(ctx, groupID, memberID)
@@ -72,11 +73,14 @@ func (m *mockGroupRepo) GetMember(ctx context.Context, groupID, memberID string)
 func (m *mockGroupRepo) MemberCount(ctx context.Context, groupID string) (int, error) {
 	return m.memberCountFn(ctx, groupID)
 }
-func (m *mockGroupRepo) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error {
-	return m.updateMemberFn(ctx, groupID, memberID, name, phone, email)
+func (m *mockGroupRepo) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email, position *string) error {
+	return m.updateMemberFn(ctx, groupID, memberID, name, phone, email, position)
 }
 func (m *mockGroupRepo) UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error {
 	return m.updateMemberRoleFn(ctx, groupID, memberID, role)
+}
+func (m *mockGroupRepo) UpdateMemberPosition(ctx context.Context, groupID, memberID, position string) error {
+	return m.updateMemberPositionFn(ctx, groupID, memberID, position)
 }
 func (m *mockGroupRepo) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
 	return m.getMemberByEmailFn(ctx, groupID, email)
@@ -146,7 +150,7 @@ func defaultMock() *mockGroupRepo {
 		deleteGroupFn: func(_ context.Context, id string) error {
 			return nil
 		},
-		addMemberFn: func(_ context.Context, groupID, name string, phone, email *string, role string) (string, error) {
+		addMemberFn: func(_ context.Context, groupID, name string, phone, email, position *string, role string) (string, error) {
 			return "member-1", nil
 		},
 		removeMemberFn: func(_ context.Context, groupID, memberID string) error {
@@ -164,10 +168,13 @@ func defaultMock() *mockGroupRepo {
 		getGroupsByIDsFn: func(_ context.Context, ids []string) ([]*model.Group, error) {
 			return nil, nil
 		},
-		updateMemberFn: func(_ context.Context, groupID, memberID, name string, phone, email *string) error {
+		updateMemberFn: func(_ context.Context, groupID, memberID, name string, phone, email, position *string) error {
 			return nil
 		},
 		updateMemberRoleFn: func(_ context.Context, groupID, memberID, role string) error {
+			return nil
+		},
+		updateMemberPositionFn: func(_ context.Context, groupID, memberID, position string) error {
 			return nil
 		},
 		getMemberByEmailFn: func(_ context.Context, groupID, email string) (*model.GroupPlayer, error) {
@@ -214,7 +221,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("addMemberError", func(t *testing.T) {
 		m := defaultMock()
-		m.addMemberFn = func(_ context.Context, groupID, name string, phone, email *string, role string) (string, error) {
+		m.addMemberFn = func(_ context.Context, groupID, name string, phone, email, position *string, role string) (string, error) {
 			return "", errors.New("db error")
 		}
 		svc := NewGroupService(m, defaultAuthMock())
@@ -320,21 +327,21 @@ func TestAddMember(t *testing.T) {
 	t.Run("creatorCanAdd", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "user-1")
+		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, nil, "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("emptyName", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		_, err := svc.AddMember(context.Background(), "g-1", "", nil, nil, "user-1")
+		_, err := svc.AddMember(context.Background(), "g-1", "", nil, nil, nil, "user-1")
 		assert.ErrIs(t, err, model.ErrInvalidInput)
 	})
 
 	t.Run("nonCreatorCannotAdd", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, "other-user")
+		_, err := svc.AddMember(context.Background(), "g-1", "New Player", nil, nil, nil, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
 }
@@ -343,21 +350,21 @@ func TestUpdateMember(t *testing.T) {
 	t.Run("creatorCanUpdate", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, "user-1")
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, nil, "user-1")
 		assert.NoErr(t, err)
 	})
 
 	t.Run("emptyName", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "", nil, nil, "user-1")
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "", nil, nil, nil, "user-1")
 		assert.ErrIs(t, err, model.ErrInvalidInput)
 	})
 
 	t.Run("nonCreatorCannotUpdate", func(t *testing.T) {
 		m := defaultMock()
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, "other-user")
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "New Name", nil, nil, nil, "other-user")
 		assert.ErrIs(t, err, model.ErrNotAuthorized)
 	})
 
@@ -367,7 +374,7 @@ func TestUpdateMember(t *testing.T) {
 			return []repository.MemberInfo{{ID: "member-2", Name: "Taken Name"}}, nil
 		}
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Taken Name", nil, nil, "user-1")
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Taken Name", nil, nil, nil, "user-1")
 		assert.ErrIs(t, err, model.ErrMemberNameTaken)
 	})
 
@@ -377,7 +384,7 @@ func TestUpdateMember(t *testing.T) {
 			return []repository.MemberInfo{{ID: "member-1", Name: "Same Name"}}, nil
 		}
 		svc := NewGroupService(m, defaultAuthMock())
-		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Same Name", nil, nil, "user-1")
+		err := svc.UpdateMember(context.Background(), "g-1", "member-1", "Same Name", nil, nil, nil, "user-1")
 		assert.NoErr(t, err)
 	})
 }
@@ -405,5 +412,48 @@ func TestRemoveMember(t *testing.T) {
 		svc := NewGroupService(m, defaultAuthMock())
 		err := svc.RemoveMember(context.Background(), "g-1", "nonexistent", "user-1")
 		assert.ErrIs(t, err, model.ErrNotFound)
+	})
+}
+
+func TestNormalizePosition(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{"valid code passes through", "D", "D"},
+		{"lowercase is uppercased", "gk", "GK"},
+		{"surrounding whitespace is trimmed", "  M  ", "M"},
+		{"blank defaults to midfielder", "", model.PositionM},
+		{"unrecognized value defaults to midfielder", "STRIKER", model.PositionM},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := normalizePosition(tc.raw)
+			assert.NotNil(t, got)
+			assert.Eq(t, *got, tc.want)
+		})
+	}
+}
+
+func TestDefaultPosition(t *testing.T) {
+	t.Run("nil pointer defaults to midfielder", func(t *testing.T) {
+		got := defaultPosition(nil)
+		assert.NotNil(t, got)
+		assert.Eq(t, *got, model.PositionM)
+	})
+
+	t.Run("valid pointer passes through", func(t *testing.T) {
+		d := model.PositionD
+		got := defaultPosition(&d)
+		assert.NotNil(t, got)
+		assert.Eq(t, *got, model.PositionD)
+	})
+
+	t.Run("blank pointer defaults to midfielder", func(t *testing.T) {
+		blank := ""
+		got := defaultPosition(&blank)
+		assert.NotNil(t, got)
+		assert.Eq(t, *got, model.PositionM)
 	})
 }

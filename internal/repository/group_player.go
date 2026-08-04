@@ -21,16 +21,17 @@ type MemberInfo struct {
 	Phone    *string   `db:"phone"`
 	Email    *string   `db:"email"`
 	Role     string    `db:"role"`
+	Position *string   `db:"position"`
 	JoinedAt time.Time `db:"joined_at"`
 }
 
 // AddMember returns the member's id (the row's own id whether this insert
 // or an ON CONFLICT update, so callers with a single new name can enqueue
 // follow-up work like activity-feed generation without a second query).
-func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error) {
+func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone, email, position *string, role string) (string, error) {
 	query := psql.Insert(
-		im.Into("group_players", "group_id", "name", "phone", "email", "role"),
-		im.Values(psql.Arg(groupID, name, phone, email, role)),
+		im.Into("group_players", "group_id", "name", "phone", "email", "position", "role"),
+		im.Values(psql.Arg(groupID, name, phone, email, position, role)),
 		im.OnConflict("group_id", "name").DoUpdate(
 			im.SetCol("role").ToArg(role),
 		),
@@ -48,18 +49,20 @@ func (r *Repository) AddMember(ctx context.Context, groupID, name string, phone,
 
 // ImportMember upserts a CSV-imported roster row: unlike AddMember (which
 // only touches role on conflict, relied on by call sites that intentionally
-// pass nil phone/email), this updates phone/email when the new value is
-// non-null while preserving the existing value on a blank CSV cell, and
-// never touches role — so re-importing a CSV can't demote an existing admin.
-func (r *Repository) ImportMember(ctx context.Context, groupID, name string, phone, email *string) error {
+// pass nil phone/email), this updates phone/email/position when the new
+// value is non-null while preserving the existing value on a blank CSV
+// cell, and never touches role — so re-importing a CSV can't demote an
+// existing admin.
+func (r *Repository) ImportMember(ctx context.Context, groupID, name string, phone, email, position *string) error {
 	query := psql.RawQuery(`
-		INSERT INTO group_players (group_id, name, phone, email, role)
-		VALUES (?, ?, ?, ?, 'member')
+		INSERT INTO group_players (group_id, name, phone, email, position, role)
+		VALUES (?, ?, ?, ?, ?, 'member')
 		ON CONFLICT (group_id, name) DO UPDATE SET
 			phone = COALESCE(EXCLUDED.phone, group_players.phone),
-			email = COALESCE(EXCLUDED.email, group_players.email)
+			email = COALESCE(EXCLUDED.email, group_players.email),
+			position = COALESCE(EXCLUDED.position, group_players.position)
 		RETURNING id
-	`, groupID, name, phone, email)
+	`, groupID, name, phone, email, position)
 	id, err := bob.One(ctx, r.db, query, scan.SingleColumnMapper[string])
 	if err != nil {
 		return err
@@ -67,12 +70,13 @@ func (r *Repository) ImportMember(ctx context.Context, groupID, name string, pho
 	return setSlugIfEmpty(ctx, r.db, "group_players", id, name)
 }
 
-func (r *Repository) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error {
+func (r *Repository) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email, position *string) error {
 	query := psql.Update(
 		um.Table("group_players"),
 		um.SetCol("name").ToArg(name),
 		um.SetCol("phone").ToArg(phone),
 		um.SetCol("email").ToArg(email),
+		um.SetCol("position").ToArg(position),
 		um.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 		um.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
@@ -84,6 +88,21 @@ func (r *Repository) UpdateMemberRole(ctx context.Context, groupID, memberID, ro
 	query := psql.Update(
 		um.Table("group_players"),
 		um.SetCol("role").ToArg(role),
+		um.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
+		um.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
+	)
+	_, err := bob.Exec(ctx, r.db, query)
+	return err
+}
+
+// UpdateMemberPosition updates a single roster member's position — a
+// lighter-weight sibling to UpdateMember for the roster row's inline
+// position picker, which shouldn't require resubmitting name/phone/email
+// just to change one field.
+func (r *Repository) UpdateMemberPosition(ctx context.Context, groupID, memberID, position string) error {
+	query := psql.Update(
+		um.Table("group_players"),
+		um.SetCol("position").ToArg(position),
 		um.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 		um.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
@@ -103,7 +122,7 @@ func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID string)
 
 func (r *Repository) ListMembers(ctx context.Context, groupID string) ([]MemberInfo, error) {
 	query := psql.Select(
-		sm.Columns("id", "name", "phone", "email", "role", "joined_at"),
+		sm.Columns("id", "name", "phone", "email", "role", "position", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 		sm.OrderBy("role"),
@@ -118,7 +137,7 @@ func (r *Repository) ListMembers(ctx context.Context, groupID string) ([]MemberI
 // group, not globally unique, so it can't be branched on independently).
 func (r *Repository) GetMember(ctx context.Context, groupID, memberIDOrSlug string) (*model.GroupPlayer, error) {
 	query := psql.Select(
-		sm.Columns("id", "group_id", "name", "phone", "email", "role", "slug", "joined_at"),
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "slug", "position", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 		sm.Where(resolveByIDOrSlug(memberIDOrSlug)),
@@ -132,7 +151,7 @@ func (r *Repository) GetMember(ctx context.Context, groupID, memberIDOrSlug stri
 // up the owning group first would just be extra round trips.
 func (r *Repository) GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error) {
 	query := psql.Select(
-		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "position", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("id").EQ(psql.Arg(memberID))),
 	)
@@ -141,7 +160,7 @@ func (r *Repository) GetMemberByID(ctx context.Context, memberID string) (*model
 
 func (r *Repository) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
 	query := psql.Select(
-		sm.Columns("id", "group_id", "name", "phone", "email", "role", "joined_at"),
+		sm.Columns("id", "group_id", "name", "phone", "email", "role", "position", "joined_at"),
 		sm.From("group_players"),
 		sm.Where(psql.Quote("group_id").EQ(psql.Arg(groupID))),
 		sm.Where(psql.Quote("email").EQ(psql.Arg(email))),

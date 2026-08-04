@@ -18,14 +18,15 @@ type GroupRepository interface {
 	GetGroupsByIDs(ctx context.Context, ids []string) ([]*model.Group, error)
 	UpdateGroup(ctx context.Context, g *model.Group) error
 	DeleteGroup(ctx context.Context, id string) error
-	AddMember(ctx context.Context, groupID, name string, phone, email *string, role string) (string, error)
-	ImportMember(ctx context.Context, groupID, name string, phone, email *string) error
+	AddMember(ctx context.Context, groupID, name string, phone, email, position *string, role string) (string, error)
+	ImportMember(ctx context.Context, groupID, name string, phone, email, position *string) error
 	RemoveMember(ctx context.Context, groupID, memberID string) error
 	ListMembers(ctx context.Context, groupID string) ([]repository.MemberInfo, error)
 	GetMember(ctx context.Context, groupID, memberID string) (*model.GroupPlayer, error)
 	MemberCount(ctx context.Context, groupID string) (int, error)
-	UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string) error
+	UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email, position *string) error
 	UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error
+	UpdateMemberPosition(ctx context.Context, groupID, memberID, position string) error
 	GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
 
 	CreateJoinRequest(ctx context.Context, groupID, userID, name, email string) error
@@ -75,7 +76,7 @@ func (s *GroupService) Create(ctx context.Context, name string, description *str
 	if err := s.repo.CreateGroup(ctx, g); err != nil {
 		return nil, fmt.Errorf("create group: %w", err)
 	}
-	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, model.RoleAdmin); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, creatorName, nil, &creatorEmail, defaultPosition(nil), model.RoleAdmin); err != nil {
 		return nil, fmt.Errorf("add creator as admin member: %w", err)
 	}
 	return g, nil
@@ -156,7 +157,7 @@ func (s *GroupService) Members(ctx context.Context, groupID string) ([]repositor
 }
 
 // AddMember returns the new (or existing, on a name conflict) member's id.
-func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phone, email *string, actorID string) (string, error) {
+func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phone, email, position *string, actorID string) (string, error) {
 	if name == "" {
 		return "", model.ErrInvalidInput
 	}
@@ -169,7 +170,7 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, name string, phon
 		return "", model.ErrNotAuthorized
 	}
 
-	memberID, err := s.repo.AddMember(ctx, groupID, name, phone, email, model.RoleMember)
+	memberID, err := s.repo.AddMember(ctx, groupID, name, phone, email, defaultPosition(position), model.RoleMember)
 	if err != nil {
 		return "", fmt.Errorf("add member: %w", err)
 	}
@@ -193,7 +194,7 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 
 	added := make([]string, 0, len(names))
 	for _, name := range names {
-		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, model.RoleMember); err != nil {
+		if _, err := s.repo.AddMember(ctx, groupID, name, nil, nil, defaultPosition(nil), model.RoleMember); err != nil {
 			return added, fmt.Errorf("add member %q: %w", name, err)
 		}
 		added = append(added, name)
@@ -203,9 +204,43 @@ func (s *GroupService) AddMembers(ctx context.Context, groupID string, names []s
 
 // ImportRow is one parsed CSV row for ImportMembers.
 type ImportRow struct {
-	Name  string
-	Phone string
-	Email string
+	Name     string
+	Phone    string
+	Email    string
+	Position string
+}
+
+// validPositions is the set of accepted short position codes — see
+// model.PositionGK/D/M/A.
+var validPositions = map[string]bool{
+	model.PositionGK: true,
+	model.PositionD:  true,
+	model.PositionM:  true,
+	model.PositionA:  true,
+}
+
+// normalizePosition trims and uppercases a free-text position value (a CSV
+// cell, or an already-selected form/API value) and validates it against the
+// four known position codes. Blank or unrecognized input falls back to
+// model.PositionM (Midfielder) — the app's default position — rather than
+// failing the whole request, so every roster member always has a position
+// to be scored and written about by.
+func normalizePosition(raw string) *string {
+	p := strings.ToUpper(strings.TrimSpace(raw))
+	if !validPositions[p] {
+		p = model.PositionM
+	}
+	return &p
+}
+
+// defaultPosition is normalizePosition for the pointer-typed call sites
+// (AddMember/UpdateMember/AddMembers/ApproveJoinRequest) — a nil pointer is
+// treated the same as a blank value.
+func defaultPosition(p *string) *string {
+	if p == nil {
+		return normalizePosition("")
+	}
+	return normalizePosition(*p)
 }
 
 const maxImportRows = 500
@@ -253,8 +288,9 @@ func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows [
 		if e := strings.TrimSpace(row.Email); e != "" {
 			email = &e
 		}
+		position := normalizePosition(row.Position)
 
-		if err := s.repo.ImportMember(ctx, groupID, name, phone, email); err != nil {
+		if err := s.repo.ImportMember(ctx, groupID, name, phone, email, position); err != nil {
 			return imported, updated, skipped, fmt.Errorf("import member %q: %w", name, err)
 		}
 		if existingNames[name] {
@@ -266,10 +302,10 @@ func (s *GroupService) ImportMembers(ctx context.Context, groupID string, rows [
 	return imported, updated, skipped, nil
 }
 
-// UpdateMember edits an existing roster member's name/phone/email. name is
-// checked against the group's other members to avoid violating the
+// UpdateMember edits an existing roster member's name/phone/email/position.
+// name is checked against the group's other members to avoid violating the
 // group_players (group_id, name) uniqueness constraint.
-func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email *string, actorID string) error {
+func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name string, phone, email, position *string, actorID string) error {
 	if name == "" {
 		return model.ErrInvalidInput
 	}
@@ -292,7 +328,7 @@ func (s *GroupService) UpdateMember(ctx context.Context, groupID, memberID, name
 		}
 	}
 
-	if err := s.repo.UpdateMember(ctx, groupID, memberID, name, phone, email); err != nil {
+	if err := s.repo.UpdateMember(ctx, groupID, memberID, name, phone, email, defaultPosition(position)); err != nil {
 		return fmt.Errorf("update member: %w", err)
 	}
 	return nil
@@ -428,7 +464,7 @@ func (s *GroupService) ApproveJoinRequest(ctx context.Context, g *model.Group, r
 		return nil, model.ErrNotFound
 	}
 
-	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, model.RoleMember); err != nil {
+	if _, err := s.repo.AddMember(ctx, g.ID, req.Name, nil, &req.Email, defaultPosition(nil), model.RoleMember); err != nil {
 		return nil, fmt.Errorf("approve join request: add member: %w", err)
 	}
 	if err := s.repo.UpdateJoinRequestStatus(ctx, requestID, "approved"); err != nil {
@@ -481,6 +517,26 @@ func (s *GroupService) DemoteMember(ctx context.Context, groupID, memberID, acto
 
 	if err := s.repo.UpdateMemberRole(ctx, groupID, memberID, model.RoleMember); err != nil {
 		return fmt.Errorf("demote member: update role: %w", err)
+	}
+	return nil
+}
+
+// SetMemberPosition updates a single roster member's position — the roster
+// row's inline tap-to-set picker calls this directly rather than going
+// through UpdateMember, so changing a position doesn't require resubmitting
+// name/phone/email. position is normalized (defaulting to Midfielder for a
+// blank or unrecognized value), same as every other position entry point.
+func (s *GroupService) SetMemberPosition(ctx context.Context, groupID, memberID, position, actorID string) error {
+	g, err := s.repo.GetGroup(ctx, groupID)
+	if err != nil {
+		return model.ErrNotFound
+	}
+	if !s.CanEdit(ctx, g, actorID) {
+		return model.ErrNotAuthorized
+	}
+
+	if err := s.repo.UpdateMemberPosition(ctx, groupID, memberID, *normalizePosition(position)); err != nil {
+		return fmt.Errorf("set member position: %w", err)
 	}
 	return nil
 }

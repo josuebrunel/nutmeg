@@ -232,7 +232,7 @@ func (h *GroupHandler) AddMember(c *echo.Context) error {
 
 	var singleID string
 	if len(req.Names) == 1 {
-		memberID, err := h.service.AddMember(ctx, groupID, req.Names[0], req.Phone, req.Email, userID)
+		memberID, err := h.service.AddMember(ctx, groupID, req.Names[0], req.Phone, req.Email, req.Position, userID)
 		if err != nil {
 			return writeError(c, err)
 		}
@@ -296,7 +296,7 @@ func (h *GroupHandler) ImportMembers(c *echo.Context) error {
 
 	rows := make([]service.ImportRow, len(req.Rows))
 	for i, r := range req.Rows {
-		rows[i] = service.ImportRow{Name: r.Name, Phone: r.Phone, Email: r.Email}
+		rows[i] = service.ImportRow{Name: r.Name, Phone: r.Phone, Email: r.Email, Position: r.Position}
 	}
 
 	imported, updated, skipped, err := h.service.ImportMembers(ctx, groupID, rows, userID)
@@ -335,7 +335,7 @@ func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 		return writeError(c, model.ErrInvalidInput)
 	}
 
-	if err := h.service.UpdateMember(ctx, groupID, memberID, req.Name, req.Phone, req.Email, userID); err != nil {
+	if err := h.service.UpdateMember(ctx, groupID, memberID, req.Name, req.Phone, req.Email, req.Position, userID); err != nil {
 		return writeError(c, err)
 	}
 
@@ -344,7 +344,7 @@ func (h *GroupHandler) UpdateMember(c *echo.Context) error {
 		return writeError(c, err)
 	}
 	return c.JSON(http.StatusOK, toMemberResponse(repository.MemberInfo{
-		ID: member.ID, Name: member.Name, Phone: member.Phone, Email: member.Email, Role: member.Role, JoinedAt: member.JoinedAt,
+		ID: member.ID, Name: member.Name, Phone: member.Phone, Email: member.Email, Role: member.Role, Position: member.Position, JoinedAt: member.JoinedAt,
 	}))
 }
 
