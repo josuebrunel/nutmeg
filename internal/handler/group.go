@@ -340,12 +340,9 @@ func (h *GroupHandler) RegenerateMatchArticle(c *echo.Context) error {
 	matchID := c.Param("mid")
 	redirectURL := "/groups/" + id + "?tab=matches"
 
-	g, err := h.service.Get(ctx, id)
-	if err != nil {
+	_, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	if done {
 		return err
-	}
-	if !h.service.CanEdit(ctx, g, userID) {
-		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	ok, wait, err := h.articleSvc.CanRegenerate(ctx, matchID)
@@ -489,12 +486,9 @@ func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 	memberID := c.Param("memberId")
 	profileURL := "/groups/" + id + "/players/" + memberID
 
-	g, err := h.service.Get(ctx, id)
-	if err != nil {
+	_, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	if done {
 		return err
-	}
-	if !h.service.CanEdit(ctx, g, userID) {
-		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	ok, wait, err := h.commentarySvc.CanRegenerate(ctx, memberID)
@@ -623,14 +617,9 @@ func (h *GroupHandler) Edit(c *echo.Context) error {
 		return nil
 	}
 
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
+	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	if done {
 		return err
-	}
-
-	if !h.service.CanEdit(c.Request().Context(), g, userID) {
-		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	return page(c, "Edit Group", true, g.ID, h.userName(c), groups.Form(g.ID, &groups.FormData{
@@ -701,13 +690,9 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 		return nil
 	}
 
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
+	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	if done {
 		return err
-	}
-	if !h.service.CanEdit(c.Request().Context(), g, userID) {
-		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	tabContent, err := h.groupTabComponent(c, g, userID, "leaderboard")
@@ -715,6 +700,26 @@ func (h *GroupHandler) LeaderboardFull(c *echo.Context) error {
 		return err
 	}
 	return render.Component(c, tabContent)
+}
+
+// requireGroupEdit loads the group identified by the request's "id" route
+// param and verifies userID can edit it. On failure it returns done=true
+// having already written the response itself — err is either the lookup
+// failure (propagate it) or the CanEdit-redirect's own result (usually
+// nil) — so the caller should just `return err`. Shared by every handler
+// that needs "load this group, then require CanEdit" (Edit, LeaderboardFull,
+// MatchesFull, RegenerateMatchArticle, RegenerateCommentary,
+// EditMemberForm); RosterFull below uses rosterViewData instead since it
+// also needs isOwner/ownerEmail.
+func (h *GroupHandler) requireGroupEdit(c *echo.Context, userID, redirectTo string) (g *model.Group, err error, done bool) {
+	g, err = h.service.Get(c.Request().Context(), c.Param("id"))
+	if err != nil {
+		return nil, err, true
+	}
+	if !h.service.CanEdit(c.Request().Context(), g, userID) {
+		return nil, c.Redirect(http.StatusFound, redirectTo), true
+	}
+	return g, nil, false
 }
 
 // RosterFull renders the Roster tab (tab bar + complete roster + activity
@@ -750,13 +755,9 @@ func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 		return nil
 	}
 
-	id := c.Param("id")
-	g, err := h.service.Get(c.Request().Context(), id)
-	if err != nil {
+	g, err, done := h.requireGroupEdit(c, userID, "/dashboard")
+	if done {
 		return err
-	}
-	if !h.service.CanEdit(c.Request().Context(), g, userID) {
-		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 
 	tabContent, err := h.groupTabComponent(c, g, userID, "matches")
@@ -1029,12 +1030,9 @@ func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
 	id := c.Param("id")
 	memberID := c.Param("memberId")
 
-	g, err := h.service.Get(ctx, id)
-	if err != nil {
+	_, err, done := h.requireGroupEdit(c, userID, "/groups/"+id)
+	if done {
 		return err
-	}
-	if !h.service.CanEdit(ctx, g, userID) {
-		return c.Redirect(http.StatusFound, "/groups/"+id)
 	}
 
 	member, err := h.repo.GetMember(ctx, id, memberID)
