@@ -623,66 +623,7 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 					</thead>
 					<tbody class="divide-y divide-pitch/10">
 						for _, m := range visibleMembers(members, fullWidth) {
-							<tr class="text-sm" data-player-name={ strings.ToLower(m.Name) }>
-								<td class="p-2">
-									<div class="flex flex-col truncate">
-										<span class="font-body truncate">{ m.Name }</span>
-										if m.Email != nil && *m.Email != "" {
-											<span class="text-xs text-ink/50">{ *m.Email }</span>
-										}
-									</div>
-								</td>
-								<td class="p-2">
-									if isAdmin {
-										<div class="inline-flex rounded overflow-hidden border border-pitch/20 text-[9px] font-oswald leading-none">
-											for _, p := range components.PlayerPositions {
-												<button
-													type="button"
-													class={ positionPillClass(p.Value, stringPtrValue(m.Position)) }
-													aria-label={ "Set " + m.Name + "'s position to " + p.Label }
-													hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/position/" + p.Value + viewParam(fullWidth)) }
-													hx-target="#roster-column"
-													hx-swap="outerHTML show:none"
-												>{ p.Value }</button>
-											}
-										</div>
-									} else if m.Position != nil && *m.Position != "" {
-										<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5">{ *m.Position }</span>
-									}
-								</td>
-								<td class="p-2">
-									if isRosterOwner(m, ownerEmail) {
-										<span class="text-xs font-oswald text-gold">Owner</span>
-									} else if isPromotedAdmin(m, ownerEmail) {
-										<span class="text-xs font-oswald text-turf">Admin</span>
-									}
-								</td>
-								<td class="p-2">
-									<div class="flex items-center justify-end gap-2">
-										if isOwner && !isRosterOwner(m, ownerEmail) {
-											if isPromotedAdmin(m, ownerEmail) {
-												<button class="bg-gold/20 text-pitch hover:bg-gold p-1.5 rounded transition-colors" aria-label={ "Demote " + m.Name + " to member" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML show:none" hx-confirm={ "Demote " + m.Name + " to member?" }>
-													@components.IconArrowDown("size-3.5")
-												</button>
-											} else {
-												<button class="bg-turf/10 text-turf hover:bg-turf hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Promote " + m.Name + " to admin" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote" + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML show:none" hx-confirm={ "Promote " + m.Name + " to admin?" }>
-													@components.IconArrowUp("size-3.5")
-												</button>
-											}
-										}
-										if isAdmin {
-											<button class="text-turf hover:text-pitch p-1.5 rounded transition-colors" aria-label={ "Edit " + m.Name } hx-get={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">
-												@components.IconEdit("size-3.5")
-											</button>
-										}
-										if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
-											<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
-												@components.IconClose("size-3.5")
-											</button>
-										}
-									</div>
-								</td>
-							</tr>
+							@RosterRow(g, m, isAdmin, isOwner, ownerEmail, fullWidth)
 						}
 						if !fullWidth && len(members) > defaultVisibleLimit {
 							<tr>
@@ -698,6 +639,75 @@ templ RosterColumn(g *model.Group, members []repository.MemberInfo, isAdmin bool
 			</div>
 		</div>
 	</div>
+}
+
+// RosterRow renders one roster member's <tr> — extracted out of
+// RosterColumn's loop so it's also independently swappable: the position
+// picker and Promote/Demote buttons below target "closest tr" and the
+// handler re-renders just this component, rather than the whole
+// (potentially long) roster table, which is what was causing the page to
+// jump on every tap (see GroupHandler.respondRosterRow).
+templ RosterRow(g *model.Group, m repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, fullWidth bool) {
+	<tr class="text-sm" data-player-name={ strings.ToLower(m.Name) }>
+		<td class="p-2">
+			<div class="flex flex-col truncate">
+				<span class="font-body truncate">{ m.Name }</span>
+				if m.Email != nil && *m.Email != "" {
+					<span class="text-xs text-ink/50">{ *m.Email }</span>
+				}
+			</div>
+		</td>
+		<td class="p-2">
+			if isAdmin {
+				<div class="inline-flex rounded overflow-hidden border border-pitch/20 text-[9px] font-oswald leading-none">
+					for _, p := range components.PlayerPositions {
+						<button
+							type="button"
+							class={ positionPillClass(p.Value, stringPtrValue(m.Position)) }
+							aria-label={ "Set " + m.Name + "'s position to " + p.Label }
+							hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/position/" + p.Value + viewParam(fullWidth)) }
+							hx-target="closest tr"
+							hx-swap="outerHTML show:none"
+						>{ p.Value }</button>
+					}
+				</div>
+			} else if m.Position != nil && *m.Position != "" {
+				<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5">{ *m.Position }</span>
+			}
+		</td>
+		<td class="p-2">
+			if isRosterOwner(m, ownerEmail) {
+				<span class="text-xs font-oswald text-gold">Owner</span>
+			} else if isPromotedAdmin(m, ownerEmail) {
+				<span class="text-xs font-oswald text-turf">Admin</span>
+			}
+		</td>
+		<td class="p-2">
+			<div class="flex items-center justify-end gap-2">
+				if isOwner && !isRosterOwner(m, ownerEmail) {
+					if isPromotedAdmin(m, ownerEmail) {
+						<button class="bg-gold/20 text-pitch hover:bg-gold p-1.5 rounded transition-colors" aria-label={ "Demote " + m.Name + " to member" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/demote" + viewParam(fullWidth)) } hx-target="closest tr" hx-swap="outerHTML show:none" hx-confirm={ "Demote " + m.Name + " to member?" }>
+							@components.IconArrowDown("size-3.5")
+						</button>
+					} else {
+						<button class="bg-turf/10 text-turf hover:bg-turf hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Promote " + m.Name + " to admin" } hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/promote" + viewParam(fullWidth)) } hx-target="closest tr" hx-swap="outerHTML show:none" hx-confirm={ "Promote " + m.Name + " to admin?" }>
+							@components.IconArrowUp("size-3.5")
+						</button>
+					}
+				}
+				if isAdmin {
+					<button class="text-turf hover:text-pitch p-1.5 rounded transition-colors" aria-label={ "Edit " + m.Name } hx-get={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/edit") } hx-target="#detail-content-area" hx-swap="innerHTML">
+						@components.IconEdit("size-3.5")
+					</button>
+				}
+				if (isAdmin && m.Role != "admin") || (isOwner && isPromotedAdmin(m, ownerEmail)) {
+					<button class="bg-nutmeg/10 text-nutmeg hover:bg-nutmeg hover:text-chalk p-1.5 rounded transition-colors" aria-label={ "Remove " + m.Name } hx-delete={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + viewParam(fullWidth)) } hx-target="#roster-column" hx-swap="outerHTML" hx-confirm={ "Remove " + m.Name + "?" }>
+						@components.IconClose("size-3.5")
+					</button>
+				}
+			</div>
+		</td>
+	</tr>
 }
 
 // positionPillClass highlights the active pill in a roster row's inline

@@ -985,10 +985,10 @@ func (h *GroupHandler) PromoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.PromoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		return h.respondRosterMutationErr(c, id, err)
+		return h.respondRosterRowErr(c, id, memberID, err)
 	}
 
-	return h.respondRosterMutation(c, id, "Member promoted to admin", "success")
+	return h.respondRosterRow(c, id, memberID, "Member promoted to admin", "success")
 }
 
 func (h *GroupHandler) DemoteMember(c *echo.Context) error {
@@ -1001,10 +1001,10 @@ func (h *GroupHandler) DemoteMember(c *echo.Context) error {
 	memberID := c.Param("memberId")
 
 	if err := h.service.DemoteMember(c.Request().Context(), id, memberID, userID); err != nil {
-		return h.respondRosterMutationErr(c, id, err)
+		return h.respondRosterRowErr(c, id, memberID, err)
 	}
 
-	return h.respondRosterMutation(c, id, "Admin demoted to member", "success")
+	return h.respondRosterRow(c, id, memberID, "Admin demoted to member", "success")
 }
 
 // SetMemberPosition handles a tap on the roster row's inline position
@@ -1021,10 +1021,10 @@ func (h *GroupHandler) SetMemberPosition(c *echo.Context) error {
 	code := c.Param("code")
 
 	if err := h.service.SetMemberPosition(c.Request().Context(), id, memberID, code, userID); err != nil {
-		return h.respondRosterMutationErr(c, id, err)
+		return h.respondRosterRowErr(c, id, memberID, err)
 	}
 
-	return h.respondRosterMutation(c, id, "Position updated", "success")
+	return h.respondRosterRow(c, id, memberID, "Position updated", "success")
 }
 
 func (h *GroupHandler) EditMemberForm(c *echo.Context) error {
@@ -1162,6 +1162,55 @@ func (h *GroupHandler) rosterWithToast(c *echo.Context, groupID, message, toastT
 
 	c.Response().Header().Set(hxTrigger, toastHXTrigger(message, toastType))
 	return render.Component(c, groups.RosterColumn(g, members, canEdit, isOwner, ownerEmail, joinRequests, fullWidth))
+}
+
+// respondRosterRow replies to a single-member mutation (position change,
+// promote, demote) by re-rendering just that member's <tr> instead of the
+// whole roster table — swapping the entire (potentially long) table for a
+// one-field change was what made the page jump on every tap; a single row
+// is small enough that there's nothing left to jump. Add/Import/Update/
+// Remove still go through respondRosterMutation, since those genuinely
+// change the list's composition.
+func (h *GroupHandler) respondRosterRow(c *echo.Context, groupID, memberID, message, toastType string) error {
+	if !isHTMX(c) {
+		h.auth.Handler.SetFlash(c.Request().Context(), toastType, message)
+		return c.Redirect(http.StatusFound, "/groups/"+groupID)
+	}
+
+	ctx := c.Request().Context()
+	userID, err := h.auth.GetUserID(ctx)
+	if err != nil {
+		return err
+	}
+	g, err := h.service.Get(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	player, err := h.repo.GetMember(ctx, groupID, memberID)
+	if err != nil {
+		return err
+	}
+	member := repository.MemberInfo{
+		ID:       player.ID,
+		Name:     player.Name,
+		Phone:    player.Phone,
+		Email:    player.Email,
+		Role:     player.Role,
+		Position: player.Position,
+		JoinedAt: player.JoinedAt,
+	}
+	canEdit, isOwner, ownerEmail := h.rosterViewData(ctx, g, userID)
+	fullWidth := c.QueryParam("view") == "full"
+
+	c.Response().Header().Set(hxTrigger, toastHXTrigger(message, toastType))
+	return render.Component(c, groups.RosterRow(g, member, canEdit, isOwner, ownerEmail, fullWidth))
+}
+
+// respondRosterRowErr is respondRosterRow's error-path sibling, mirroring
+// respondRosterMutationErr.
+func (h *GroupHandler) respondRosterRowErr(c *echo.Context, groupID, memberID string, err error) error {
+	logUnexpected("roster mutation failed", err, "group_id", groupID)
+	return h.respondRosterRow(c, groupID, memberID, err.Error(), "error")
 }
 
 // joinRequestEntries returns the group's pending join requests as view
