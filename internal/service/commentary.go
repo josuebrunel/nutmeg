@@ -18,7 +18,7 @@ const streakLookback = 10
 // maxRoastLength caps generated commentary — long enough for a few
 // sentences of trash talk, short enough that a rambling local model gets
 // trimmed rather than displayed in full.
-const maxRoastLength = 400
+const maxRoastLength = 700
 
 type CommentaryRepository interface {
 	GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error)
@@ -171,7 +171,7 @@ func (s *CommentaryService) BuildPrompt(playerName string, position *string, sta
 
 	return fmt.Sprintf(`You are a savage but good-natured trash-talking commentator for a casual pickup soccer group chat.
 
-Write a short, funny roast (1-3 sentences, no more) about this player, based ONLY on the real stats below. Do not invent any stat, event, or piece of history that isn't listed here. Never mention minutes played or time on the pitch - that data doesn't exist for this app. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
+Write a short, funny roast (3-5 sentences, no more) about this player, based ONLY on the real stats below. Do not invent any stat, event, or piece of history that isn't listed here. Never mention minutes played or time on the pitch - that data doesn't exist for this app. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
 
 Player: %s
 Matches played: %d
