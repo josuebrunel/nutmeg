@@ -256,6 +256,7 @@ Authenticated routes are registered in `internal/router/router.go`; public route
 | `GET`  | `/`                               | Home.Landing             | Landing page                          |
 | `GET`  | `/login`                         | Auth.Login               | Login page                            |
 | `GET`  | `/register`                      | Auth.Register            | Registration page                     |
+| `GET`  | `/help`                          | Home.Help                | How-it-works / user guide page        |
 | `GET`  | `/health`                        | —                        | Health check                          |
 | `GET`  | `/groups/:id/leaderboard`        | Group.PublicLeaderboard  | Public, read-only group leaderboard   |
 | `GET`  | `/groups/:id/players/:memberId`  | Group.PlayerProfile      | Public player profile + AI commentary |

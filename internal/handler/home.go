@@ -26,6 +26,16 @@ func (h *HomeHandler) Landing(c *echo.Context) error {
 	return page(c, "Nutmeg - Self-Hosted Pickup Soccer Stats Tracker", false, "", "", home.Landing())
 }
 
+func (h *HomeHandler) Help(c *echo.Context) error {
+	isLoggedIn := false
+	userName := ""
+	if user, err := ezauth.GetUser(c.Request().Context()); err == nil {
+		isLoggedIn = true
+		userName = user.DisplayName()
+	}
+	return page(c, "How Nutmeg Works", isLoggedIn, "", userName, home.Help(isLoggedIn))
+}
+
 func (h *HomeHandler) Dashboard(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
 	if done {

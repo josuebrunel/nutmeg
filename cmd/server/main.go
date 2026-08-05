@@ -323,6 +323,7 @@ func main() {
 	e.GET("/", h.Home.Landing)
 	e.GET("/login", h.Auth.Login)
 	e.GET("/register", h.Auth.Register)
+	e.GET("/help", h.Home.Help)
 	e.GET("/health", func(c *echo.Context) error {
 		if err := db.PingContext(c.Request().Context()); err != nil {
 			return c.JSON(http.StatusServiceUnavailable, map[string]string{"status": "unhealthy"})
