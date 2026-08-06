@@ -32,7 +32,7 @@ templ Profile(g *model.Group, player *model.GroupPlayer, stats *repository.Playe
 					}
 					{ player.Name }
 					if player.Position != nil && *player.Position != "" {
-						<span class="text-sm font-oswald text-chalk/70 bg-chalk/10 rounded px-2 py-0.5">{ *player.Position }</span>
+						<span class={ "text-sm font-oswald rounded px-2 py-0.5", components.PositionSolid(*player.Position) }>{ *player.Position }</span>
 					}
 				</h2>
 			</div>

@@ -62,21 +62,21 @@ templ Help(isLoggedIn bool) {
 						<span class="font-oswald text-xs tracking-widest text-nutmeg font-semibold">Step Two</span>
 						<h2 class="font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4">Build Your Roster</h2>
 						<p class="text-ink/60 font-body mb-3">Admins add players to a shared roster — no accounts needed for players, just a name.</p>
-						<p class="text-ink/60 font-body">Tag each player with a position — <span class="font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch">GK</span>, <span class="font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch">D</span>, <span class="font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch">M</span>, or <span class="font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch">A</span> — so clean sheets get credited to the right players on the leaderboard.</p>
+						<p class="text-ink/60 font-body">Tag each player with a position — <span class={ "font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionGK) }>GK</span>, <span class={ "font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionD) }>D</span>, <span class={ "font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionM) }>M</span>, or <span class={ "font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionA) }>A</span> — so clean sheets get credited to the right players on the leaderboard.</p>
 					</div>
 					<div class="bg-white rounded-xl border border-base-200 shadow-sm p-4">
-						for _, row := range []struct{ initial, name, pos, posClass string }{
-							{"J", "Josue K.", "GK", "bg-gold/15 text-gold"},
-							{"M", "Marc T.", "D", "bg-turf/15 text-turf"},
-							{"A", "Amina S.", "M", "bg-turf/15 text-turf"},
-							{"D", "Dan R.", "A", "bg-nutmeg/15 text-nutmeg"},
-						} {
-							<div class="flex items-center gap-3 py-2.5 border-b border-base-200 last:border-0">
-								<div class="size-9 rounded-full bg-pitch text-chalk font-oswald flex items-center justify-center text-sm shrink-0">{ row.initial }</div>
-								<span class="font-body text-sm text-ink flex-1">{ row.name }</span>
-								<span class={ "font-mono text-xs px-2 py-1 rounded-full font-semibold", row.posClass }>{ row.pos }</span>
-							</div>
-						}
+for _, row := range []struct{ initial, name, pos string }{
+						{"J", "Josue K.", components.PositionGK},
+						{"M", "Marc T.", components.PositionD},
+						{"A", "Amina S.", components.PositionM},
+						{"D", "Dan R.", components.PositionA},
+					} {
+						<div class="flex items-center gap-3 py-2.5 border-b border-base-200 last:border-0">
+							<div class="size-9 rounded-full bg-pitch text-chalk font-oswald flex items-center justify-center text-sm shrink-0">{ row.initial }</div>
+							<span class="font-body text-sm text-ink flex-1">{ row.name }</span>
+							<span class={ "font-mono text-xs px-2 py-1 rounded-full font-semibold", components.PositionBadge(row.pos) }>{ row.pos }</span>
+						</div>
+					}
 					</div>
 				</div>
 			</div>

@@ -49,83 +49,171 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Or Request to Join</h3><p class=\"text-ink/60 font-body text-sm\">Open a group's public leaderboard page and request to join — an admin approves it.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"roster\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div><span class=\"font-oswald text-xs tracking-widest text-nutmeg font-semibold\">Step Two</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Build Your Roster</h2><p class=\"text-ink/60 font-body mb-3\">Admins add players to a shared roster — no accounts needed for players, just a name.</p><p class=\"text-ink/60 font-body\">Tag each player with a position — <span class=\"font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch\">GK</span>, <span class=\"font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch\">D</span>, <span class=\"font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch\">M</span>, or <span class=\"font-mono text-xs bg-base-200 px-1.5 py-0.5 rounded text-pitch\">A</span> — so clean sheets get credited to the right players on the leaderboard.</p></div><div class=\"bg-white rounded-xl border border-base-200 shadow-sm p-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Or Request to Join</h3><p class=\"text-ink/60 font-body text-sm\">Open a group's public leaderboard page and request to join — an admin approves it.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"roster\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div><span class=\"font-oswald text-xs tracking-widest text-nutmeg font-semibold\">Step Two</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Build Your Roster</h2><p class=\"text-ink/60 font-body mb-3\">Admins add players to a shared roster — no accounts needed for players, just a name.</p><p class=\"text-ink/60 font-body\">Tag each player with a position — ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, row := range []struct{ initial, name, pos, posClass string }{
-			{"J", "Josue K.", "GK", "bg-gold/15 text-gold"},
-			{"M", "Marc T.", "D", "bg-turf/15 text-turf"},
-			{"A", "Amina S.", "M", "bg-turf/15 text-turf"},
-			{"D", "Dan R.", "A", "bg-nutmeg/15 text-nutmeg"},
+		var templ_7745c5c3_Var2 = []any{"font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionGK)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var2).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">GK</span>, ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 = []any{"font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionD)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var4...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var4).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\">D</span>, ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 = []any{"font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionM)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var6...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<span class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var6).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\">M</span>, or ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var8 = []any{"font-mono text-xs rounded px-1.5 py-0.5", components.PositionBadge(components.PositionA)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var8...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var9 string
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var8).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\">A</span> — so clean sheets get credited to the right players on the leaderboard.</p></div><div class=\"bg-white rounded-xl border border-base-200 shadow-sm p-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, row := range []struct{ initial, name, pos string }{
+			{"J", "Josue K.", components.PositionGK},
+			{"M", "Marc T.", components.PositionD},
+			{"A", "Amina S.", components.PositionM},
+			{"D", "Dan R.", components.PositionA},
 		} {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"flex items-center gap-3 py-2.5 border-b border-base-200 last:border-0\"><div class=\"size-9 rounded-full bg-pitch text-chalk font-oswald flex items-center justify-center text-sm shrink-0\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"flex items-center gap-3 py-2.5 border-b border-base-200 last:border-0\"><div class=\"size-9 rounded-full bg-pitch text-chalk font-oswald flex items-center justify-center text-sm shrink-0\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(row.initial)
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(row.initial)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 75, Col: 136}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 75, Col: 135}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><span class=\"font-body text-sm text-ink flex-1\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(row.name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 76, Col: 66}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><span class=\"font-body text-sm text-ink flex-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span> ")
+			var templ_7745c5c3_Var11 string
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(row.name)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 76, Col: 65}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var4 = []any{"font-mono text-xs px-2 py-1 rounded-full font-semibold", row.posClass}
-			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var4...)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"")
+			var templ_7745c5c3_Var12 = []any{"font-mono text-xs px-2 py-1 rounded-full font-semibold", components.PositionBadge(row.pos)}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var12...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var4).String())
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<span class=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.CSSClasses(templ_7745c5c3_Var12).String())
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 1, Col: 0}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(row.pos)
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(row.pos)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 77, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 77, Col: 124}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</span></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"matchday\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div class=\"ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden order-2 lg:order-1\"><div class=\"grass-stripe-accent h-1 w-full\"></div><div class=\"flex w-full\"><div class=\"flex-1 p-4 text-center\"><div class=\"font-oswald text-xs mb-1\">TEAM A</div><div class=\"ticket-score text-2xl\">3</div></div><div class=\"ticket-perforation\"></div><div class=\"flex-1 p-4 text-center\"><div class=\"font-oswald text-xs mb-1\">TEAM B</div><div class=\"ticket-score text-2xl\">2</div></div></div><div class=\"w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10\"><span class=\"text-xs text-ink/50 font-mono\">Sat 6:00 PM</span> <span class=\"text-xs text-ink/50 font-body flex items-center gap-2\"><span class=\"flex items-center gap-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"matchday\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div class=\"ticket-stub bg-white border border-pitch/10 shadow-sm flex flex-col text-sm overflow-hidden order-2 lg:order-1\"><div class=\"grass-stripe-accent h-1 w-full\"></div><div class=\"flex w-full\"><div class=\"flex-1 p-4 text-center\"><div class=\"font-oswald text-xs mb-1\">TEAM A</div><div class=\"ticket-score text-2xl\">3</div></div><div class=\"ticket-perforation\"></div><div class=\"flex-1 p-4 text-center\"><div class=\"font-oswald text-xs mb-1\">TEAM B</div><div class=\"ticket-score text-2xl\">2</div></div></div><div class=\"w-full flex items-center justify-between bg-base-200/50 p-2 border-t border-pitch/10\"><span class=\"text-xs text-ink/50 font-mono\">Sat 6:00 PM</span> <span class=\"text-xs text-ink/50 font-body flex items-center gap-2\"><span class=\"flex items-center gap-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -133,7 +221,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "2 goals</span> <span class=\"flex items-center gap-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "2 goals</span> <span class=\"flex items-center gap-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -141,20 +229,20 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "1 assist</span></span></div></div><div class=\"order-1 lg:order-2\"><span class=\"font-oswald text-xs tracking-widest text-turf font-semibold\">Step Three</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Split Teams &amp; Log the Match</h2><p class=\"text-ink/60 font-body mb-3\">Check off who showed up, split the group into two teams, and play.</p><p class=\"text-ink/60 font-body\">Afterward, log the final score and tag who scored and who assisted — that's what builds every player's stats.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"leaderboard\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div><span class=\"font-oswald text-xs tracking-widest text-gold font-semibold\">Step Four</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Check the Leaderboard</h2><p class=\"text-ink/60 font-body mb-3\">Every logged match updates the standings instantly — wins, goals, and assists per player.</p><p class=\"text-ink/60 font-body mb-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "1 assist</span></span></div></div><div class=\"order-1 lg:order-2\"><span class=\"font-oswald text-xs tracking-widest text-turf font-semibold\">Step Three</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Split Teams &amp; Log the Match</h2><p class=\"text-ink/60 font-body mb-3\">Check off who showed up, split the group into two teams, and play.</p><p class=\"text-ink/60 font-body\">Afterward, log the final score and tag who scored and who assisted — that's what builds every player's stats.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"leaderboard\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"grid lg:grid-cols-2 gap-10 items-center\"><div><span class=\"font-oswald text-xs tracking-widest text-gold font-semibold\">Step Four</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Check the Leaderboard</h2><p class=\"text-ink/60 font-body mb-3\">Every logged match updates the standings instantly — wins, goals, and assists per player.</p><p class=\"text-ink/60 font-body mb-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(components.ScoreExplainer)
+		var templ_7745c5c3_Var15 string
+		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(components.ScoreExplainer)
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/home/help.templ`, Line: 126, Col: 71}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</p><p class=\"text-ink/60 font-body\">Logged-in users also get a personal <span class=\"font-semibold text-pitch\">My Stats</span> dashboard across every group they're in.</p></div><div class=\"bg-white p-8 text-center rounded-xl border border-base-200 shadow-sm\"><svg viewBox=\"0 0 200 160\" class=\"w-48 h-40 mx-auto\" role=\"img\" aria-label=\"Bar chart of player rankings\"><g><rect x=\"30\" y=\"90\" width=\"22\" height=\"50\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"64\" y=\"60\" width=\"22\" height=\"80\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"98\" y=\"75\" width=\"22\" height=\"65\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"132\" y=\"30\" width=\"22\" height=\"110\" rx=\"4\" class=\"fill-gold\"></rect> <rect x=\"166\" y=\"45\" width=\"22\" height=\"95\" rx=\"4\" class=\"fill-turf\"></rect></g> <line x1=\"16\" y1=\"140\" x2=\"184\" y2=\"140\" class=\"stroke-ink\" stroke-width=\"4\" stroke-linecap=\"round\"></line></svg><h3 class=\"font-oswald text-xl text-ink mt-6\">RANKED BY SCORE</h3></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"news\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"text-center mb-12\"><span class=\"font-oswald text-xs tracking-widest text-nutmeg font-semibold\">Automatic</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">News Feed &amp; AI Roasts</h2><p class=\"text-ink/60 max-w-lg mx-auto font-body\">Every group gets a running News feed — no writing required.</p></div><div class=\"grid sm:grid-cols-3 gap-6\"><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</p><p class=\"text-ink/60 font-body\">Logged-in users also get a personal <span class=\"font-semibold text-pitch\">My Stats</span> dashboard across every group they're in.</p></div><div class=\"bg-white p-8 text-center rounded-xl border border-base-200 shadow-sm\"><svg viewBox=\"0 0 200 160\" class=\"w-48 h-40 mx-auto\" role=\"img\" aria-label=\"Bar chart of player rankings\"><g><rect x=\"30\" y=\"90\" width=\"22\" height=\"50\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"64\" y=\"60\" width=\"22\" height=\"80\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"98\" y=\"75\" width=\"22\" height=\"65\" rx=\"4\" class=\"fill-turf\"></rect> <rect x=\"132\" y=\"30\" width=\"22\" height=\"110\" rx=\"4\" class=\"fill-gold\"></rect> <rect x=\"166\" y=\"45\" width=\"22\" height=\"95\" rx=\"4\" class=\"fill-turf\"></rect></g> <line x1=\"16\" y1=\"140\" x2=\"184\" y2=\"140\" class=\"stroke-ink\" stroke-width=\"4\" stroke-linecap=\"round\"></line></svg><h3 class=\"font-oswald text-xl text-ink mt-6\">RANKED BY SCORE</h3></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"news\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"text-center mb-12\"><span class=\"font-oswald text-xs tracking-widest text-nutmeg font-semibold\">Automatic</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">News Feed &amp; AI Roasts</h2><p class=\"text-ink/60 max-w-lg mx-auto font-body\">Every group gets a running News feed — no writing required.</p></div><div class=\"grid sm:grid-cols-3 gap-6\"><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -162,7 +250,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Player Joins</h3><p class=\"text-ink/60 font-body text-sm\">A signing-style blurb announces every new roster addition.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Player Joins</h3><p class=\"text-ink/60 font-body text-sm\">A signing-style blurb announces every new roster addition.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -170,7 +258,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Match Reported</h3><p class=\"text-ink/60 font-body text-sm\">Every logged match gets a satirical write-up in the group's News feed.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Match Reported</h3><p class=\"text-ink/60 font-body text-sm\">Every logged match gets a satirical write-up in the group's News feed.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -178,7 +266,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">AI Writes It Up</h3><p class=\"text-ink/60 font-body text-sm\">Each player profile also gets an AI-generated \"roast\" — admins can regenerate it anytime.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"sharing\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-3xl mx-auto px-4 text-center\"><div class=\"w-12 h-12 rounded-full bg-turf/10 text-turf flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">AI Writes It Up</h3><p class=\"text-ink/60 font-body text-sm\">Each player profile also gets an AI-generated \"roast\" — admins can regenerate it anytime.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"sharing\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-3xl mx-auto px-4 text-center\"><div class=\"w-12 h-12 rounded-full bg-turf/10 text-turf flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -186,7 +274,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mb-4\">Share Public Links</h2><p class=\"text-ink/60 font-body mb-6\">Leaderboards, player profiles, and match reports are all public, read-only pages — send the link to anyone, no account required on their end.</p><code class=\"font-mono text-xs bg-base-200 px-3 py-2 rounded inline-block text-pitch\">nutmeg.example.com/groups/&lt;id&gt;/leaderboard</code></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"admin\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"text-center mb-12\"><span class=\"font-oswald text-xs tracking-widest text-turf font-semibold\">For Admins</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Running the Group</h2><p class=\"text-ink/60 max-w-lg mx-auto font-body\">Group admins have a few extra tools for keeping the roster and feed in shape.</p></div><div class=\"grid sm:grid-cols-2 lg:grid-cols-4 gap-6\"><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mb-4\">Share Public Links</h2><p class=\"text-ink/60 font-body mb-6\">Leaderboards, player profiles, and match reports are all public, read-only pages — send the link to anyone, no account required on their end.</p><code class=\"font-mono text-xs bg-base-200 px-3 py-2 rounded inline-block text-pitch\">nutmeg.example.com/groups/&lt;id&gt;/leaderboard</code></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section id=\"admin\" class=\"py-16 sm:py-20 scroll-mt-28\"><div class=\"max-w-5xl mx-auto px-4\"><div class=\"text-center mb-12\"><span class=\"font-oswald text-xs tracking-widest text-turf font-semibold\">For Admins</span><h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Running the Group</h2><p class=\"text-ink/60 max-w-lg mx-auto font-body\">Group admins have a few extra tools for keeping the roster and feed in shape.</p></div><div class=\"grid sm:grid-cols-2 lg:grid-cols-4 gap-6\"><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-pitch text-chalk flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -194,7 +282,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Promote / Demote</h3><p class=\"text-ink/60 font-body text-sm\">Make another player an admin, or step someone back to member.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Promote / Demote</h3><p class=\"text-ink/60 font-body text-sm\">Make another player an admin, or step someone back to member.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-turf text-chalk flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -202,7 +290,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Edit the Roster</h3><p class=\"text-ink/60 font-body text-sm\">Update player details or positions, or remove a player.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-nutmeg text-chalk flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Edit the Roster</h3><p class=\"text-ink/60 font-body text-sm\">Update player details or positions, or remove a player.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-nutmeg text-chalk flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -210,7 +298,7 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Approve Join Requests</h3><p class=\"text-ink/60 font-body text-sm\">Review and approve or reject requests to join the group.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Approve Join Requests</h3><p class=\"text-ink/60 font-body text-sm\">Review and approve or reject requests to join the group.</p></div><div class=\"text-center\"><div class=\"w-12 h-12 rounded-full bg-gold text-ink flex items-center justify-center mx-auto mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -218,22 +306,22 @@ func Help(isLoggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Regenerate AI Content</h3><p class=\"text-ink/60 font-body text-sm\">Not happy with a roast or match report? Regenerate it on demand.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section class=\"py-16 sm:py-20 text-center\"><div class=\"max-w-4xl mx-auto px-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</div><h3 class=\"font-oswald text-lg font-semibold text-pitch mb-2\">Regenerate AI Content</h3><p class=\"text-ink/60 font-body text-sm\">Not happy with a roast or match report? Regenerate it on demand.</p></div></div></div></section><div class=\"max-w-5xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"section-divider-dashed\"></div></div><section class=\"py-16 sm:py-20 text-center\"><div class=\"max-w-4xl mx-auto px-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if isLoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Ready to Get Back In?</h2><p class=\"text-ink/60 max-w-xl mx-auto font-body mb-8\">Head back to your dashboard to log the next match.</p><a href=\"/dashboard\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-8 py-3.5 text-lg font-black rounded-sm shadow-md inline-block\">GO TO DASHBOARD</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Ready to Get Back In?</h2><p class=\"text-ink/60 max-w-xl mx-auto font-body mb-8\">Head back to your dashboard to log the next match.</p><a href=\"/dashboard\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-8 py-3.5 text-lg font-black rounded-sm shadow-md inline-block\">GO TO DASHBOARD</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Ready to Start Tracking?</h2><p class=\"text-ink/60 max-w-xl mx-auto font-body mb-8\">Free forever, self-hosted. Create your group and log your first match today.</p><div class=\"flex flex-col sm:flex-row gap-4 justify-center\"><a href=\"/register\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-8 py-3.5 text-lg font-black rounded-sm shadow-md inline-block\">CREATE A GROUP</a> <a href=\"/login\" class=\"font-oswald border-2 border-pitch text-pitch hover:bg-pitch hover:text-chalk px-6 py-3.5 rounded-sm inline-block\">SIGN IN</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<h2 class=\"font-oswald text-3xl sm:text-4xl font-bold text-pitch mt-2 mb-4\">Ready to Start Tracking?</h2><p class=\"text-ink/60 max-w-xl mx-auto font-body mb-8\">Free forever, self-hosted. Create your group and log your first match today.</p><div class=\"flex flex-col sm:flex-row gap-4 justify-center\"><a href=\"/register\" class=\"font-oswald bg-turf text-ink hover:bg-gold px-8 py-3.5 text-lg font-black rounded-sm shadow-md inline-block\">CREATE A GROUP</a> <a href=\"/login\" class=\"font-oswald border-2 border-pitch text-pitch hover:bg-pitch hover:text-chalk px-6 py-3.5 rounded-sm inline-block\">SIGN IN</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></section></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</div></section></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

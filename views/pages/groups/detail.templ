@@ -467,9 +467,9 @@ templ leaderboardTable(groupID string, sortBaseURL string, leaderboard []Leaderb
 							</td>
 							<td class="p-3 font-medium">
 								<a href={ templ.URL("/groups/" + groupID + "/players/" + p.ID) } class="hover:text-turf hover:underline">{ p.Name }</a>
-								if p.Position != "" {
-									<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5 ml-1">{ p.Position }</span>
-								}
+							if p.Position != "" {
+								<span class={ "text-[10px] font-oswald rounded px-1 py-0.5 ml-1", components.PositionBadge(p.Position) }>{ p.Position }</span>
+							}
 							</td>
 							<td class="p-3 text-center font-mono text-ink/70">{ p.Matches }</td>
 							<td class="p-3 text-center font-mono text-turf font-bold">{ p.Wins }</td>
@@ -663,7 +663,7 @@ templ RosterRow(g *model.Group, m repository.MemberInfo, isAdmin bool, isOwner b
 					for _, p := range components.PlayerPositions {
 						<button
 							type="button"
-							class={ positionPillClass(p.Value, stringPtrValue(m.Position)) }
+							class={ components.PositionPillClass(p.Value, stringPtrValue(m.Position)) }
 							aria-label={ "Set " + m.Name + "'s position to " + p.Label }
 							hx-post={ templ.URL("/groups/" + g.ID + "/members/" + m.ID + "/position/" + p.Value + viewParam(fullWidth)) }
 							hx-target="closest tr"
@@ -672,7 +672,7 @@ templ RosterRow(g *model.Group, m repository.MemberInfo, isAdmin bool, isOwner b
 					}
 				</div>
 			} else if m.Position != nil && *m.Position != "" {
-				<span class="text-[10px] font-oswald text-turf bg-turf/10 rounded px-1 py-0.5">{ *m.Position }</span>
+				<span class={ "text-[10px] font-oswald rounded px-1 py-0.5", components.PositionBadge(*m.Position) }>{ *m.Position }</span>
 			}
 		</td>
 		<td class="p-2">
@@ -708,16 +708,6 @@ templ RosterRow(g *model.Group, m repository.MemberInfo, isAdmin bool, isOwner b
 			</div>
 		</td>
 	</tr>
-}
-
-// positionPillClass highlights the active pill in a roster row's inline
-// position picker — filled for the currently-set code, muted-but-tappable
-// for the other three.
-func positionPillClass(code, active string) string {
-	if code == active {
-		return "px-1.5 py-1 bg-turf text-chalk transition-colors"
-	}
-	return "px-1.5 py-1 text-ink/40 hover:bg-turf/10 hover:text-turf transition-colors"
 }
 
 // viewParam appends ?view=full to a roster-mutation URL when the roster is
