@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -31,7 +32,12 @@ func NewMatchHandler(auth *ezauth.EzAuth, svc *service.MatchService, repo *repos
 // this must never block or fail the match save that already succeeded.
 func (h *MatchHandler) enqueueCommentary(ctx context.Context, matchID string, playerIDs []string) {
 	for _, playerID := range playerIDs {
-		_, _ = h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{GroupPlayerID: playerID, MatchID: &matchID}, nil)
+		res, err := h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{GroupPlayerID: playerID, MatchID: &matchID}, nil)
+		if err != nil {
+			slog.Error("enqueue commentary generation failed", "group_player_id", playerID, "match_id", matchID, "error", err)
+			continue
+		}
+		slog.Debug("enqueued commentary generation", "group_player_id", playerID, "match_id", matchID, "job_id", res.Job.ID)
 	}
 }
 

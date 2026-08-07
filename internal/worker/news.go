@@ -2,7 +2,7 @@ package worker
 
 import (
 	"context"
-	"log/slog"
+	"time"
 
 	"github.com/riverqueue/river"
 
@@ -28,13 +28,12 @@ type GenerateGroupNewsWorker struct {
 }
 
 func (w *GenerateGroupNewsWorker) Work(ctx context.Context, job *river.Job[GenerateGroupNewsArgs]) error {
-	if err := w.Service.GenerateNews(ctx, job.Args.NewsID, job.Args.EventKind, job.Args.SubjectID); err != nil {
-		// Same discipline as commentary generation: log and let River's
-		// retry/backoff take over. The news row already has usable fallback
-		// content, so a failure here never leaves a blank feed.
-		slog.Error("generate group news failed", "news_id", job.Args.NewsID, "error", err)
-		return err
-	}
-	slog.Debug("generated group news", "news_id", job.Args.NewsID)
-	return nil
+	logJobStarted(job, "news_id", job.Args.NewsID, "event_kind", job.Args.EventKind)
+	started := time.Now()
+	err := w.Service.GenerateNews(ctx, job.Args.NewsID, job.Args.EventKind, job.Args.SubjectID)
+	// Same discipline as commentary generation: log and let River's
+	// retry/backoff take over. The news row already has usable fallback
+	// content, so a failure here never leaves a blank feed.
+	logJobOutcome(job, started, err, "news_id", job.Args.NewsID, "event_kind", job.Args.EventKind)
+	return err
 }

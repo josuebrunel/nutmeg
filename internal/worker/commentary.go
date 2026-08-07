@@ -6,7 +6,7 @@ package worker
 
 import (
 	"context"
-	"log/slog"
+	"time"
 
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/rivertype"
@@ -59,14 +59,13 @@ type GenerateCommentaryWorker struct {
 }
 
 func (w *GenerateCommentaryWorker) Work(ctx context.Context, job *river.Job[GenerateCommentaryArgs]) error {
-	if err := w.Service.Generate(ctx, job.Args.GroupPlayerID, job.Args.MatchID); err != nil {
-		// Generation failures (LLM unreachable, output failed validation)
-		// are logged and left to River's normal retry/backoff — they must
-		// never take down match creation, which already succeeded by the
-		// time this job runs.
-		slog.Error("generate commentary failed", "group_player_id", job.Args.GroupPlayerID, "error", err)
-		return err
-	}
-	slog.Debug("generated commentary", "group_player_id", job.Args.GroupPlayerID)
-	return nil
+	logJobStarted(job, "group_player_id", job.Args.GroupPlayerID)
+	started := time.Now()
+	err := w.Service.Generate(ctx, job.Args.GroupPlayerID, job.Args.MatchID)
+	// Generation failures (LLM unreachable, output failed validation) are
+	// logged and left to River's normal retry/backoff — they must never
+	// take down match creation, which already succeeded by the time this
+	// job runs.
+	logJobOutcome(job, started, err, "group_player_id", job.Args.GroupPlayerID)
+	return err
 }

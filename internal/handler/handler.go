@@ -117,9 +117,12 @@ func RecordNews(ctx context.Context, repo *repository.Repository, jobs JobEnqueu
 		slog.Error("record group news failed", "group_id", groupID, "kind", kind, "error", err)
 		return
 	}
-	if _, err := jobs.Insert(ctx, worker.GenerateGroupNewsArgs{NewsID: newsID, EventKind: kind, SubjectID: subjectID}, nil); err != nil {
+	res, err := jobs.Insert(ctx, worker.GenerateGroupNewsArgs{NewsID: newsID, EventKind: kind, SubjectID: subjectID}, nil)
+	if err != nil {
 		slog.Error("enqueue group news generation failed", "news_id", newsID, "error", err)
+		return
 	}
+	slog.Info("enqueued group news generation", "news_id", newsID, "kind", kind, "job_id", res.Job.ID)
 }
 
 // EnqueueEmail enqueues a background job to send an email to one or more
@@ -130,7 +133,10 @@ func EnqueueEmail(ctx context.Context, jobs JobEnqueuer, to []string, subject, b
 	if len(to) == 0 {
 		return
 	}
-	if _, err := jobs.Insert(ctx, worker.SendEmailArgs{To: to, Subject: subject, Body: body}, nil); err != nil {
+	res, err := jobs.Insert(ctx, worker.SendEmailArgs{To: to, Subject: subject, Body: body}, nil)
+	if err != nil {
 		slog.Error("enqueue email failed", "to", to, "subject", subject, "error", err)
+		return
 	}
+	slog.Info("enqueued email", "to", to, "subject", subject, "job_id", res.Job.ID)
 }

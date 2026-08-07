@@ -381,6 +381,7 @@ func (h *GroupHandler) RegenerateMatchReport(c *echo.Context) error {
 	}
 
 	if _, err := h.jobs.Insert(ctx, worker.GenerateGroupNewsArgs{NewsID: news.ID, EventKind: "match_logged", SubjectID: matchID}, nil); err != nil {
+		slog.Error("enqueue match report regeneration failed", "match_id", matchID, "news_id", news.ID, "error", err)
 		h.auth.Handler.SetFlash(ctx, "error", "Could not start regeneration: "+err.Error())
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
@@ -523,6 +524,7 @@ func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 	}
 
 	if _, err := h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{GroupPlayerID: memberID}, nil); err != nil {
+		slog.Error("enqueue commentary regeneration failed", "group_player_id", memberID, "error", err)
 		h.auth.Handler.SetFlash(ctx, "error", "Could not start regeneration: "+err.Error())
 		return c.Redirect(http.StatusFound, profileURL)
 	}

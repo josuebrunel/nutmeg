@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -77,10 +78,13 @@ func (s *CommentaryService) Generate(ctx context.Context, groupPlayerID string, 
 
 	prompt := s.BuildPrompt(member.Name, member.Position, *stats, history, isTopScorer, isTopPasser, isTopDefender)
 
+	started := time.Now()
 	raw, err := s.llm.Generate(ctx, prompt)
 	if err != nil {
+		slog.Debug("commentary: llm generate failed", "group_player_id", groupPlayerID, "model", s.llm.Model(), "duration", time.Since(started))
 		return fmt.Errorf("commentary: generate: %w", err)
 	}
+	slog.Debug("commentary: llm generate completed", "group_player_id", groupPlayerID, "model", s.llm.Model(), "duration", time.Since(started), "chars", len(raw))
 
 	content, err := validateRoast(raw)
 	if err != nil {

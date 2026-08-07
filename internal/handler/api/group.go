@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/josuebrunel/ezauth"
@@ -623,6 +624,7 @@ func (h *GroupHandler) RegenerateCommentary(c *echo.Context) error {
 	}
 
 	if _, err := h.jobs.Insert(ctx, worker.GenerateCommentaryArgs{GroupPlayerID: memberID}, nil); err != nil {
+		slog.Error("enqueue commentary regeneration failed", "group_player_id", memberID, "error", err)
 		return writeError(c, err)
 	}
 	return c.NoContent(http.StatusAccepted)

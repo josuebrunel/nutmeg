@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -50,10 +51,13 @@ func (s *NewsService) GenerateNews(ctx context.Context, newsID, kind, subjectID 
 		return fmt.Errorf("news: build prompt: %w", err)
 	}
 
+	started := time.Now()
 	raw, err := s.llm.Generate(ctx, prompt)
 	if err != nil {
+		slog.Debug("news: llm generate failed", "news_id", newsID, "kind", kind, "model", s.llm.Model(), "duration", time.Since(started))
 		return fmt.Errorf("news: generate: %w", err)
 	}
+	slog.Debug("news: llm generate completed", "news_id", newsID, "kind", kind, "model", s.llm.Model(), "duration", time.Since(started), "chars", len(raw))
 
 	content, err := validateGeneratedText(raw, maxLen)
 	if err != nil {

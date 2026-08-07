@@ -2,7 +2,7 @@ package worker
 
 import (
 	"context"
-	"log/slog"
+	"time"
 
 	"github.com/riverqueue/river"
 )
@@ -32,10 +32,9 @@ type SendEmailWorker struct {
 }
 
 func (w *SendEmailWorker) Work(ctx context.Context, job *river.Job[SendEmailArgs]) error {
-	if err := w.Client.Send(ctx, job.Args.To, job.Args.Subject, job.Args.Body); err != nil {
-		slog.Error("send email failed", "to", job.Args.To, "subject", job.Args.Subject, "error", err)
-		return err
-	}
-	slog.Debug("sent email", "to", job.Args.To, "subject", job.Args.Subject)
-	return nil
+	logJobStarted(job, "subject", job.Args.Subject)
+	started := time.Now()
+	err := w.Client.Send(ctx, job.Args.To, job.Args.Subject, job.Args.Body)
+	logJobOutcome(job, started, err, "to", job.Args.To, "subject", job.Args.Subject)
+	return err
 }
