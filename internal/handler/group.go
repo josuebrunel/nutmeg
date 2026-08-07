@@ -157,21 +157,13 @@ func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID
 			return nil, err
 		}
 		joinRequests := h.joinRequestEntries(ctx, g.ID, canEdit)
-		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
-		if newsErr != nil {
-			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
-		}
-		return groups.RosterTab(g, members, canEdit, isOwner, ownerEmail, joinRequests, mapNewsEntries(news, appmw.LocationFromContext(c))), nil
+		return groups.RosterTab(g, members, canEdit, isOwner, ownerEmail, joinRequests), nil
 	case "matches":
 		matches, matchErr := h.matchSvc.ListByGroup(ctx, g.ID)
 		if matchErr != nil {
 			slog.Error("failed to list matches", "group_id", g.ID, "error", matchErr)
 		}
-		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
-		if newsErr != nil {
-			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
-		}
-		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c)), mapNewsEntries(news, appmw.LocationFromContext(c))), nil
+		return groups.MatchesTab(g.ID, mapMatchEntries(matches, appmw.LocationFromContext(c))), nil
 	case "news":
 		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, newsFullLimit)
 		if newsErr != nil {
@@ -184,11 +176,7 @@ func (h *GroupHandler) groupTabComponent(c *echo.Context, g *model.Group, userID
 		if lbErr != nil {
 			slog.Error("failed to get leaderboard", "group_id", g.ID, "error", lbErr)
 		}
-		news, newsErr := h.repo.ListGroupNews(ctx, g.ID, 20)
-		if newsErr != nil {
-			slog.Error("failed to list group news", "group_id", g.ID, "error", newsErr)
-		}
-		return groups.LeaderboardTab(g.ID, sortBy, mapLeaderboardEntries(leaderboard), mapNewsEntries(news, appmw.LocationFromContext(c))), nil
+		return groups.LeaderboardTab(g.ID, sortBy, mapLeaderboardEntries(leaderboard)), nil
 	}
 }
 
@@ -736,8 +724,8 @@ func (h *GroupHandler) requireGroupEdit(c *echo.Context, userID, redirectTo stri
 	return g, nil, false
 }
 
-// RosterFull renders the Roster tab (tab bar + complete roster + activity
-// feed) — hit when the Roster tab button is clicked.
+// RosterFull renders the Roster tab (tab bar + complete roster) — hit when
+// the Roster tab button is clicked.
 func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
 	if done {
@@ -761,8 +749,8 @@ func (h *GroupHandler) RosterFull(c *echo.Context) error {
 	return render.Component(c, tabContent)
 }
 
-// MatchesFull renders the Recent Matches tab (tab bar + complete match list
-// + news feed) — hit when the Recent Matches tab button is clicked.
+// MatchesFull renders the Recent Matches tab (tab bar + complete match list)
+// — hit when the Recent Matches tab button is clicked.
 func (h *GroupHandler) MatchesFull(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
 	if done {

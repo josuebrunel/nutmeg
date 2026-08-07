@@ -132,22 +132,19 @@ templ GroupTabs(groupID string, active string) {
 	</div>
 }
 
-templ LeaderboardTab(groupID string, sortBy string, leaderboard []LeaderboardEntry, news []NewsEntry) {
+templ LeaderboardTab(groupID string, sortBy string, leaderboard []LeaderboardEntry) {
 	@GroupTabs(groupID, "leaderboard")
 	@LeaderboardSection(groupID, sortBy, leaderboard, true)
-	@NewsFeed(groupID, news)
 }
 
-templ RosterTab(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry, news []NewsEntry) {
+templ RosterTab(g *model.Group, members []repository.MemberInfo, isAdmin bool, isOwner bool, ownerEmail string, joinRequests []JoinRequestEntry) {
 	@GroupTabs(g.ID, "roster")
 	@RosterColumn(g, members, isAdmin, isOwner, ownerEmail, joinRequests, true)
-	@NewsFeed(g.ID, news)
 }
 
-templ MatchesTab(groupID string, matches []MatchEntry, news []NewsEntry) {
+templ MatchesTab(groupID string, matches []MatchEntry) {
 	@GroupTabs(groupID, "matches")
 	@RecentMatchesColumn(groupID, matches, true)
-	@NewsFeed(groupID, news)
 }
 
 templ NewsTab(groupID string, news []NewsEntry) {
