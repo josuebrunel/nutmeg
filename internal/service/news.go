@@ -23,6 +23,7 @@ const maxMatchReportLength = 1800
 type NewsRepository interface {
 	GetMemberByID(ctx context.Context, memberID string) (*model.GroupPlayer, error)
 	GetMatchDetail(ctx context.Context, matchID string) (*repository.MatchDetail, error)
+	GetMatchPlayers(ctx context.Context, matchID string) ([]repository.MatchPlayerRow, error)
 	GetMatchGoals(ctx context.Context, matchID string) (map[string]int, error)
 	GetMatchAssists(ctx context.Context, matchID string) (map[string]int, error)
 	GetMatchDefenders(ctx context.Context, matchID string) (teamADefenders, teamBDefenders []string, err error)
@@ -95,17 +96,36 @@ func (s *NewsService) buildPrompt(ctx context.Context, kind, subjectID string) (
 		if err != nil {
 			return "", 0, fmt.Errorf("resolve player names: %w", err)
 		}
+		players, err := s.repo.GetMatchPlayers(ctx, subjectID)
+		if err != nil {
+			return "", 0, fmt.Errorf("fetch match players: %w", err)
+		}
+		teamAScorers, teamAAssisters, teamBScorers, teamBAssisters := s.groupEventsByTeam(players, match.HomeTeamID, goals, assists, names)
 		teamADefenders, teamBDefenders, err := s.repo.GetMatchDefenders(ctx, subjectID)
 		if err != nil {
 			return "", 0, fmt.Errorf("fetch defenders: %w", err)
 		}
 		prompt := buildMatchReportPrompt(match.TeamAName, match.TeamBName, match.ScoreA, match.ScoreB,
-			formatStatLines(goals, names, "goal"), formatStatLines(assists, names, "assist"),
-			teamADefenders, teamBDefenders)
+			teamAScorers, teamAAssisters, teamBScorers, teamBAssisters, teamADefenders, teamBDefenders)
 		return prompt, maxMatchReportLength, nil
 	default:
 		return "", 0, fmt.Errorf("unknown news kind %q", kind)
 	}
+}
+
+// groupEventsByTeam attributes every scorer and assister to the team they
+// played for in the match, using match_players as the authoritative
+// player->team map (a player is on the home side when their team_id equals
+// the match's home team). Returns the four per-side "Name (n goals)" /
+// "Name (n assists)" slices, each ordered by count descending then name.
+func (s *NewsService) groupEventsByTeam(players []repository.MatchPlayerRow, homeTeamID string, goals, assists map[string]int, names map[string]string) (teamAScorers, teamAAssisters, teamBScorers, teamBAssisters []string) {
+	isHome := make(map[string]bool, len(players))
+	for _, p := range players {
+		isHome[p.PlayerID] = p.TeamID == homeTeamID
+	}
+	teamAScorers, teamBScorers = splitEventsByTeam(goals, names, isHome, "goal")
+	teamAAssisters, teamBAssisters = splitEventsByTeam(assists, names, isHome, "assist")
+	return teamAScorers, teamAAssisters, teamBScorers, teamBAssisters
 }
 
 // resolvePlayerNames looks up the display name of every player appearing in
@@ -136,24 +156,41 @@ func (s *NewsService) resolvePlayerNames(ctx context.Context, goals, assists map
 	return names, nil
 }
 
-// formatStatLines turns a playerID -> count map into sorted "Name (n
-// noun[s])" lines, e.g. "Chris (2 goals)" — sorted by count descending then
-// name, so the prompt's most notable performers come first.
-func formatStatLines(counts map[string]int, names map[string]string, noun string) []string {
-	type row struct {
-		name  string
-		count int
-	}
-	rows := make([]row, 0, len(counts))
+// splitEventsByTeam buckets a playerID->count map into "Name (n noun[s])"
+// lines for the home and away sides, sorted by count descending then name.
+func splitEventsByTeam(counts map[string]int, names map[string]string, isHome map[string]bool, noun string) (teamA, teamB []string) {
+	var teamARows, teamBRows []statRow
 	for playerID, count := range counts {
-		rows = append(rows, row{name: names[playerID], count: count})
+		row := statRow{name: names[playerID], count: count}
+		if isHome[playerID] {
+			teamARows = append(teamARows, row)
+		} else {
+			teamBRows = append(teamBRows, row)
+		}
 	}
+	sortStatRows(teamARows)
+	sortStatRows(teamBRows)
+	return statLines(teamARows, noun), statLines(teamBRows, noun)
+}
+
+// statRow is a single player's goal or assist count, used for formatting.
+type statRow struct {
+	name  string
+	count int
+}
+
+// sortStatRows orders rows by count descending, then by name.
+func sortStatRows(rows []statRow) {
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].count != rows[j].count {
 			return rows[i].count > rows[j].count
 		}
 		return rows[i].name < rows[j].name
 	})
+}
+
+// statLines renders rows as "Name (n noun[s])" lines, e.g. "Chris (2 goals)".
+func statLines(rows []statRow, noun string) []string {
 	lines := make([]string, 0, len(rows))
 	for _, r := range rows {
 		plural := noun + "s"
@@ -179,16 +216,12 @@ Write only the announcement itself, nothing else - no preamble, no quotation mar
 }
 
 // buildMatchReportPrompt is pure — built strictly from the real score,
-// scorers, assisters, and defenders, no invented players or events.
-func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, scorers, assisters, teamADefenders, teamBDefenders []string) string {
-	scorerLine := "No goals were scored by anyone listed."
-	if len(scorers) > 0 {
-		scorerLine = "Goal scorers: " + strings.Join(scorers, ", ")
-	}
-	assisterLine := "No assists were recorded."
-	if len(assisters) > 0 {
-		assisterLine = "Assists: " + strings.Join(assisters, ", ")
-	}
+// per-team scorers/assisters, and defenders, no invented players or events.
+// Each scorer/assister is attributed to exactly one team, so the model never
+// has to guess (and risk getting wrong) which side a player was on.
+func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, teamAScorers, teamAAssisters, teamBScorers, teamBAssisters, teamADefenders, teamBDefenders []string) string {
+	offenseLine := formatTeamOffense(teamAName, teamAScorers, teamAAssisters) + "\n" +
+		formatTeamOffense(teamBName, teamBScorers, teamBAssisters)
 
 	defenseLine := "No clean sheets this match."
 	var cleanSheets []string
@@ -204,15 +237,32 @@ func buildMatchReportPrompt(teamAName, teamBName string, scoreA, scoreB int, sco
 
 	return fmt.Sprintf(`You are a satirical sports journalist writing a funny, over-the-top "match report" for a casual pickup soccer group's website.
 
-Write a short punchy headline on its own first line, then 2-4 short paragraphs of exaggerated, comedic sports-journalism prose recapping this match. Base every claim ONLY on the real data below — do not invent any player, event, or stat beyond what's listed. If no goals or assists are listed for a side, do not invent any. A clean sheet is a real defensive achievement — when one is listed below, give the defenders credit for it, don't only focus on goal scorers. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
+Write a short punchy headline on its own first line, then 2-4 short paragraphs of exaggerated, comedic sports-journalism prose recapping this match. Base every claim ONLY on the real data below — do not invent any player, event, or stat beyond what's listed. If a team's goals or assists are listed as none, do not invent any for that side. A clean sheet is a real defensive achievement — when one is listed below, give the defenders credit for it, don't only focus on goal scorers. Keep it good-natured banter between friends: never cruel, never about anything other than their soccer performance.
+
+Goal scorers and assist providers are grouped below under the exact team they played for, and a player belongs to exactly one team — attribute each player only to the team they're listed under, never the other team.
 
 Final score: %s %d - %d %s
 %s
 %s
-%s
 
 Write only the headline and article itself, nothing else - no preamble, no quotation marks.`,
-		teamAName, scoreA, scoreB, teamBName, scorerLine, assisterLine, defenseLine)
+		teamAName, scoreA, scoreB, teamBName, offenseLine, defenseLine)
+}
+
+// formatTeamOffense renders one team's scoring and assisting data as a
+// labeled "Name (goals: ...; assists: ...)" line, stating explicitly when a
+// side scored no goals / recorded no assists so the model doesn't invent a
+// player to fill a blank side.
+func formatTeamOffense(teamName string, scorers, assisters []string) string {
+	goalPart := "goals: none scored"
+	if len(scorers) > 0 {
+		goalPart = "goals: " + strings.Join(scorers, ", ")
+	}
+	assistPart := "assists: none recorded"
+	if len(assisters) > 0 {
+		assistPart = "assists: " + strings.Join(assisters, ", ")
+	}
+	return teamName + " (" + goalPart + "; " + assistPart + ")"
 }
 
 // MatchReportRegenerationCooldown is the minimum time between
