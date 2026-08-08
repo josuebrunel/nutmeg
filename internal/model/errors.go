@@ -13,4 +13,8 @@ var (
 
 	ErrAlreadyMember         = errors.New("you're already a member of this group")
 	ErrRequestAlreadyPending = errors.New("you already have a pending request to join this group")
+
+	ErrOAuthPasswordChange      = errors.New("password can't be changed for an account linked to an OAuth provider")
+	ErrPasswordMismatch         = errors.New("new passwords do not match")
+	ErrCurrentPasswordIncorrect = errors.New("current password is incorrect")
 )

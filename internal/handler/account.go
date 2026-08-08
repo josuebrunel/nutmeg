@@ -6,18 +6,20 @@ import (
 	"strings"
 
 	"github.com/josuebrunel/ezauth"
-	ezauthservice "github.com/josuebrunel/ezauth/pkg/service"
 	"github.com/labstack/echo/v5"
 
+	"nutmeg/internal/model"
+	"nutmeg/internal/service"
 	"nutmeg/views/pages/account"
 )
 
 type AccountHandler struct {
-	auth *ezauth.EzAuth
+	auth       *ezauth.EzAuth
+	accountSvc *service.AccountService
 }
 
-func NewAccountHandler(auth *ezauth.EzAuth) *AccountHandler {
-	return &AccountHandler{auth: auth}
+func NewAccountHandler(auth *ezauth.EzAuth, accountSvc *service.AccountService) *AccountHandler {
+	return &AccountHandler{auth: auth, accountSvc: accountSvc}
 }
 
 func (h *AccountHandler) Edit(c *echo.Context) error {
@@ -99,37 +101,19 @@ func (h *AccountHandler) UpdatePassword(c *echo.Context) error {
 		return nil
 	}
 
-	user, err := h.auth.Repo.UserGetByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	if user.IsOAuth() {
-		h.auth.Handler.SetFlash(ctx, "error", "Password can't be changed for an account linked to an OAuth provider")
-		return c.Redirect(http.StatusFound, "/account")
-	}
-
-	currentPassword := c.FormValue("current_password")
-	newPassword := c.FormValue("new_password")
-	confirmPassword := c.FormValue("new_password_confirm")
-
-	if newPassword != confirmPassword {
-		h.auth.Handler.SetFlash(ctx, "error", "New passwords do not match")
-		return c.Redirect(http.StatusFound, "/account")
-	}
-
-	if _, err := h.auth.Service.UserAuthenticate(ctx, ezauthservice.RequestBasicAuth{Email: user.Email, Password: currentPassword}); err != nil {
-		slog.Warn("password change: current password incorrect", "user_id", userID)
-		h.auth.Handler.SetFlash(ctx, "error", "Current password is incorrect")
-		return c.Redirect(http.StatusFound, "/account")
-	}
-
-	if _, err := h.auth.Service.UserUpdatePassword(ctx, user, newPassword); err != nil {
-		slog.Error("failed to update password", "user_id", userID, "error", err)
+	err := h.accountSvc.ChangePassword(ctx, userID,
+		c.FormValue("current_password"), c.FormValue("new_password"), c.FormValue("new_password_confirm"))
+	switch err {
+	case nil:
+		h.auth.Handler.SetFlash(ctx, "success", "Password updated")
+	case model.ErrOAuthPasswordChange, model.ErrPasswordMismatch:
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
-		return c.Redirect(http.StatusFound, "/account")
+	case model.ErrCurrentPasswordIncorrect:
+		slog.Warn("password change: current password incorrect", "user_id", userID)
+		h.auth.Handler.SetFlash(ctx, "error", err.Error())
+	default:
+		slog.Error("failed to update password", "user_id", userID, "error", err)
+		h.auth.Handler.SetFlash(ctx, "error", "Could not update your password. Please try again.")
 	}
-
-	h.auth.Handler.SetFlash(ctx, "success", "Password updated")
 	return c.Redirect(http.StatusFound, "/account")
 }
