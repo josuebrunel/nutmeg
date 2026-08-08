@@ -38,7 +38,7 @@ type Handler struct {
 func New(auth *ezauth.EzAuth, repo *repository.Repository, commentarySvc *service.CommentaryService, newsSvc *service.NewsService, jobs JobEnqueuer) *Handler {
 	groupSvc := service.NewGroupService(repo, auth.Repo)
 	matchSvc := service.NewMatchService(repo, repo)
-	accountSvc := service.NewAccountService(auth.Repo, auth.Service)
+	accountSvc := service.NewAccountService(repo, auth.Repo, auth.Service)
 	return &Handler{
 		auth:    auth,
 		repo:    repo,

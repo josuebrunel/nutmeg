@@ -6,6 +6,7 @@ import (
 
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
+	"github.com/stephenafamo/bob/dialect/psql/dm"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 	"github.com/stephenafamo/bob/dialect/psql/um"
@@ -74,6 +75,20 @@ func (r *Repository) PendingJoinGroupIDs(ctx context.Context, userID string) ([]
 		sm.Distinct(),
 	)
 	return bob.All[string](ctx, r.db, query, scan.SingleColumnMapper[string])
+}
+
+// DeletePendingJoinRequestsByUser cancels every pending join request userID
+// has open, across all groups — used when the user's account is being
+// deleted, so an admin never lands on a request there's no one left to
+// approve.
+func (r *Repository) DeletePendingJoinRequestsByUser(ctx context.Context, userID string) error {
+	query := psql.Delete(
+		dm.From("group_join_requests"),
+		dm.Where(psql.Quote("user_id").EQ(psql.Arg(userID))),
+		dm.Where(psql.Quote("status").EQ(psql.Arg("pending"))),
+	)
+	_, err := bob.Exec(ctx, r.db, query)
+	return err
 }
 
 func (r *Repository) UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error {

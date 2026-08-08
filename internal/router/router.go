@@ -17,6 +17,7 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	app.GET("/account", h.Account.Edit)
 	app.POST("/account", h.Account.Update)
 	app.POST("/account/password", h.Account.UpdatePassword)
+	app.POST("/account/delete", h.Account.Delete)
 	app.GET("/groups", h.Group.Index)
 	app.GET("/groups/new", h.Group.New)
 	app.POST("/groups", h.Group.Create)

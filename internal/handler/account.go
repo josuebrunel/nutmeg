@@ -34,10 +34,15 @@ func (h *AccountHandler) Edit(c *echo.Context) error {
 		return err
 	}
 
+	ownedGroupCount, err := h.accountSvc.OwnedGroupCount(ctx, userID)
+	if err != nil {
+		slog.Error("failed to count owned groups", "user_id", userID, "error", err)
+	}
+
 	successMsg := h.auth.GetSuccessMessage(ctx)
 	errMsg := h.auth.GetErrorMessage(ctx)
 
-	return page(c, "My Account", true, "", user.DisplayName(), account.Form(user, successMsg, errMsg))
+	return page(c, "My Account", true, "", user.DisplayName(), account.Form(user, successMsg, errMsg, ownedGroupCount))
 }
 
 func (h *AccountHandler) Update(c *echo.Context) error {
@@ -114,6 +119,32 @@ func (h *AccountHandler) UpdatePassword(c *echo.Context) error {
 	default:
 		slog.Error("failed to update password", "user_id", userID, "error", err)
 		h.auth.Handler.SetFlash(ctx, "error", "Could not update your password. Please try again.")
+	}
+	return c.Redirect(http.StatusFound, "/account")
+}
+
+// Delete permanently removes the current user's account (see
+// AccountService.DeleteAccount for the rules). On success it ends the
+// session the same way the standalone /auth/logout form does — a real
+// browser navigation, not an HTMX swap, since the session itself is going
+// away — then lands the (now logged-out) visitor on the login page.
+func (h *AccountHandler) Delete(c *echo.Context) error {
+	ctx := c.Request().Context()
+	userID, done := requireUserID(c, h.auth)
+	if done {
+		return nil
+	}
+
+	err := h.accountSvc.DeleteAccount(ctx, userID)
+	switch err {
+	case nil:
+		h.auth.Handler.FormLogout(c.Response(), c.Request())
+		return nil
+	case model.ErrOwnsGroups:
+		h.auth.Handler.SetFlash(ctx, "error", err.Error())
+	default:
+		slog.Error("failed to delete account", "user_id", userID, "error", err)
+		h.auth.Handler.SetFlash(ctx, "error", "Could not delete your account. Please try again.")
 	}
 	return c.Redirect(http.StatusFound, "/account")
 }

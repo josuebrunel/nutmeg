@@ -1,11 +1,13 @@
 package account
 
 import (
+	"fmt"
+
 	ezauthmodels "github.com/josuebrunel/ezauth/pkg/db/models"
 	components "nutmeg/views/components"
 )
 
-templ Form(user *ezauthmodels.User, successMsg string, errMsg string) {
+templ Form(user *ezauthmodels.User, successMsg string, errMsg string, ownedGroupCount int) {
 	<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<h2 class="font-oswald text-3xl text-pitch font-bold mb-6">MY ACCOUNT</h2>
 		@components.Alert("error", errMsg)
@@ -72,5 +74,34 @@ templ Form(user *ezauthmodels.User, successMsg string, errMsg string) {
 				</form>
 			</div>
 		}
+		<div class="bg-white p-8 rounded-xl shadow border-2 border-nutmeg mt-8">
+			<h3 class="font-oswald text-xl text-nutmeg font-bold mb-4">DANGER ZONE</h3>
+			if ownedGroupCount > 0 {
+				<p class="font-body text-sm text-ink/70">
+					{ fmt.Sprintf("You own %d group%s. Delete or transfer ", ownedGroupCount, pluralSuffix(ownedGroupCount)) }
+					if ownedGroupCount == 1 {
+						it
+					} else {
+						them
+					}
+					before you can delete your account.
+				</p>
+				<a href="/groups" class="inline-block mt-3 font-oswald text-sm text-pitch hover:text-turf transition-colors">Go to my groups →</a>
+			} else {
+				<p class="font-body text-sm text-ink/70 mb-4">Deleting your account is permanent and can't be undone.</p>
+				<form method="POST" action="/account/delete" onsubmit="return confirm('Delete your account? This cannot be undone.')">
+					<button type="submit" class="w-full font-oswald bg-nutmeg text-chalk hover:bg-red-700 py-3 rounded transition-colors text-lg">DELETE MY ACCOUNT</button>
+				</form>
+			}
+		</div>
 	</div>
+}
+
+// pluralSuffix returns "s" unless n is exactly 1, matching the plain-Go
+// helper convention used for the same purpose in views/pages/groups.
+func pluralSuffix(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }

@@ -17,4 +17,5 @@ var (
 	ErrOAuthPasswordChange      = errors.New("password can't be changed for an account linked to an OAuth provider")
 	ErrPasswordMismatch         = errors.New("new passwords do not match")
 	ErrCurrentPasswordIncorrect = errors.New("current password is incorrect")
+	ErrOwnsGroups               = errors.New("you must delete or transfer your groups before deleting your account")
 )
