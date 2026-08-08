@@ -1,0 +1,130 @@
+package groups
+
+import (
+	"fmt"
+
+	components "nutmeg/views/components"
+)
+
+// FindEntry is one discoverable group on the search page — a lean view of
+// the group plus its roster size, so cards can show "n players" without
+// pulling the whole member list.
+type FindEntry struct {
+	ID          string
+	Name        string
+	Description string
+	Slug        string
+	MemberCount int
+	Pending     bool
+}
+
+// Find is the group discovery page: a search box over public group names
+// with request-to-join actions on each result. The search input re-fetches
+// just #find-results via HTMX (input changed, debounced), so typing never
+// causes a page jump.
+templ Find(query string, results []FindEntry, isLoggedIn bool) {
+	<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<div class="stadium-gradient rounded-xl px-5 py-6 sm:px-8 sm:py-8 mb-8">
+			<h2 class="font-oswald text-3xl sm:text-4xl text-chalk font-bold">FIND A GROUP</h2>
+			<p class="text-chalk/70 font-body mt-1">Search pick-up groups playing near you, then request to join.</p>
+		</div>
+		<form id="find-form" class="mb-6" action="/groups/find" method="get">
+			<input
+				type="text"
+				name="q"
+				value={ query }
+				placeholder="Search by group name…"
+				class="find-search w-full border-2 border-pitch/20 rounded-lg px-4 py-3 text-base"
+				aria-label="Search groups"
+				hx-get="/groups/find"
+				hx-target="#find-results"
+				hx-swap="innerHTML"
+				hx-trigger="input changed delay:300ms"
+				hx-include="this"
+			/>
+		</form>
+		@FindResults(query, results, isLoggedIn)
+	</div>
+}
+
+// FindResults is the swappable search-results fragment (id find-results).
+// Kept separate from Find so the HTMX live-search target can re-render just
+// this block; the surrounding page — header, search box — stays put. An
+// empty query isn't a "type something" prompt: Search (see
+// GroupService.Search) returns every discoverable group for query == "",
+// so this fragment is a browse-all-by-default list that narrows as you
+// type, not a search-only view.
+templ FindResults(query string, results []FindEntry, isLoggedIn bool) {
+	<div id="find-results">
+		if query != "" && len(results) == 0 {
+			<div class="p-8 text-center border-2 border-dashed border-pitch/20 rounded-xl">
+				<p class="text-ink/60 font-body">No groups match "{ query }". Try a different name.</p>
+			</div>
+		} else if len(results) == 0 {
+			<div class="p-8 text-center border-2 border-dashed border-pitch/20 rounded-xl">
+				<p class="text-ink/60 font-body">No groups to discover yet. Check back once more groups join Nutmeg.</p>
+			</div>
+		} else {
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				for _, e := range results {
+					@FindCard(e, isLoggedIn)
+				}
+			</div>
+		}
+	</div>
+}
+
+// FindCard is one search result card — group info on the left, a join
+// action on the right. The action is the deliberate hx-target/swap pairing
+// for the RequestJoin handler: the button lives inside [data-find-action],
+// and a successful request swaps that container for the pending chip, so no
+// navigation happens and the rest of the page (search box, other results)
+// stays intact.
+templ FindCard(e FindEntry, isLoggedIn bool) {
+	<div class="relative block bg-white p-5 sm:p-6 rounded-xl shadow border-2 border-transparent hover:border-gold transition-all group overflow-hidden flex flex-col justify-between">
+		<div>
+			<h3 class="font-oswald text-xl text-pitch mb-1 group-hover:text-gold transition-colors">{ e.Name }</h3>
+			if e.Description != "" {
+				<p class="font-body text-sm text-ink/60">{ e.Description }</p>
+			}
+			<p class="font-body text-xs text-ink/50 mt-2 flex items-center gap-1">
+				@components.IconTeam("size-3.5")
+				{ fmt.Sprintf("%d player%s on the roster", e.MemberCount, pluralSuffix(e.MemberCount)) }
+			</p>
+		</div>
+		<div class="mt-4 pt-3 border-t border-base-200 flex items-center justify-between gap-2">
+			<a href={ templ.URL("/groups/" + e.ID + "/leaderboard") } class="font-oswald text-sm text-pitch hover:text-turf transition-colors flex items-center gap-1">
+				@components.IconTrophy("size-4")
+				View leaderboard
+			</a>
+			<div data-find-action>
+				if e.Pending {
+					@RequestSentChip()
+				} else if isLoggedIn {
+					<button class="font-oswald text-xs bg-turf text-chalk hover:bg-pitch px-3 py-1.5 rounded transition-colors flex items-center gap-1" hx-post={ templ.URL("/groups/" + e.ID + "/join-requests") } hx-target="closest [data-find-action]" hx-swap="outerHTML">@components.IconPlus("size-3.5") Request to join</button>
+				} else {
+					<a href="/login" class="font-oswald text-xs bg-turf text-ink hover:bg-gold px-3 py-1.5 rounded transition-colors">Log in to join</a>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+// RequestSentChip is the "your request is in" state swapped in over a
+// group's request-to-join button by the HTMX response from RequestJoin (and
+// rendered inline for groups the viewer already has a pending request for).
+// It's kept standalone so the handler can render exactly the chip back into
+// [data-find-action] without re-rendering the whole card.
+templ RequestSentChip() {
+	<span class="font-oswald text-xs bg-base-200 text-ink/60 px-3 py-1.5 rounded-full">Request sent</span>
+}
+
+// pluralSuffix returns "s" unless n is exactly 1 — small helper so the
+// roster-size badge reads "11 players" but "1 player", matching the app's
+// plain-Go-helper convention used elsewhere in this package.
+func pluralSuffix(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
+}

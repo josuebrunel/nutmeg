@@ -82,6 +82,46 @@ func (r *Repository) GetGroupsByIDs(ctx context.Context, ids []string) ([]*model
 	return bob.All(ctx, r.db, query, scan.StructMapper[*model.Group]())
 }
 
+// GroupSearchResult is one row of a group-name search: the standard group
+// fields plus the roster count shown on the discovery page's result cards.
+type GroupSearchResult struct {
+	ID          string    `db:"id"`
+	Name        string    `db:"name"`
+	Description *string   `db:"description"`
+	Slug        *string   `db:"slug"`
+	CreatedBy   string    `db:"created_by"`
+	MemberCount int       `db:"member_count"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}
+
+// SearchGroups finds groups whose name matches q (case-insensitive substring
+// — LIKE with explicit '%' wildcards, so caller-provided '%'/'_' also work
+// as a crude wildcard), ordered by name and capped at limit. MemberCount is
+// the group's roster size, for the "n players" badge on search results.
+// group_players is inside the groups schema (not tied to ezauth account
+// tables), so this stays a single-table+count query with no auth scoping —
+// the viewer's own groups are filtered out by the service layer.
+func (r *Repository) SearchGroups(ctx context.Context, q string, limit int) ([]GroupSearchResult, error) {
+	query := psql.Select(
+		sm.Columns(
+			psql.Raw("g.id"),
+			psql.Raw("g.name"),
+			psql.Raw("g.description"),
+			psql.Raw("g.slug"),
+			psql.Raw("g.created_by"),
+			psql.Raw("g.created_at"),
+			psql.Raw("g.updated_at"),
+			psql.Raw("(SELECT COUNT(*) FROM group_players gp WHERE gp.group_id = g.id) AS member_count"),
+		),
+		sm.From("groups g"),
+		sm.Where(psql.Raw("g.name ILIKE ?", "%"+q+"%")),
+		sm.OrderBy("g.name"),
+		sm.Limit(limit),
+	)
+	return bob.All[GroupSearchResult](ctx, r.db, query, scan.StructMapper[GroupSearchResult]())
+}
+
 func (r *Repository) UpdateGroup(ctx context.Context, g *model.Group) error {
 	query := psql.Update(
 		um.Table("groups"),

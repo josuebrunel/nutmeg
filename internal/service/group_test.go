@@ -29,12 +29,16 @@ type mockGroupRepo struct {
 	updateMemberRoleFn     func(ctx context.Context, groupID, memberID, role string) error
 	updateMemberPositionFn func(ctx context.Context, groupID, memberID, position string) error
 	getMemberByEmailFn     func(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
+	groupIDsByEmailFn      func(ctx context.Context, email string) ([]string, error)
 
 	createJoinRequestFn       func(ctx context.Context, groupID, userID, name, email string) error
 	getPendingJoinRequestFn   func(ctx context.Context, groupID, userID string) (*model.JoinRequest, error)
 	getJoinRequestFn          func(ctx context.Context, groupID, requestID string) (*model.JoinRequest, error)
 	listPendingJoinRequestsFn func(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error)
+	pendingJoinGroupIDsFn     func(ctx context.Context, userID string) ([]string, error)
 	updateJoinRequestStatusFn func(ctx context.Context, requestID, status string) error
+
+	searchGroupsFn func(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error)
 }
 
 func (m *mockGroupRepo) CreateGroup(ctx context.Context, g *model.Group) error {
@@ -85,6 +89,9 @@ func (m *mockGroupRepo) UpdateMemberPosition(ctx context.Context, groupID, membe
 func (m *mockGroupRepo) GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error) {
 	return m.getMemberByEmailFn(ctx, groupID, email)
 }
+func (m *mockGroupRepo) GroupIDsByEmail(ctx context.Context, email string) ([]string, error) {
+	return m.groupIDsByEmailFn(ctx, email)
+}
 func (m *mockGroupRepo) CreateJoinRequest(ctx context.Context, groupID, userID, name, email string) error {
 	return m.createJoinRequestFn(ctx, groupID, userID, name, email)
 }
@@ -97,8 +104,14 @@ func (m *mockGroupRepo) GetJoinRequest(ctx context.Context, groupID, requestID s
 func (m *mockGroupRepo) ListPendingJoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
 	return m.listPendingJoinRequestsFn(ctx, groupID)
 }
+func (m *mockGroupRepo) PendingJoinGroupIDs(ctx context.Context, userID string) ([]string, error) {
+	return m.pendingJoinGroupIDsFn(ctx, userID)
+}
 func (m *mockGroupRepo) UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error {
 	return m.updateJoinRequestStatusFn(ctx, requestID, status)
+}
+func (m *mockGroupRepo) SearchGroups(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+	return m.searchGroupsFn(ctx, q, limit)
 }
 
 type mockAuthUserRepo struct {
@@ -120,7 +133,7 @@ func (m *mockAuthUserRepo) UserUpdate(ctx context.Context, user *ezauthmodels.Us
 func defaultAuthMock() *mockAuthUserRepo {
 	return &mockAuthUserRepo{
 		userGetByIDFn: func(_ context.Context, id string) (*ezauthmodels.User, error) {
-			return &ezauthmodels.User{ID: id}, nil
+			return &ezauthmodels.User{ID: id, Email: id + "@example.com"}, nil
 		},
 		userGetByEmailFn: func(_ context.Context, email string) (*ezauthmodels.User, error) {
 			return nil, errors.New("not found")
@@ -180,6 +193,9 @@ func defaultMock() *mockGroupRepo {
 		getMemberByEmailFn: func(_ context.Context, groupID, email string) (*model.GroupPlayer, error) {
 			return nil, errors.New("not found")
 		},
+		groupIDsByEmailFn: func(_ context.Context, email string) ([]string, error) {
+			return nil, nil
+		},
 		createJoinRequestFn: func(_ context.Context, groupID, userID, name, email string) error {
 			return nil
 		},
@@ -192,8 +208,14 @@ func defaultMock() *mockGroupRepo {
 		listPendingJoinRequestsFn: func(_ context.Context, groupID string) ([]repository.JoinRequestInfo, error) {
 			return nil, nil
 		},
+		pendingJoinGroupIDsFn: func(_ context.Context, userID string) ([]string, error) {
+			return []string{"group-pending"}, nil
+		},
 		updateJoinRequestStatusFn: func(_ context.Context, requestID, status string) error {
 			return nil
+		},
+		searchGroupsFn: func(_ context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+			return nil, nil
 		},
 	}
 }
@@ -455,5 +477,74 @@ func TestDefaultPosition(t *testing.T) {
 		got := defaultPosition(&blank)
 		assert.NotNil(t, got)
 		assert.Eq(t, *got, model.PositionM)
+	})
+}
+
+func TestSearch(t *testing.T) {
+	results := []repository.GroupSearchResult{
+		{ID: "g-1", Name: "MoberlyFC", MemberCount: 11, CreatedBy: "user-2"},
+		{ID: "g-2", Name: "TheAngryParulas", MemberCount: 9, CreatedBy: "user-2"},
+		{ID: "g-3", Name: "MoberlyFC South", MemberCount: 4, CreatedBy: "user-1"},
+	}
+
+	t.Run("hides owned and member groups", func(t *testing.T) {
+		m := defaultMock()
+		m.searchGroupsFn = func(_ context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+			return results, nil
+		}
+		m.listGroupsFn = func(_ context.Context, userID string) ([]*model.Group, error) {
+			return []*model.Group{{ID: "g-3", Name: "MoberlyFC South", CreatedBy: "user-1"}}, nil
+		}
+		m.groupIDsByEmailFn = func(_ context.Context, email string) ([]string, error) {
+			return []string{"g-1"}, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		out, err := svc.Search(context.Background(), "mo", "user-1")
+		assert.NoErr(t, err)
+		assert.Eq(t, len(out), 1)
+		assert.Eq(t, out[0].Group.ID, "g-2")
+	})
+
+	t.Run("marksPendingGroups", func(t *testing.T) {
+		m := defaultMock()
+		m.searchGroupsFn = func(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+			return results, nil
+		}
+		m.pendingJoinGroupIDsFn = func(_ context.Context, userID string) ([]string, error) {
+			return []string{"g-2"}, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		out, err := svc.Search(context.Background(), "mo", "user-1")
+		assert.NoErr(t, err)
+		found := false
+		for _, r := range out {
+			if r.Group.ID == "g-2" {
+				found = true
+				assert.Eq(t, r.Pending, true)
+			}
+		}
+		assert.Eq(t, found, true)
+	})
+
+	t.Run("anonymousSeesAll", func(t *testing.T) {
+		m := defaultMock()
+		m.searchGroupsFn = func(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+			return results, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		out, err := svc.Search(context.Background(), "moberly", "")
+		assert.NoErr(t, err)
+		assert.Eq(t, len(out), 3)
+	})
+
+	t.Run("emptyQueryReturnsEverything", func(t *testing.T) {
+		m := defaultMock()
+		m.searchGroupsFn = func(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error) {
+			return results, nil
+		}
+		svc := NewGroupService(m, defaultAuthMock())
+		out, err := svc.Search(context.Background(), "", "")
+		assert.NoErr(t, err)
+		assert.Eq(t, len(out), 3)
 	})
 }

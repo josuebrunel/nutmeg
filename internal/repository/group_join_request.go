@@ -62,6 +62,20 @@ func (r *Repository) ListPendingJoinRequests(ctx context.Context, groupID string
 	return bob.All[JoinRequestInfo](ctx, r.db, query, scan.StructMapper[JoinRequestInfo]())
 }
 
+// PendingJoinGroupIDs returns the ids of every group where userID currently
+// has a pending join request — used by group discovery to show "request
+// pending" instead of a join button on groups the viewer already applied to.
+func (r *Repository) PendingJoinGroupIDs(ctx context.Context, userID string) ([]string, error) {
+	query := psql.Select(
+		sm.Columns(psql.Raw("group_id")),
+		sm.From("group_join_requests"),
+		sm.Where(psql.Quote("user_id").EQ(psql.Arg(userID))),
+		sm.Where(psql.Quote("status").EQ(psql.Arg("pending"))),
+		sm.Distinct(),
+	)
+	return bob.All[string](ctx, r.db, query, scan.SingleColumnMapper[string])
+}
+
 func (r *Repository) UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error {
 	query := psql.Update(
 		um.Table("group_join_requests"),

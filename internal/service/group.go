@@ -28,12 +28,16 @@ type GroupRepository interface {
 	UpdateMemberRole(ctx context.Context, groupID, memberID, role string) error
 	UpdateMemberPosition(ctx context.Context, groupID, memberID, position string) error
 	GetMemberByEmail(ctx context.Context, groupID, email string) (*model.GroupPlayer, error)
+	GroupIDsByEmail(ctx context.Context, email string) ([]string, error)
 
 	CreateJoinRequest(ctx context.Context, groupID, userID, name, email string) error
 	GetPendingJoinRequest(ctx context.Context, groupID, userID string) (*model.JoinRequest, error)
 	GetJoinRequest(ctx context.Context, groupID, requestID string) (*model.JoinRequest, error)
 	ListPendingJoinRequests(ctx context.Context, groupID string) ([]repository.JoinRequestInfo, error)
+	PendingJoinGroupIDs(ctx context.Context, userID string) ([]string, error)
 	UpdateJoinRequestStatus(ctx context.Context, requestID, status string) error
+
+	SearchGroups(ctx context.Context, q string, limit int) ([]repository.GroupSearchResult, error)
 }
 
 // AuthUserRepository is the subset of ezauth's user repository GroupService
@@ -154,6 +158,73 @@ func (s *GroupService) Members(ctx context.Context, groupID string) ([]repositor
 		return nil, fmt.Errorf("list members: %w", err)
 	}
 	return members, nil
+}
+
+// maxSearchResults caps how many groups a discovery search returns — the
+// browse page shows name/description/roster-size cards, and beyond a couple
+// dozen results the list stops being scannable (users refine their query
+// instead).
+const maxSearchResults = 25
+
+// GroupSearchResult is a discoverable group plus the viewer's relationship
+// to it: Joined marks groups the viewer already owns or is on the roster of
+// (hidden by the handler), Pending marks groups with an open join request
+// (shown with a "request pending" state instead of a join button).
+type GroupSearchResult struct {
+	Group       *model.Group
+	MemberCount int
+	Pending     bool
+}
+
+// Search finds groups matching q for the discovery page, hiding the groups
+// viewer already belongs to (owned, or on the roster under viewer's account
+// email) and flagging which of the rest already have a pending join request
+// from them. viewerID is empty for anonymous visitors, who get the full
+// result set — the page still lets them browse, just not request to join.
+func (s *GroupService) Search(ctx context.Context, q string, viewerID string) ([]GroupSearchResult, error) {
+	results, err := s.repo.SearchGroups(ctx, q, maxSearchResults)
+	if err != nil {
+		return nil, fmt.Errorf("search groups: %w", err)
+	}
+
+	hide := make(map[string]bool)
+	pending := make(map[string]bool)
+	if viewerID != "" {
+		owned, err := s.repo.ListGroups(ctx, viewerID)
+		if err != nil {
+			return nil, fmt.Errorf("list viewer groups: %w", err)
+		}
+		for _, g := range owned {
+			hide[g.ID] = true
+		}
+
+		if user, err := s.authRepo.UserGetByID(ctx, viewerID); err == nil {
+			if ids, err := s.repo.GroupIDsByEmail(ctx, user.Email); err == nil {
+				for _, id := range ids {
+					hide[id] = true
+				}
+			}
+		}
+
+		if ids, err := s.repo.PendingJoinGroupIDs(ctx, viewerID); err == nil {
+			for _, id := range ids {
+				pending[id] = true
+			}
+		}
+	}
+
+	out := make([]GroupSearchResult, 0, len(results))
+	for _, r := range results {
+		if hide[r.ID] {
+			continue
+		}
+		out = append(out, GroupSearchResult{
+			Group:       &model.Group{ID: r.ID, Name: r.Name, Description: r.Description, Slug: r.Slug, CreatedBy: r.CreatedBy},
+			MemberCount: r.MemberCount,
+			Pending:     pending[r.ID],
+		})
+	}
+	return out, nil
 }
 
 // AddMember returns the new (or existing, on a name conflict) member's id.

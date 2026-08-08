@@ -342,6 +342,11 @@ func main() {
 	// LoginRequiredMiddleware, since that middleware can only redirect to a
 	// fixed static login path, not a dynamic per-group URL.
 	e.GET("/groups/:id", h.Group.Detail)
+	// Group discovery is public (browse by name, then log in to join), so it
+	// sits with the other public routes. Echo gives static routes priority
+	// over /groups/:id's param wildcard, so "find" can't be captured as a
+	// group id.
+	e.GET("/groups/find", h.Group.FindGroups)
 
 	// Authenticated routes
 	app := e.Group("")

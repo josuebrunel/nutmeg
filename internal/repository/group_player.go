@@ -110,6 +110,21 @@ func (r *Repository) UpdateMemberPosition(ctx context.Context, groupID, memberID
 	return err
 }
 
+// GroupIDsByEmail returns the distinct ids of every group whose roster has
+// a member row with the given email — used by group discovery to hide the
+// groups a viewer already belongs to (roster email matching the logged-in
+// user's account email is what makes someone a member, see
+// GroupService.ViewerJoinStatus).
+func (r *Repository) GroupIDsByEmail(ctx context.Context, email string) ([]string, error) {
+	query := psql.Select(
+		sm.Columns(psql.Raw("group_id")),
+		sm.From("group_players"),
+		sm.Where(psql.Quote("email").EQ(psql.Arg(email))),
+		sm.Distinct(),
+	)
+	return bob.All[string](ctx, r.db, query, scan.SingleColumnMapper[string])
+}
+
 func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID string) error {
 	query := psql.Delete(
 		dm.From("group_players"),

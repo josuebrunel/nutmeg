@@ -58,6 +58,63 @@ func (h *GroupHandler) New(c *echo.Context) error {
 	return page(c, "New Group", true, "", h.userName(c), groups.Form("", nil))
 }
 
+// FindGroups renders the public group discovery page — a searchable list of
+// groups the viewer can request to join. Public like the leaderboard: any
+// visitor can browse, and the request-to-join action on each card is what
+// requires an account (see RequestJoin). When the search input's debounced
+// HTMX request lands here, isHTMX short-circuits to render just the
+// results fragment so typing never navigates the page.
+func (h *GroupHandler) FindGroups(c *echo.Context) error {
+	ctx := c.Request().Context()
+	query := strings.TrimSpace(c.QueryParam("q"))
+
+	var userID string
+	isLoggedIn := false
+	userName := ""
+	if user, err := ezauth.GetUser(ctx); err == nil {
+		isLoggedIn = true
+		userName = user.DisplayName()
+		if uid, err := h.auth.GetUserID(ctx); err == nil {
+			userID = uid
+		}
+	}
+
+	results, err := h.service.Search(ctx, query, userID)
+	if err != nil {
+		slog.Error("failed to search groups", "query", query, "error", err)
+	}
+
+	entries := mapFindEntries(results)
+
+	if isHTMX(c) {
+		return render.Component(c, groups.FindResults(query, entries, isLoggedIn))
+	}
+
+	return page(c, "Find Groups", isLoggedIn, "", userName, groups.Find(query, entries, isLoggedIn))
+}
+
+// mapFindEntries converts service search results into the view's FindEntry
+// struct — the thin adapter that keeps the templ package free of service
+// types, mirroring mapLeaderboardEntries/mapMatchEntries above.
+func mapFindEntries(results []service.GroupSearchResult) []groups.FindEntry {
+	out := make([]groups.FindEntry, len(results))
+	for i, r := range results {
+		desc := ""
+		if r.Group.Description != nil {
+			desc = *r.Group.Description
+		}
+		out[i] = groups.FindEntry{
+			ID:          r.Group.ID,
+			Name:        r.Group.Name,
+			Description: desc,
+			Slug:        stringPtrValue(r.Group.Slug),
+			MemberCount: r.MemberCount,
+			Pending:     r.Pending,
+		}
+	}
+	return out
+}
+
 func (h *GroupHandler) Create(c *echo.Context) error {
 	userID, done := requireUserID(c, h.auth)
 	if done {
@@ -536,12 +593,26 @@ func (h *GroupHandler) RequestJoin(c *echo.Context) error {
 
 	if err := h.service.RequestToJoin(ctx, g, userID); err != nil {
 		logUnexpected("request to join failed", err, "group_id", id, "user_id", userID)
+		if isHTMX(c) {
+			c.Response().Header().Set(hxTrigger, toastHXTrigger(err.Error(), "error"))
+			return c.NoContent(http.StatusOK)
+		}
 		h.auth.Handler.SetFlash(ctx, "error", err.Error())
 		return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 	}
 	EnqueueEmail(ctx, h.jobs, h.adminEmails(ctx, id), "New join request for "+g.Name,
 		"Someone requested to join "+g.Name+". Review the request from the group's roster page.")
 
+	// The discovery page's request-to-join button posts here via HTMX and
+	// targets the closest [data-find-action] container (see FindCard), so a
+	// successful request swaps the button for a "Request sent" chip in place
+	// instead of redirecting — that's what makes browsing-to-joining feel
+	// seamless. Non-HTMX (the leaderboard CTA's plain form POST) keeps the
+	// historical flash + redirect flow.
+	if isHTMX(c) {
+		c.Response().Header().Set(hxTrigger, toastHXTrigger("Request sent!", "success"))
+		return render.Component(c, groups.RequestSentChip())
+	}
 	h.auth.Handler.SetFlash(ctx, "success", "Request sent! The group admin will review it.")
 	return c.Redirect(http.StatusFound, "/groups/"+id+"/leaderboard")
 }
