@@ -57,22 +57,6 @@ func (h *HomeHandler) Dashboard(c *echo.Context) error {
 	return page(c, "Dashboard", true, "", userName, home.Dashboard(groups, globalStats))
 }
 
-func (h *HomeHandler) Stats(c *echo.Context) error {
-	userID, done := requireUserID(c, h.auth)
-	if done {
-		return nil
-	}
-
-	globalStats, statsErr := h.matchSvc.GlobalStats(c.Request().Context(), userID)
-	if statsErr != nil {
-		slog.Error("failed to get global stats", "user_id", userID, "error", statsErr)
-		globalStats = &repository.GlobalStats{}
-	}
-
-	userName := h.getUserName(c)
-	return page(c, "My Stats", true, "", userName, home.Stats(globalStats))
-}
-
 func (h *HomeHandler) getUserName(c *echo.Context) string {
 	user, err := ezauth.GetUser(c.Request().Context())
 	if err != nil {

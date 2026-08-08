@@ -13,7 +13,6 @@ func Register(app *echo.Group, auth *ezauth.EzAuth, repo *repository.Repository,
 	h := handler.New(auth, repo, commentarySvc, newsSvc, jobs)
 
 	app.GET("/dashboard", h.Home.Dashboard)
-	app.GET("/stats", h.Home.Stats)
 	app.GET("/account", h.Account.Edit)
 	app.POST("/account", h.Account.Update)
 	app.POST("/account/password", h.Account.UpdatePassword)

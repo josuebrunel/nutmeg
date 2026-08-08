@@ -65,7 +65,6 @@ templ Base(title string, description string, ogImage string, isLoggedIn bool, cu
 						if isLoggedIn {
 							<nav class="hidden md:flex items-center gap-6" aria-label="App navigation">
 								<a href="/dashboard" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconGroup("size-4") Dashboard</a>
-								<a href="/stats" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconStats("size-4") My Stats</a>
 								<a href="/groups" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconUsers("size-4") Groups</a>
 								<a href="/groups/find" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconSearch("size-4") Find Groups</a>
 								<a href="/help" class="font-oswald text-pitch hover:text-turf transition-colors tracking-wider flex items-center gap-1.5">@components.IconHelp("size-4") Help</a>
@@ -102,7 +101,6 @@ templ Base(title string, description string, ogImage string, isLoggedIn bool, cu
 					if isLoggedIn {
 						<div class="px-4 pt-2 space-y-1">
 							<a href="/dashboard" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Dashboard</a>
-							<a href="/stats" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">My Stats</a>
 							<a href="/groups" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Groups</a>
 							<a href="/groups/find" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Find Groups</a>
 							<a href="/help" class="block px-4 py-3 font-oswald text-pitch hover:bg-base-200 rounded">Help</a>
